@@ -78,7 +78,7 @@ class LevelPackService {
     // Add tile sprites
     if (assets.tileSprites) {
       for (const [tileTypeId, blob] of assets.tileSprites) {
-        const tileType = TILE_TYPES.get(tileTypeId)
+        const tileType = TILE_TYPES[tileTypeId]
         if (tileType) {
           const filename = `sprites/tiles/${tileType.name.toLowerCase().replace(/\s+/g, '_')}.png`
           zip.file(filename, blob)
@@ -192,9 +192,9 @@ class LevelPackService {
     const level = jsonToLevel(levelJson)
 
     // Validate level
-    const levelValidation = validateLevel(level)
-    if (!levelValidation.valid) {
-      throw new Error(`Invalid level: ${levelValidation.errors.join(', ')}`)
+    const levelErrors = validateLevel(level)
+    if (levelErrors.length > 0) {
+      throw new Error(`Invalid level: ${levelErrors.join(', ')}`)
     }
 
     // Load assets
@@ -279,10 +279,10 @@ class LevelPackService {
         const text = await levelFile.async('string')
         const levelJson: LevelJSON = JSON.parse(text)
         const level = jsonToLevel(levelJson)
-        const levelValidation = validateLevel(level)
+        const levelErrors = validateLevel(level)
 
-        if (!levelValidation.valid) {
-          errors.push(...levelValidation.errors.map(e => `Level: ${e}`))
+        if (levelErrors.length > 0) {
+          errors.push(...levelErrors.map(e => `Level: ${e}`))
         }
       } catch (e) {
         errors.push(`Invalid level.json: ${e instanceof Error ? e.message : 'Parse error'}`)
@@ -452,10 +452,10 @@ class LevelPackService {
   private findTileTypeIdByName(name: string): TileTypeId | undefined {
     const normalizedName = name.toLowerCase().replace(/[_\s]+/g, '')
     
-    for (const [id, tileType] of TILE_TYPES) {
+    for (const [idStr, tileType] of Object.entries(TILE_TYPES)) {
       const tileName = tileType.name.toLowerCase().replace(/[_\s]+/g, '')
       if (tileName === normalizedName) {
-        return id
+        return Number(idStr) as TileTypeId
       }
     }
 

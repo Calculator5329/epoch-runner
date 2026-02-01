@@ -128,7 +128,7 @@ export class GameplayRenderer {
         // Draw tile if not empty
         if (tileId !== TileTypeId.EMPTY) {
           // Check for custom sprite first
-          const sprite = assetStore?.getTileSprite(tileId)
+          const sprite = assetStore?.getTileSprite(tileId as TileTypeId)
           if (sprite) {
             this.drawTileSprite(ctx, sprite, screenX, screenY)
           } else {

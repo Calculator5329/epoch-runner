@@ -262,7 +262,7 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
                       </button>
                     )}
                     <input
-                      ref={(el) => el && tileInputRefs.current.set(tileTypeId, el)}
+                      ref={(el) => { if (el) tileInputRefs.current.set(tileTypeId, el) }}
                       type="file"
                       accept="image/png,image/jpeg"
                       onChange={(e) => handleTileSpriteUpload(tileTypeId, e)}
@@ -543,7 +543,7 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
                     )}
                   </div>
                   <input
-                    ref={(el) => el && sfxInputRefs.current.set(sfxName, el)}
+                    ref={(el) => { if (el) sfxInputRefs.current.set(sfxName, el) }}
                     type="file"
                     accept="audio/mp3,audio/wav,audio/ogg"
                     onChange={(e) => handleSfxUpload(sfxName, e)}

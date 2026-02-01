@@ -164,7 +164,7 @@ export function validateLevel(level: LevelDefinition): string[] {
   
   // Check player spawn is not inside a solid tile
   const spawnTile = level.collision[level.playerSpawn.row]?.[level.playerSpawn.col]
-  const solidTileIds = [
+  const solidTileIds: number[] = [
     CollisionType.SOLID,
     TileTypeId.SOLID_FULL,
     TileTypeId.SOLID_HALF_LEFT,
@@ -178,7 +178,7 @@ export function validateLevel(level: LevelDefinition): string[] {
   
   // Check there's at least one goal
   let hasGoal = false
-  const goalTileIds = [CollisionType.GOAL, TileTypeId.GOAL]
+  const goalTileIds: number[] = [CollisionType.GOAL, TileTypeId.GOAL]
   for (const row of level.collision) {
     for (const tile of row) {
       if (goalTileIds.includes(tile)) {

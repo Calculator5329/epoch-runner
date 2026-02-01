@@ -21,7 +21,6 @@ import {
   speedBoost,
   superJump,
   invincibility,
-  tripleJump,
   patrolEnemy,
   entities,
 } from './helpers'

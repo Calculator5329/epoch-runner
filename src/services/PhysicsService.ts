@@ -506,7 +506,7 @@ class PhysicsService {
    * Handle player taking damage from enemy
    */
   private damageFromEnemy(
-    player: PlayerStore,
+    _player: PlayerStore,
     enemy: Entity,
     game: GameStore
   ): void {
