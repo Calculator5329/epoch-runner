@@ -1,0 +1,88 @@
+---
+description: Naming conventions for files, classes, functions, and variables
+globs: src/**/*.ts, src/**/*.tsx
+alwaysApply: false
+---
+
+# Naming Conventions
+
+Consistent naming is critical for AI agents to predict file locations and understand code purpose.
+
+## File Naming
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| **Store** | `{Name}Store.ts` | `PlayerStore.ts`, `CampaignStore.ts` |
+| **Service** | `{Name}Service.ts` | `PhysicsService.ts`, `FirebaseService.ts` |
+| **Component** | `{Name}.tsx` | `GameCanvas.tsx`, `TilePalette.tsx` |
+| **Level** | `level_{name}.ts` | `level_test.ts`, `level_tutorial_01.ts` |
+| **Types** | `{name}.types.ts` or `types.ts` | `level.types.ts` |
+| **Helpers** | `helpers.ts` or `{name}.helpers.ts` | `helpers.ts` |
+| **Constants** | `index.ts` in constants folder | `core/constants/index.ts` |
+
+## Class & Function Naming
+
+```typescript
+// Classes: PascalCase
+class PlayerStore { }
+class PhysicsService { }
+
+// Functions: camelCase
+function createLevel() { }
+function applyPlacements() { }
+
+// Constants: SCREAMING_SNAKE_CASE
+const TILE_SIZE = 64
+const MAX_FALL_SPEED = 800
+
+// Enums: PascalCase with SCREAMING members
+enum CollisionType {
+  EMPTY = 0,
+  SOLID = 1,
+}
+
+// Interfaces: PascalCase, no "I" prefix
+interface LevelDefinition { }  // ✅
+interface ILevelDefinition { } // ❌
+```
+
+## Variable Naming
+
+```typescript
+// Observable state: camelCase nouns
+x: number
+vx: number  // velocity x (short form OK for physics)
+isGrounded: boolean  // boolean prefix: is/has/can/should
+
+// Methods: camelCase verbs
+setPosition()
+applyInput()
+checkCollision()
+
+// Private methods: camelCase (no underscore prefix)
+private moveHorizontal() { }  // ✅
+private _moveHorizontal() { } // ❌
+```
+
+## Level IDs
+
+Level IDs use snake_case to match filename:
+
+```typescript
+// Filename: level_cave_escape.ts
+export const level_cave_escape = createLevel(
+  'level_cave_escape',  // ID matches filename
+  'Cave Escape',        // Display name uses Title Case
+  ...
+)
+```
+
+## Grid Terminology
+
+| Term | Meaning |
+|------|---------|
+| `col` | Column (horizontal position, x-axis) |
+| `row` | Row (vertical position, y-axis) |
+| `x`, `y` | World pixel coordinates |
+| `vx`, `vy` | Velocity components |
+| `width`, `height` | Dimensions in tiles or pixels (context-dependent) |

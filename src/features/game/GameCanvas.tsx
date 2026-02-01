@@ -20,23 +20,42 @@ export const GameCanvas = observer(function GameCanvas() {
   const rootStore = useRootStore()
   const { gameStore, playerStore, levelStore, cameraStore } = rootStore
 
+  // Track if we need to respawn (set when player dies)
+  const needsRespawnRef = useRef(false)
+  const prevLivesRef = useRef(gameStore.lives)
+
   // Main game tick function
   const tick = useCallback((deltaTime: number) => {
+    // Check if player died (lives decreased)
+    if (gameStore.lives < prevLivesRef.current && !gameStore.isGameOver) {
+      needsRespawnRef.current = true
+    }
+    prevLivesRef.current = gameStore.lives
+
+    // Handle respawn after death
+    if (needsRespawnRef.current && !gameStore.isGameOver) {
+      needsRespawnRef.current = false
+      rootStore.respawnPlayer()
+    }
+
     // 1. Consume input
     const input = inputService.consumeFrame()
 
     // 2. Apply input to player
     playerStore.applyInput(input)
 
-    // 3. Update physics
+    // 3. Update power-up timers
+    playerStore.updatePowerUps(deltaTime)
+
+    // 4. Update physics
     physicsService.update(deltaTime, playerStore, levelStore, gameStore)
 
-    // 4. Update camera to follow player
+    // 5. Update camera to follow player
     cameraService.update(deltaTime, cameraStore, playerStore, levelStore)
 
-    // 5. Render frame
+    // 6. Render frame
     canvasRenderer.draw(levelStore, playerStore, gameStore, cameraStore)
-  }, [gameStore, playerStore, levelStore, cameraStore])
+  }, [rootStore, gameStore, playerStore, levelStore, cameraStore])
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -47,6 +66,7 @@ export const GameCanvas = observer(function GameCanvas() {
       if (e.code === 'Escape') {
         gameStore.setPaused(!gameStore.isPaused)
       }
+      // F3 reserved for debug mode (future)
       // L key to list available levels
       if (e.code === 'KeyL' && e.ctrlKey) {
         e.preventDefault()
@@ -149,7 +169,7 @@ export const GameCanvas = observer(function GameCanvas() {
           <strong>Movement:</strong> Arrow keys or WASD | <strong>Jump:</strong> Space/Up
         </p>
         <p>
-          <strong>R:</strong> Restart | <strong>Esc:</strong> Pause | <strong>Ctrl+S:</strong> Save Level | <strong>Ctrl+O:</strong> Load Level
+          <strong>R:</strong> Restart | <strong>Esc:</strong> Pause | <strong>F3:</strong> Debug | <strong>Ctrl+S:</strong> Save | <strong>Ctrl+O:</strong> Load
         </p>
       </div>
       <input

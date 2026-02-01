@@ -1,13 +1,17 @@
 import { makeAutoObservable } from 'mobx'
 import { TILE_SIZE } from '../core/constants'
 import { CollisionType, type LevelData, type Vector2 } from '../core/types'
+import { TileTypeId, getTileType, isTileTypeSolid, isTileTypeHazard, isTileTypePlatform } from '../core/types/shapes'
 import type { LevelDefinition } from '../levels/types'
 
 /**
  * LevelStore - Level data and collision queries
  * 
- * Manages the current level's collision grid and provides
+ * Manages the current level's tile grid and provides
  * efficient O(1) tile lookups for physics collision detection.
+ * 
+ * Uses the new TileTypeId system for shapes, but maintains
+ * backward compatibility with CollisionType for legacy levels.
  */
 export class LevelStore {
   // Level metadata
@@ -18,25 +22,57 @@ export class LevelStore {
   width = 16
   height = 12
   
-  // Collision grid
-  collision: CollisionType[][] = []
+  // Tile grid (stores TileTypeId values)
+  // Note: For backward compatibility, also accepts legacy CollisionType values
+  collision: number[][] = []
+  
+  // Original collision grid (for reset after collecting items)
+  private originalCollision: number[][] = []
   
   // Player spawn (world coordinates)
   playerSpawn: Vector2 = { x: 0, y: 0 }
+  
+  // Starting lives for this level
+  startingLives = 3
 
   constructor() {
     makeAutoObservable(this)
     // Initialize with empty level
     this.collision = this.createEmptyGrid(this.width, this.height)
+    this.originalCollision = this.createEmptyGrid(this.width, this.height)
   }
 
   /**
-   * Create an empty collision grid
+   * Create an empty tile grid
    */
-  private createEmptyGrid(width: number, height: number): CollisionType[][] {
+  private createEmptyGrid(width: number, height: number): number[][] {
     return Array.from({ length: height }, () =>
-      Array.from({ length: width }, () => CollisionType.EMPTY)
+      Array.from({ length: width }, () => TileTypeId.EMPTY)
     )
+  }
+
+  /**
+   * Convert legacy CollisionType to new TileTypeId
+   */
+  private convertLegacyTile(tile: number): number {
+    // If it's already a new TileTypeId (>= 50), return as-is
+    if (tile >= 50) return tile
+    
+    // Convert legacy CollisionType to TileTypeId
+    switch (tile) {
+      case CollisionType.EMPTY:
+        return TileTypeId.EMPTY
+      case CollisionType.SOLID:
+        return TileTypeId.SOLID_FULL
+      case CollisionType.GOAL:
+        return TileTypeId.GOAL
+      case CollisionType.PLATFORM:
+        return TileTypeId.PLATFORM_FULL
+      case CollisionType.HAZARD:
+        return TileTypeId.HAZARD_FULL
+      default:
+        return tile // Pass through unknown values
+    }
   }
 
   /**
@@ -47,7 +83,16 @@ export class LevelStore {
     this.currentLevelName = level.name
     this.width = level.width
     this.height = level.height
-    this.collision = level.collision.map(row => [...row]) // Deep copy
+    this.startingLives = level.startingLives ?? 3
+    
+    // Convert and deep copy collision grid
+    this.collision = level.collision.map(row => 
+      row.map(tile => this.convertLegacyTile(tile))
+    )
+    this.originalCollision = level.collision.map(row => 
+      row.map(tile => this.convertLegacyTile(tile))
+    )
+    
     this.playerSpawn = {
       x: level.playerSpawn.col * TILE_SIZE,
       y: level.playerSpawn.row * TILE_SIZE,
@@ -61,27 +106,41 @@ export class LevelStore {
     if (data) {
       this.width = data.width
       this.height = data.height
-      this.collision = data.collision.map(row => [...row])
+      this.collision = data.collision.map(row => 
+        row.map(tile => this.convertLegacyTile(tile))
+      )
+      this.originalCollision = data.collision.map(row => 
+        row.map(tile => this.convertLegacyTile(tile))
+      )
       this.playerSpawn = { ...data.playerSpawn }
     } else {
       // Reset to empty
       this.width = 16
       this.height = 12
       this.collision = this.createEmptyGrid(this.width, this.height)
+      this.originalCollision = this.createEmptyGrid(this.width, this.height)
       this.playerSpawn = { x: TILE_SIZE, y: 10 * TILE_SIZE }
     }
     this.currentLevelId = null
     this.currentLevelName = null
+    this.startingLives = 3
   }
 
   /**
-   * Get tile collision type at grid coordinates
-   * Returns SOLID for out-of-bounds (acts as walls at edges)
+   * Reset level to original state (restores collected items)
    */
-  getTileAt(col: number, row: number): CollisionType {
+  resetToOriginal(): void {
+    this.collision = this.originalCollision.map(row => [...row])
+  }
+
+  /**
+   * Get tile type ID at grid coordinates
+   * Returns SOLID_FULL for out-of-bounds (acts as walls at edges)
+   */
+  getTileAt(col: number, row: number): number {
     // Treat out-of-bounds as solid (invisible walls)
     if (col < 0 || col >= this.width || row < 0 || row >= this.height) {
-      return CollisionType.SOLID
+      return TileTypeId.SOLID_FULL
     }
     return this.collision[row][col]
   }
@@ -89,35 +148,67 @@ export class LevelStore {
   /**
    * Set tile at grid coordinates
    */
-  setTileAt(col: number, row: number, type: CollisionType): void {
+  setTileAt(col: number, row: number, type: number): void {
     if (col >= 0 && col < this.width && row >= 0 && row < this.height) {
       this.collision[row][col] = type
     }
   }
 
   /**
-   * Get tile collision type at world coordinates
+   * Get tile type ID at world coordinates
    */
-  getTileAtWorld(worldX: number, worldY: number): CollisionType {
+  getTileAtWorld(worldX: number, worldY: number): number {
     const col = Math.floor(worldX / TILE_SIZE)
     const row = Math.floor(worldY / TILE_SIZE)
     return this.getTileAt(col, row)
   }
 
   /**
-   * Check if a tile is solid (blocks movement)
+   * Check if a tile blocks movement (solid category)
    */
   isSolidAt(col: number, row: number): boolean {
-    const tile = this.getTileAt(col, row)
-    return tile === CollisionType.SOLID
+    const tileId = this.getTileAt(col, row)
+    return isTileTypeSolid(tileId)
+  }
+
+  /**
+   * Check if a tile is a hazard
+   */
+  isHazardAt(col: number, row: number): boolean {
+    const tileId = this.getTileAt(col, row)
+    return isTileTypeHazard(tileId)
+  }
+
+  /**
+   * Check if a tile is a one-way platform
+   */
+  isPlatformAt(col: number, row: number): boolean {
+    const tileId = this.getTileAt(col, row)
+    return isTileTypePlatform(tileId)
   }
 
   /**
    * Check if a tile is the goal
    */
   isGoalAt(col: number, row: number): boolean {
-    const tile = this.getTileAt(col, row)
-    return tile === CollisionType.GOAL
+    const tileId = this.getTileAt(col, row)
+    return tileId === TileTypeId.GOAL
+  }
+
+  /**
+   * Check if a tile is a checkpoint
+   */
+  isCheckpointAt(col: number, row: number): boolean {
+    const tileId = this.getTileAt(col, row)
+    return tileId === TileTypeId.CHECKPOINT
+  }
+
+  /**
+   * Check if a tile is a coin
+   */
+  isCoinAt(col: number, row: number): boolean {
+    const tileId = this.getTileAt(col, row)
+    return tileId === TileTypeId.COIN
   }
 
   /**

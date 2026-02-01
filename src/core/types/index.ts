@@ -1,11 +1,15 @@
-// Collision types for tiles
+// Legacy collision types (kept for backward compatibility)
+// New code should use TileTypeId from shapes.ts
 export enum CollisionType {
   EMPTY = 0,
   SOLID = 1,
   GOAL = 2,
-  PLATFORM = 3,  // Future: pass-through from below
-  HAZARD = 4,    // Future: triggers damage
+  PLATFORM = 3,
+  HAZARD = 4,
 }
+
+// Re-export shape system
+export * from './shapes'
 
 // Input state snapshot consumed each frame
 export interface InputState {

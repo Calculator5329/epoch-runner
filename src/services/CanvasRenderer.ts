@@ -1,5 +1,6 @@
 import { TILE_SIZE, COLORS, VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '../core/constants'
-import { CollisionType } from '../core/types'
+import { getTileType, TileTypeId, SHAPES } from '../core/types/shapes'
+import type { CollisionShape, NormalizedPoint } from '../core/types/shapes'
 import type { PlayerStore } from '../stores/PlayerStore'
 import type { LevelStore } from '../stores/LevelStore'
 import type { GameStore } from '../stores/GameStore'
@@ -45,17 +46,21 @@ class CanvasRenderer {
     // Draw player (with camera offset)
     this.drawPlayer(ctx, playerStore, cameraStore)
 
+    // Draw HUD (screen space)
+    this.drawHUD(ctx, gameStore, playerStore)
+
     // Draw UI overlays (in screen space, no camera offset)
     if (gameStore.levelComplete) {
-      this.drawLevelComplete(ctx, VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
+      this.drawLevelComplete(ctx, gameStore)
     }
 
-    if (gameStore.isPaused) {
-      this.drawPaused(ctx, VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
+    if (gameStore.isGameOver) {
+      this.drawGameOver(ctx, gameStore)
     }
 
-    // Draw debug info (optional)
-    // this.drawDebugInfo(ctx, cameraStore, playerStore, levelStore)
+    if (gameStore.isPaused && !gameStore.levelComplete && !gameStore.isGameOver) {
+      this.drawPaused(ctx)
+    }
   }
 
   /**
@@ -74,7 +79,8 @@ class CanvasRenderer {
 
     for (let row = startRow; row < endRow; row++) {
       for (let col = startCol; col < endCol; col++) {
-        const tile = level.collision[row][col]
+        const tileId = level.collision[row][col]
+        const tileType = getTileType(tileId)
         
         // World position
         const worldX = col * TILE_SIZE
@@ -84,22 +90,14 @@ class CanvasRenderer {
         const screenX = worldX - camera.x
         const screenY = worldY - camera.y
 
-        // Set color based on tile type
-        switch (tile) {
-          case CollisionType.EMPTY:
-            ctx.fillStyle = COLORS.empty
-            break
-          case CollisionType.SOLID:
-            ctx.fillStyle = COLORS.solid
-            break
-          case CollisionType.GOAL:
-            ctx.fillStyle = COLORS.goal
-            break
-          default:
-            ctx.fillStyle = COLORS.empty
-        }
-
+        // Draw background for all tiles
+        ctx.fillStyle = COLORS.empty
         ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE)
+
+        // Draw tile shape if not empty
+        if (tileId !== TileTypeId.EMPTY) {
+          this.drawTileShape(ctx, tileType.collision, tileType.color, screenX, screenY)
+        }
 
         // Draw tile border for visual separation
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'
@@ -107,6 +105,59 @@ class CanvasRenderer {
         ctx.strokeRect(screenX, screenY, TILE_SIZE, TILE_SIZE)
       }
     }
+  }
+
+  /**
+   * Draw a tile's collision shape
+   */
+  private drawTileShape(
+    ctx: CanvasRenderingContext2D,
+    shape: CollisionShape,
+    color: string,
+    screenX: number,
+    screenY: number
+  ): void {
+    ctx.fillStyle = color
+
+    if (shape.type === 'none') {
+      return
+    }
+
+    if (shape.type === 'rect' && shape.rect) {
+      const x = screenX + shape.rect.x * TILE_SIZE
+      const y = screenY + shape.rect.y * TILE_SIZE
+      const w = shape.rect.w * TILE_SIZE
+      const h = shape.rect.h * TILE_SIZE
+      ctx.fillRect(x, y, w, h)
+    }
+
+    if (shape.type === 'polygon' && shape.vertices) {
+      this.drawPolygon(ctx, shape.vertices, screenX, screenY)
+    }
+  }
+
+  /**
+   * Draw a polygon shape
+   */
+  private drawPolygon(
+    ctx: CanvasRenderingContext2D,
+    vertices: NormalizedPoint[],
+    screenX: number,
+    screenY: number
+  ): void {
+    if (vertices.length < 3) return
+
+    ctx.beginPath()
+    const first = vertices[0]
+    ctx.moveTo(screenX + first.x * TILE_SIZE, screenY + first.y * TILE_SIZE)
+
+    for (let i = 1; i < vertices.length; i++) {
+      const v = vertices[i]
+      ctx.lineTo(screenX + v.x * TILE_SIZE, screenY + v.y * TILE_SIZE)
+    }
+
+    ctx.closePath()
+    ctx.fill()
   }
 
   /**
@@ -122,33 +173,113 @@ class CanvasRenderer {
     const screenY = player.y - camera.y
 
     // Player body
-    ctx.fillStyle = COLORS.player
+    ctx.fillStyle = player.isDead ? '#666' : COLORS.player
     ctx.fillRect(screenX, screenY, player.width, player.height)
 
     // Player outline
-    ctx.strokeStyle = COLORS.playerOutline
+    ctx.strokeStyle = player.isDead ? '#444' : COLORS.playerOutline
     ctx.lineWidth = 2
     ctx.strokeRect(screenX, screenY, player.width, player.height)
 
     // Direction indicator (small triangle showing facing direction)
-    ctx.fillStyle = COLORS.playerOutline
-    const centerY = screenY + player.height / 2
-    const indicatorSize = 8
-    
-    ctx.beginPath()
-    if (player.isFacingRight) {
-      const rightEdge = screenX + player.width
-      ctx.moveTo(rightEdge - 4, centerY - indicatorSize)
-      ctx.lineTo(rightEdge + 4, centerY)
-      ctx.lineTo(rightEdge - 4, centerY + indicatorSize)
-    } else {
-      const leftEdge = screenX
-      ctx.moveTo(leftEdge + 4, centerY - indicatorSize)
-      ctx.lineTo(leftEdge - 4, centerY)
-      ctx.lineTo(leftEdge + 4, centerY + indicatorSize)
+    if (!player.isDead) {
+      ctx.fillStyle = COLORS.playerOutline
+      const centerY = screenY + player.height / 2
+      const indicatorSize = 8
+      
+      ctx.beginPath()
+      if (player.isFacingRight) {
+        const rightEdge = screenX + player.width
+        ctx.moveTo(rightEdge - 4, centerY - indicatorSize)
+        ctx.lineTo(rightEdge + 4, centerY)
+        ctx.lineTo(rightEdge - 4, centerY + indicatorSize)
+      } else {
+        const leftEdge = screenX
+        ctx.moveTo(leftEdge + 4, centerY - indicatorSize)
+        ctx.lineTo(leftEdge - 4, centerY)
+        ctx.lineTo(leftEdge + 4, centerY + indicatorSize)
+      }
+      ctx.closePath()
+      ctx.fill()
     }
-    ctx.closePath()
+
+    // Double jump indicator
+    if (player.hasDoubleJump) {
+      ctx.fillStyle = COLORS.powerup
+      ctx.beginPath()
+      ctx.arc(screenX + player.width / 2, screenY - 10, 6, 0, Math.PI * 2)
+      ctx.fill()
+      
+      // Timer bar
+      const timerWidth = 30
+      const timerHeight = 4
+      const timerX = screenX + player.width / 2 - timerWidth / 2
+      const timerY = screenY - 20
+      const fillRatio = player.doubleJumpTimer / 10  // Assuming 10 second duration
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
+      ctx.fillRect(timerX, timerY, timerWidth, timerHeight)
+      ctx.fillStyle = COLORS.powerup
+      ctx.fillRect(timerX, timerY, timerWidth * fillRatio, timerHeight)
+    }
+  }
+
+  /**
+   * Draw HUD (lives, coins, etc.)
+   */
+  private drawHUD(
+    ctx: CanvasRenderingContext2D,
+    game: GameStore,
+    player: PlayerStore
+  ): void {
+    const padding = 20
+    
+    // Lives (top-left)
+    ctx.fillStyle = '#ffffff'
+    ctx.font = 'bold 24px Arial'
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'top'
+    
+    // Draw heart icons
+    for (let i = 0; i < game.maxLives; i++) {
+      const heartX = padding + i * 35
+      const heartY = padding
+      
+      ctx.fillStyle = i < game.lives ? '#e53e3e' : '#4a5568'
+      ctx.beginPath()
+      // Simple heart shape
+      ctx.moveTo(heartX + 12, heartY + 6)
+      ctx.bezierCurveTo(heartX + 12, heartY + 2, heartX + 6, heartY, heartX + 6, heartY + 6)
+      ctx.bezierCurveTo(heartX + 6, heartY + 12, heartX + 12, heartY + 18, heartX + 12, heartY + 22)
+      ctx.bezierCurveTo(heartX + 12, heartY + 18, heartX + 18, heartY + 12, heartX + 18, heartY + 6)
+      ctx.bezierCurveTo(heartX + 18, heartY, heartX + 12, heartY + 2, heartX + 12, heartY + 6)
+      ctx.fill()
+    }
+
+    // Coins (top-right)
+    ctx.fillStyle = COLORS.coin
+    ctx.beginPath()
+    ctx.arc(VIEWPORT_WIDTH - padding - 80, padding + 12, 12, 0, Math.PI * 2)
     ctx.fill()
+    ctx.strokeStyle = '#d69e2e'
+    ctx.lineWidth = 2
+    ctx.stroke()
+    
+    ctx.fillStyle = '#ffffff'
+    ctx.textAlign = 'right'
+    ctx.fillText(`${game.coinsThisAttempt}`, VIEWPORT_WIDTH - padding - 100, padding)
+    
+    // Total coins (smaller, below)
+    ctx.font = '14px Arial'
+    ctx.fillStyle = '#aaa'
+    ctx.fillText(`Total: ${game.totalCoins}`, VIEWPORT_WIDTH - padding, padding + 30)
+
+    // Replay multiplier if applicable
+    if (game.replayMultiplier < 1) {
+      ctx.font = '12px Arial'
+      ctx.fillStyle = '#888'
+      ctx.fillText(`(${Math.round(game.replayMultiplier * 100)}% rate)`, VIEWPORT_WIDTH - padding, padding + 48)
+    }
   }
 
   /**
@@ -156,44 +287,68 @@ class CanvasRenderer {
    */
   private drawLevelComplete(
     ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number
+    game: GameStore
   ): void {
     // Semi-transparent overlay
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'
-    ctx.fillRect(0, 0, width, height)
+    ctx.fillRect(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
 
     // Success message
     ctx.fillStyle = COLORS.goal
     ctx.font = 'bold 64px Arial'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText('LEVEL COMPLETE!', width / 2, height / 2 - 40)
+    ctx.fillText('LEVEL COMPLETE!', VIEWPORT_WIDTH / 2, VIEWPORT_HEIGHT / 2 - 60)
+
+    // Coins earned
+    ctx.fillStyle = COLORS.coin
+    ctx.font = 'bold 32px Arial'
+    ctx.fillText(`+${game.coinsThisAttempt} coins`, VIEWPORT_WIDTH / 2, VIEWPORT_HEIGHT / 2)
 
     // Subtitle
     ctx.fillStyle = '#ffffff'
     ctx.font = '24px Arial'
-    ctx.fillText('Press R to restart', width / 2, height / 2 + 40)
+    ctx.fillText('Press R to restart', VIEWPORT_WIDTH / 2, VIEWPORT_HEIGHT / 2 + 60)
+  }
+
+  /**
+   * Draw game over overlay
+   */
+  private drawGameOver(
+    ctx: CanvasRenderingContext2D,
+    game: GameStore
+  ): void {
+    // Semi-transparent overlay
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'
+    ctx.fillRect(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
+
+    // Game over message
+    ctx.fillStyle = COLORS.hazard
+    ctx.font = 'bold 64px Arial'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('GAME OVER', VIEWPORT_WIDTH / 2, VIEWPORT_HEIGHT / 2 - 40)
+
+    // Subtitle
+    ctx.fillStyle = '#ffffff'
+    ctx.font = '24px Arial'
+    ctx.fillText('Press R to restart', VIEWPORT_WIDTH / 2, VIEWPORT_HEIGHT / 2 + 40)
   }
 
   /**
    * Draw paused overlay (screen space)
    */
-  private drawPaused(
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number
-  ): void {
+  private drawPaused(ctx: CanvasRenderingContext2D): void {
     // Semi-transparent overlay
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
-    ctx.fillRect(0, 0, width, height)
+    ctx.fillRect(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
 
     // Paused text
     ctx.fillStyle = '#ffffff'
     ctx.font = 'bold 48px Arial'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText('PAUSED', width / 2, height / 2)
+    ctx.fillText('PAUSED', VIEWPORT_WIDTH / 2, VIEWPORT_HEIGHT / 2)
   }
 
   /**
@@ -207,7 +362,7 @@ class CanvasRenderer {
     level: LevelStore
   ): void {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'
-    ctx.fillRect(10, 10, 200, 100)
+    ctx.fillRect(10, 60, 200, 120)
     
     ctx.fillStyle = '#ffffff'
     ctx.font = '12px monospace'
@@ -219,11 +374,12 @@ class CanvasRenderer {
       `Player: (${player.x.toFixed(0)}, ${player.y.toFixed(0)})`,
       `Velocity: (${player.vx.toFixed(0)}, ${player.vy.toFixed(0)})`,
       `Grounded: ${player.isGrounded}`,
+      `Jumps: ${player.jumpsRemaining}`,
       `Level: ${level.width}x${level.height}`,
     ]
     
     lines.forEach((line, i) => {
-      ctx.fillText(line, 20, 20 + i * 16)
+      ctx.fillText(line, 20, 70 + i * 16)
     })
   }
 }

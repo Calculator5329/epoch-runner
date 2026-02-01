@@ -1,5 +1,13 @@
 import { TILE_SIZE, GRAVITY, MAX_FALL_SPEED } from '../core/constants'
-import { CollisionType } from '../core/types'
+import { TileTypeId, getTileType, isTileTypeSolid, isTileTypeHazard, isTileTypePlatform } from '../core/types/shapes'
+import {
+  checkSolidCollision,
+  checkHazardCollision,
+  checkPickupCollision,
+  checkPlatformCollision,
+  checkTileCollisions,
+  checkShapeCollision,
+} from './CollisionUtils'
 import type { PlayerStore } from '../stores/PlayerStore'
 import type { LevelStore } from '../stores/LevelStore'
 import type { GameStore } from '../stores/GameStore'
@@ -7,7 +15,7 @@ import type { GameStore } from '../stores/GameStore'
 /**
  * PhysicsService - Stateless physics and collision logic
  * 
- * Handles gravity, movement, and collision detection/response.
+ * Handles gravity, movement, and shape-based collision detection/response.
  * Reads from stores, writes position updates back to PlayerStore.
  */
 class PhysicsService {
@@ -20,10 +28,13 @@ class PhysicsService {
     levelStore: LevelStore,
     gameStore: GameStore
   ): void {
-    // Don't update if game is paused or complete
-    if (gameStore.isPaused || gameStore.levelComplete) {
+    // Don't update if game is paused, complete, or game over
+    if (gameStore.isPaused || gameStore.levelComplete || gameStore.isGameOver) {
       return
     }
+
+    // Store previous position for platform collision
+    const prevY = playerStore.y
 
     // Apply gravity
     playerStore.vy += GRAVITY * deltaTime
@@ -41,14 +52,20 @@ class PhysicsService {
     this.moveHorizontal(playerStore, levelStore, moveX)
     
     // Then move and collide vertically
-    this.moveVertical(playerStore, levelStore, moveY)
+    this.moveVertical(playerStore, levelStore, moveY, prevY)
 
-    // Check for goal collision
-    this.checkGoal(playerStore, levelStore, gameStore)
+    // Check for hazard collision
+    this.checkHazards(playerStore, levelStore, gameStore)
+
+    // Check for pickups (coins, powerups)
+    this.checkPickups(playerStore, levelStore, gameStore)
+
+    // Check for triggers (goal, checkpoint)
+    this.checkTriggers(playerStore, levelStore, gameStore)
   }
 
   /**
-   * Move player horizontally with collision detection
+   * Move player horizontally with shape-based collision detection
    */
   private moveHorizontal(
     player: PlayerStore,
@@ -58,19 +75,50 @@ class PhysicsService {
     if (moveX === 0) return
 
     const newX = player.x + moveX
+    const aabb = {
+      x: newX,
+      y: player.y,
+      width: player.width,
+      height: player.height,
+    }
+
+    const getTile = (col: number, row: number) => level.getTileAt(col, row)
 
     // Check collision at new position
-    if (this.checkHorizontalCollision(newX, player.y, player.width, player.height, level)) {
+    if (checkSolidCollision(aabb, getTile, level.width, level.height)) {
       // Hit a wall - snap to tile edge
       if (moveX > 0) {
-        // Moving right - snap to left edge of tile
-        const rightEdge = newX + player.width
-        const tileCol = Math.floor(rightEdge / TILE_SIZE)
-        player.x = tileCol * TILE_SIZE - player.width
+        // Moving right - find the leftmost collision and snap to its left edge
+        const collisions = checkTileCollisions(aabb, getTile, level.width, level.height, isTileTypeSolid)
+        if (collisions.length > 0) {
+          let minX = Infinity
+          for (const col of collisions) {
+            const tileType = getTileType(col.tileId)
+            if (tileType.collision.type === 'rect' && tileType.collision.rect) {
+              const shapeLeft = col.tileX + tileType.collision.rect.x * TILE_SIZE
+              minX = Math.min(minX, shapeLeft)
+            } else {
+              minX = Math.min(minX, col.tileX)
+            }
+          }
+          player.x = minX - player.width
+        }
       } else {
-        // Moving left - snap to right edge of tile
-        const tileCol = Math.floor(newX / TILE_SIZE)
-        player.x = (tileCol + 1) * TILE_SIZE
+        // Moving left - find the rightmost collision and snap to its right edge
+        const collisions = checkTileCollisions(aabb, getTile, level.width, level.height, isTileTypeSolid)
+        if (collisions.length > 0) {
+          let maxX = -Infinity
+          for (const col of collisions) {
+            const tileType = getTileType(col.tileId)
+            if (tileType.collision.type === 'rect' && tileType.collision.rect) {
+              const shapeRight = col.tileX + (tileType.collision.rect.x + tileType.collision.rect.w) * TILE_SIZE
+              maxX = Math.max(maxX, shapeRight)
+            } else {
+              maxX = Math.max(maxX, col.tileX + TILE_SIZE)
+            }
+          }
+          player.x = maxX
+        }
       }
       player.vx = 0
     } else {
@@ -79,29 +127,85 @@ class PhysicsService {
   }
 
   /**
-   * Move player vertically with collision detection
+   * Move player vertically with shape-based collision detection
    */
   private moveVertical(
     player: PlayerStore,
     level: LevelStore,
-    moveY: number
+    moveY: number,
+    prevY: number
   ): void {
     if (moveY === 0) return
 
     const newY = player.y + moveY
+    const aabb = {
+      x: player.x,
+      y: newY,
+      width: player.width,
+      height: player.height,
+    }
 
-    // Check collision at new position
-    if (this.checkVerticalCollision(player.x, newY, player.width, player.height, level)) {
+    const getTile = (col: number, row: number) => level.getTileAt(col, row)
+
+    // Check solid collision
+    const solidCollision = checkSolidCollision(aabb, getTile, level.width, level.height)
+    
+    // Check one-way platform collision (only when falling)
+    const platformAabb = { ...aabb, y: prevY + moveY }
+    const platformCollision = checkPlatformCollision(
+      platformAabb, 
+      prevY, 
+      getTile, 
+      level.width, 
+      level.height
+    )
+
+    if (solidCollision || platformCollision) {
       if (moveY > 0) {
-        // Falling - land on ground
-        const bottomEdge = newY + player.height
-        const tileRow = Math.floor(bottomEdge / TILE_SIZE)
-        player.y = tileRow * TILE_SIZE - player.height
-        player.isGrounded = true
+        // Falling - land on ground or platform
+        const collisions = checkTileCollisions(aabb, getTile, level.width, level.height, 
+          (id) => isTileTypeSolid(id) || isTileTypePlatform(id))
+        
+        if (collisions.length > 0) {
+          let minY = Infinity
+          for (const col of collisions) {
+            const tileType = getTileType(col.tileId)
+            
+            // Skip platforms if we were below them
+            if (isTileTypePlatform(col.tileId)) {
+              const platformTop = col.tileY + (tileType.collision.rect?.y || 0) * TILE_SIZE
+              const prevBottom = prevY + player.height
+              if (prevBottom > platformTop + 1) continue
+            }
+            
+            if (tileType.collision.type === 'rect' && tileType.collision.rect) {
+              const shapeTop = col.tileY + tileType.collision.rect.y * TILE_SIZE
+              minY = Math.min(minY, shapeTop)
+            } else {
+              minY = Math.min(minY, col.tileY)
+            }
+          }
+          if (minY !== Infinity) {
+            player.y = minY - player.height
+            player.isGrounded = true
+          }
+        }
       } else {
         // Jumping up - hit ceiling
-        const tileRow = Math.floor(newY / TILE_SIZE)
-        player.y = (tileRow + 1) * TILE_SIZE
+        const collisions = checkTileCollisions(aabb, getTile, level.width, level.height, isTileTypeSolid)
+        if (collisions.length > 0) {
+          let maxY = -Infinity
+          for (const col of collisions) {
+            const tileType = getTileType(col.tileId)
+            if (tileType.collision.type === 'rect' && tileType.collision.rect) {
+              const shapeBottom = col.tileY + (tileType.collision.rect.y + tileType.collision.rect.h) * TILE_SIZE
+              maxY = Math.max(maxY, shapeBottom)
+            } else {
+              maxY = Math.max(maxY, col.tileY + TILE_SIZE)
+            }
+          }
+          player.y = maxY
+        }
       }
       player.vy = 0
     } else {
@@ -112,59 +216,8 @@ class PhysicsService {
       }
     }
 
-    // Double-check grounded state by checking tile directly below
+    // Double-check grounded state
     this.updateGroundedState(player, level)
-  }
-
-  /**
-   * Check for horizontal collision (left/right walls)
-   */
-  private checkHorizontalCollision(
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    level: LevelStore
-  ): boolean {
-    // Check multiple points along the vertical edge
-    const leftCol = Math.floor(x / TILE_SIZE)
-    const rightCol = Math.floor((x + width - 1) / TILE_SIZE)
-    
-    const topRow = Math.floor(y / TILE_SIZE)
-    const bottomRow = Math.floor((y + height - 1) / TILE_SIZE)
-
-    // Check all tiles the player overlaps
-    for (let row = topRow; row <= bottomRow; row++) {
-      if (level.isSolidAt(leftCol, row) || level.isSolidAt(rightCol, row)) {
-        return true
-      }
-    }
-    return false
-  }
-
-  /**
-   * Check for vertical collision (floor/ceiling)
-   */
-  private checkVerticalCollision(
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    level: LevelStore
-  ): boolean {
-    const leftCol = Math.floor(x / TILE_SIZE)
-    const rightCol = Math.floor((x + width - 1) / TILE_SIZE)
-    
-    const topRow = Math.floor(y / TILE_SIZE)
-    const bottomRow = Math.floor((y + height - 1) / TILE_SIZE)
-
-    // Check all tiles the player overlaps
-    for (let col = leftCol; col <= rightCol; col++) {
-      if (level.isSolidAt(col, topRow) || level.isSolidAt(col, bottomRow)) {
-        return true
-      }
-    }
-    return false
   }
 
   /**
@@ -172,42 +225,110 @@ class PhysicsService {
    */
   private updateGroundedState(player: PlayerStore, level: LevelStore): void {
     // Check a small distance below the player's feet
-    const checkY = player.y + player.height + 1
-    const leftCol = Math.floor(player.x / TILE_SIZE)
-    const rightCol = Math.floor((player.x + player.width - 1) / TILE_SIZE)
-    const row = Math.floor(checkY / TILE_SIZE)
-
-    // Check if any tile below is solid
-    for (let col = leftCol; col <= rightCol; col++) {
-      if (level.isSolidAt(col, row)) {
-        player.isGrounded = true
-        return
-      }
+    const aabb = {
+      x: player.x,
+      y: player.y + player.height + 1,
+      width: player.width,
+      height: 2,
     }
-    player.isGrounded = false
+
+    const getTile = (col: number, row: number) => level.getTileAt(col, row)
+    
+    // Check for solid or platform tiles below
+    const belowCollision = checkTileCollisions(
+      aabb, 
+      getTile, 
+      level.width, 
+      level.height,
+      (id) => isTileTypeSolid(id) || isTileTypePlatform(id)
+    )
+
+    player.isGrounded = belowCollision.length > 0
   }
 
   /**
-   * Check if player has reached the goal
+   * Check for hazard collisions
    */
-  private checkGoal(
+  private checkHazards(
     player: PlayerStore,
     level: LevelStore,
     game: GameStore
   ): void {
-    // Get tiles the player is overlapping
-    const leftCol = Math.floor(player.x / TILE_SIZE)
-    const rightCol = Math.floor((player.x + player.width - 1) / TILE_SIZE)
-    const topRow = Math.floor(player.y / TILE_SIZE)
-    const bottomRow = Math.floor((player.y + player.height - 1) / TILE_SIZE)
+    const aabb = {
+      x: player.x,
+      y: player.y,
+      width: player.width,
+      height: player.height,
+    }
 
-    // Check if any overlapping tile is the goal
-    for (let row = topRow; row <= bottomRow; row++) {
-      for (let col = leftCol; col <= rightCol; col++) {
-        if (level.isGoalAt(col, row)) {
-          game.setLevelComplete(true)
-          return
-        }
+    const getTile = (col: number, row: number) => level.getTileAt(col, row)
+    const hazard = checkHazardCollision(aabb, getTile, level.width, level.height)
+
+    if (hazard) {
+      game.onPlayerDeath()
+    }
+  }
+
+  /**
+   * Check for pickup collisions (coins, powerups)
+   */
+  private checkPickups(
+    player: PlayerStore,
+    level: LevelStore,
+    game: GameStore
+  ): void {
+    const aabb = {
+      x: player.x,
+      y: player.y,
+      width: player.width,
+      height: player.height,
+    }
+
+    const getTile = (col: number, row: number) => level.getTileAt(col, row)
+    const pickups = checkPickupCollision(aabb, getTile, level.width, level.height)
+
+    for (const pickup of pickups) {
+      if (pickup.tileId === TileTypeId.COIN) {
+        game.collectCoin(pickup.col, pickup.row)
+        level.setTileAt(pickup.col, pickup.row, TileTypeId.EMPTY)
+      } else if (pickup.tileId === TileTypeId.POWERUP_DOUBLE_JUMP) {
+        player.grantDoubleJump()
+        level.setTileAt(pickup.col, pickup.row, TileTypeId.EMPTY)
+      }
+    }
+  }
+
+  /**
+   * Check for trigger collisions (goal, checkpoint)
+   */
+  private checkTriggers(
+    player: PlayerStore,
+    level: LevelStore,
+    game: GameStore
+  ): void {
+    const aabb = {
+      x: player.x,
+      y: player.y,
+      width: player.width,
+      height: player.height,
+    }
+
+    const getTile = (col: number, row: number) => level.getTileAt(col, row)
+    
+    // Check all tiles player overlaps for triggers
+    const triggers = checkTileCollisions(
+      aabb,
+      getTile,
+      level.width,
+      level.height,
+      (id) => id === TileTypeId.GOAL || id === TileTypeId.CHECKPOINT
+    )
+
+    for (const trigger of triggers) {
+      if (trigger.tileId === TileTypeId.GOAL) {
+        game.completeLevel()
+      } else if (trigger.tileId === TileTypeId.CHECKPOINT) {
+        game.setCheckpoint(trigger.col, trigger.row)
       }
     }
   }

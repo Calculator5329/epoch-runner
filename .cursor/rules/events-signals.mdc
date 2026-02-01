@@ -1,0 +1,129 @@
+---
+description: Event/signal patterns for decoupled communication (future implementation)
+globs: src/core/events/**/*.ts, src/services/*Service.ts
+alwaysApply: false
+---
+
+# Events & Signals Pattern
+
+For decoupled communication between systems without tight coupling.
+
+## When to Use Events
+
+Use events when:
+- Multiple systems need to react to something (player death triggers: camera shake, sound, respawn timer)
+- The emitter shouldn't know about all listeners
+- You need to add behaviors without modifying existing code
+
+Don't use events when:
+- Direct method call is clearer (store methods)
+- Only one consumer exists
+- Timing/order matters critically
+
+## Event System Design (When Implemented)
+
+```typescript
+// core/events/GameEvents.ts
+export type GameEventMap = {
+  'player:died': { position: Vector2; cause: string }
+  'player:jumped': { position: Vector2 }
+  'player:landed': { position: Vector2; fallDistance: number }
+  'level:completed': { levelId: string; time: number }
+  'level:loaded': { levelId: string }
+  'coin:collected': { position: Vector2; value: number }
+  'checkpoint:reached': { position: Vector2 }
+  'enemy:defeated': { enemyId: string; position: Vector2 }
+}
+
+// Type-safe event emitter
+class GameEventEmitter {
+  private listeners: Map<string, Set<Function>> = new Map()
+  
+  emit<K extends keyof GameEventMap>(event: K, data: GameEventMap[K]): void {
+    this.listeners.get(event)?.forEach(fn => fn(data))
+  }
+  
+  on<K extends keyof GameEventMap>(
+    event: K, 
+    callback: (data: GameEventMap[K]) => void
+  ): () => void {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, new Set())
+    }
+    this.listeners.get(event)!.add(callback)
+    
+    // Return unsubscribe function
+    return () => this.listeners.get(event)?.delete(callback)
+  }
+}
+
+export const gameEvents = new GameEventEmitter()
+```
+
+## Usage Pattern
+
+```typescript
+// In PhysicsService - emit events
+if (player.health <= 0) {
+  gameEvents.emit('player:died', { 
+    position: { x: player.x, y: player.y },
+    cause: 'enemy_collision'
+  })
+}
+
+// In AudioService - listen for events
+gameEvents.on('player:died', ({ cause }) => {
+  audioService.play(cause === 'hazard' ? 'death_hazard' : 'death_enemy')
+})
+
+// In CameraService - listen for events
+gameEvents.on('player:died', () => {
+  cameraService.shake(0.5, 10)  // duration, intensity
+})
+
+// In GameStore - listen for events
+gameEvents.on('level:completed', ({ time }) => {
+  this.recordCompletionTime(time)
+})
+```
+
+## Integration with Stores
+
+Events complement stores, not replace them:
+
+```typescript
+// Store handles state
+class PlayerStore {
+  health = 3
+  
+  damage(amount: number): void {
+    this.health -= amount
+    
+    // Emit event for side effects
+    if (this.health <= 0) {
+      gameEvents.emit('player:died', { ... })
+    }
+  }
+}
+```
+
+## Cleanup Pattern
+
+Always unsubscribe in React components:
+
+```typescript
+useEffect(() => {
+  const unsubscribe = gameEvents.on('player:died', handleDeath)
+  return unsubscribe
+}, [])
+```
+
+## Current Status
+
+**Not yet implemented.** This pattern is planned for when we need:
+- Audio system (sound effects on game events)
+- Particle system (effects on impacts, deaths)
+- Achievement system (track player actions)
+- Analytics (record gameplay events)
+
+For now, use direct store method calls.

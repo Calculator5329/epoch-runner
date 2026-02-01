@@ -52,6 +52,50 @@ Goal: Single hardcoded level with player movement, collision, and win state.
 - [x] **Test Level**
   - [x] 40x15 level_test for camera scrolling verification
 
+## Gameplay Systems
+*Priority: Immediate - Completed*
+
+- [x] **Collision Shape System**
+  - [x] TileTypeId enum with categorized tile types
+  - [x] CollisionShape definitions (rect, polygon)
+  - [x] Predefined shapes (full, half, quarter, slopes, spikes)
+  - [x] AABB vs shape collision detection (CollisionUtils)
+  - [x] PhysicsService updated for shape-based collision
+
+- [x] **Hazards & Lives**
+  - [x] Hazard tile types (spikes up/down/left/right, hazard block)
+  - [x] Lives system (default 3, configurable per level)
+  - [x] Death on hazard contact
+  - [x] Game over state when lives = 0
+
+- [x] **Checkpoints**
+  - [x] Checkpoint tile type
+  - [x] Mid-level respawn at checkpoint
+  - [x] Reset coins on death (not on game over)
+
+- [x] **Coin Economy**
+  - [x] Coin tile type and collection
+  - [x] coinsThisAttempt (reset on death)
+  - [x] totalCoins (persistent wallet)
+  - [x] Replay multiplier (0.9^n for completed levels)
+  - [x] HUD display for lives and coins
+
+- [x] **Power-ups**
+  - [x] Double jump power-up (10 second duration)
+  - [x] jumpsRemaining system (1 normal, 2 with powerup)
+  - [x] Visual indicator for active power-up
+
+- [x] **One-Way Platforms**
+  - [x] Platform tile types
+  - [x] Pass-through from below, land from above
+
+- [x] **Age 0 Test Levels**
+  - [x] level_0_basic - Basic platforming
+  - [x] level_0_shapes - Half/quarter blocks, slopes
+  - [x] level_0_hazards - Spikes and hazard gauntlet
+  - [x] level_0_coins - Coin collection, checkpoints
+  - [x] level_0_powerup - Double jump challenges
+
 ---
 
 ## Phase 1: Engine Foundation (Post-MVP)

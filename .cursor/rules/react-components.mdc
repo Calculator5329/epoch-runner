@@ -1,0 +1,155 @@
+---
+description: React component patterns for Epoch Runner UI layer
+globs: src/features/**/*.tsx, src/components/**/*.tsx
+alwaysApply: false
+---
+
+# React Component Patterns
+
+UI layer components observe stores and render. No business logic in components.
+
+## Component Structure
+
+```typescript
+import { observer } from 'mobx-react-lite'
+import { useGameStore, usePlayerStore } from '../../stores/RootStore'
+
+interface Props {
+  // Props if needed (prefer stores over props for game state)
+}
+
+/**
+ * ComponentName - Brief description
+ * 
+ * What it renders and when.
+ */
+export const ComponentName = observer(function ComponentName({ }: Props) {
+  // 1. Store hooks
+  const gameStore = useGameStore()
+  const playerStore = usePlayerStore()
+
+  // 2. Local state (for UI-only concerns like hover, focus)
+  const [isHovered, setIsHovered] = useState(false)
+
+  // 3. Effects (sparingly - prefer MobX reactions in stores)
+  useEffect(() => {
+    // Setup/cleanup only, not state synchronization
+  }, [])
+
+  // 4. Handlers (delegate to stores immediately)
+  const handleClick = () => {
+    gameStore.startGame()  // Store method, not inline logic
+  }
+
+  // 5. Render
+  return (
+    <div onClick={handleClick}>
+      {/* JSX */}
+    </div>
+  )
+})
+```
+
+## Key Rules
+
+### Always Use `observer`
+
+```typescript
+// ✅ CORRECT - Wrapped with observer
+export const GameCanvas = observer(function GameCanvas() {
+  const { isRunning } = useGameStore()
+  return <canvas className={isRunning ? 'active' : ''} />
+})
+
+// ❌ WRONG - Missing observer (won't react to changes)
+export const GameCanvas = function GameCanvas() {
+  const { isRunning } = useGameStore()
+  return <canvas className={isRunning ? 'active' : ''} />
+}
+```
+
+### Named Function Expression
+
+Use named function expression for better debugging:
+
+```typescript
+// ✅ CORRECT - Named function
+export const MyComponent = observer(function MyComponent() { })
+
+// ❌ AVOID - Arrow function (worse stack traces)
+export const MyComponent = observer(() => { })
+```
+
+### Delegate to Stores
+
+```typescript
+// ✅ CORRECT - Delegate to store
+const handleJump = () => {
+  playerStore.requestJump()
+}
+
+// ❌ WRONG - Logic in component
+const handleJump = () => {
+  if (playerStore.isGrounded) {
+    playerStore.vy = -550
+    playerStore.isGrounded = false
+  }
+}
+```
+
+## Canvas Components
+
+For canvas-based components, use refs and avoid re-render loops:
+
+```typescript
+export const GameCanvas = observer(function GameCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    // Initialize renderer/services with ctx
+    canvasRenderer.init(ctx)
+    
+    return () => {
+      // Cleanup if needed
+    }
+  }, [])
+
+  return <canvas ref={canvasRef} width={1024} height={768} />
+})
+```
+
+## Feature Organization
+
+```
+features/
+├── game/
+│   ├── GameCanvas.tsx      # Main canvas component
+│   ├── GameHUD.tsx         # Overlay UI (pause, score)
+│   └── hooks/
+│       └── useGameInit.ts  # Initialization hook
+├── editor/
+│   ├── EditorCanvas.tsx    # Editor main view
+│   ├── TilePalette.tsx     # Tile selection
+│   └── LayerPanel.tsx      # Layer controls
+└── campaign/
+    ├── LevelSelect.tsx     # Level browser
+    └── Overworld.tsx       # Map view
+```
+
+## Cross-Feature Communication
+
+Features never import from each other. Use stores:
+
+```typescript
+// ❌ WRONG - Direct import across features
+import { EditorTool } from '../editor/types'
+
+// ✅ CORRECT - Communicate through stores
+const { selectedTool } = useEditorStore()
+```

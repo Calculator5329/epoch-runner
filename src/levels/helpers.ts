@@ -1,12 +1,12 @@
-import { CollisionType } from '../core/types'
+import { CollisionType, TileTypeId } from '../core/types'
 import type { TilePlacement, LevelDefinition, GridPosition } from './types'
 
 /**
  * Create an empty collision grid filled with EMPTY tiles
  */
-export function createEmptyGrid(width: number, height: number): CollisionType[][] {
+export function createEmptyGrid(width: number, height: number): number[][] {
   return Array.from({ length: height }, () => 
-    Array.from({ length: width }, () => CollisionType.EMPTY)
+    Array.from({ length: width }, () => TileTypeId.EMPTY)
   )
 }
 
@@ -16,8 +16,8 @@ export function createEmptyGrid(width: number, height: number): CollisionType[][
 export function buildGrid(
   width: number,
   height: number,
-  fn: (col: number, row: number) => CollisionType
-): CollisionType[][] {
+  fn: (col: number, row: number) => number
+): number[][] {
   return Array.from({ length: height }, (_, row) =>
     Array.from({ length: width }, (_, col) => fn(col, row))
   )
@@ -27,9 +27,9 @@ export function buildGrid(
  * Apply tile placements to a grid
  */
 export function applyPlacements(
-  grid: CollisionType[][],
+  grid: number[][],
   placements: TilePlacement[]
-): CollisionType[][] {
+): number[][] {
   // Clone the grid
   const result = grid.map(row => [...row])
   
@@ -44,7 +44,7 @@ export function applyPlacements(
 }
 
 // ============================================
-// Tile Placement Helpers
+// Basic Solid Tile Helpers
 // ============================================
 
 /**
@@ -54,7 +54,7 @@ export function platform(startCol: number, row: number, length: number): TilePla
   return Array.from({ length }, (_, i) => ({
     col: startCol + i,
     row,
-    type: CollisionType.SOLID,
+    type: TileTypeId.SOLID_FULL,
   }))
 }
 
@@ -65,15 +65,8 @@ export function wall(col: number, startRow: number, height: number): TilePlaceme
   return Array.from({ length: height }, (_, i) => ({
     col,
     row: startRow + i,
-    type: CollisionType.SOLID,
+    type: TileTypeId.SOLID_FULL,
   }))
-}
-
-/**
- * Place a goal tile
- */
-export function goal(col: number, row: number): TilePlacement[] {
-  return [{ col, row, type: CollisionType.GOAL }]
 }
 
 /**
@@ -84,7 +77,7 @@ export function rect(
   startRow: number,
   width: number,
   height: number,
-  type: CollisionType = CollisionType.SOLID
+  type: number = TileTypeId.SOLID_FULL
 ): TilePlacement[] {
   const placements: TilePlacement[] = []
   for (let row = startRow; row < startRow + height; row++) {
@@ -103,7 +96,7 @@ export function hollowRect(
   startRow: number,
   width: number,
   height: number,
-  type: CollisionType = CollisionType.SOLID
+  type: number = TileTypeId.SOLID_FULL
 ): TilePlacement[] {
   const placements: TilePlacement[] = []
   
@@ -121,6 +114,267 @@ export function hollowRect(
   
   return placements
 }
+
+// ============================================
+// Partial Block Helpers
+// ============================================
+
+/**
+ * Place a half block (left side)
+ */
+export function halfBlockLeft(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.SOLID_HALF_LEFT }]
+}
+
+/**
+ * Place a half block (right side)
+ */
+export function halfBlockRight(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.SOLID_HALF_RIGHT }]
+}
+
+/**
+ * Place a half block (top)
+ */
+export function halfBlockTop(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.SOLID_HALF_TOP }]
+}
+
+/**
+ * Place a half block (bottom)
+ */
+export function halfBlockBottom(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.SOLID_HALF_BOTTOM }]
+}
+
+/**
+ * Place a quarter block
+ */
+export function quarterBlock(col: number, row: number, corner: 'tl' | 'tr' | 'bl' | 'br'): TilePlacement[] {
+  const typeMap = {
+    tl: TileTypeId.SOLID_QUARTER_TL,
+    tr: TileTypeId.SOLID_QUARTER_TR,
+    bl: TileTypeId.SOLID_QUARTER_BL,
+    br: TileTypeId.SOLID_QUARTER_BR,
+  }
+  return [{ col, row, type: typeMap[corner] }]
+}
+
+// ============================================
+// Slope Helpers
+// ============================================
+
+/**
+ * Place a slope going up to the right
+ */
+export function slopeUpRight(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.SOLID_SLOPE_UP_RIGHT }]
+}
+
+/**
+ * Place a slope going up to the left
+ */
+export function slopeUpLeft(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.SOLID_SLOPE_UP_LEFT }]
+}
+
+/**
+ * Create a ramp going up-right over multiple tiles
+ */
+export function rampUpRight(startCol: number, startRow: number, length: number): TilePlacement[] {
+  const placements: TilePlacement[] = []
+  for (let i = 0; i < length; i++) {
+    placements.push({
+      col: startCol + i,
+      row: startRow - i,
+      type: TileTypeId.SOLID_SLOPE_UP_RIGHT,
+    })
+    // Fill below with solid
+    for (let j = startRow - i + 1; j <= startRow; j++) {
+      placements.push({
+        col: startCol + i,
+        row: j,
+        type: TileTypeId.SOLID_FULL,
+      })
+    }
+  }
+  return placements
+}
+
+/**
+ * Create a ramp going up-left over multiple tiles
+ */
+export function rampUpLeft(startCol: number, startRow: number, length: number): TilePlacement[] {
+  const placements: TilePlacement[] = []
+  for (let i = 0; i < length; i++) {
+    placements.push({
+      col: startCol - i,
+      row: startRow - i,
+      type: TileTypeId.SOLID_SLOPE_UP_LEFT,
+    })
+    // Fill below with solid
+    for (let j = startRow - i + 1; j <= startRow; j++) {
+      placements.push({
+        col: startCol - i,
+        row: j,
+        type: TileTypeId.SOLID_FULL,
+      })
+    }
+  }
+  return placements
+}
+
+// ============================================
+// One-Way Platform Helpers
+// ============================================
+
+/**
+ * Create a one-way platform (can jump through from below)
+ */
+export function oneWayPlatform(startCol: number, row: number, length: number): TilePlacement[] {
+  return Array.from({ length }, (_, i) => ({
+    col: startCol + i,
+    row,
+    type: TileTypeId.PLATFORM_FULL,
+  }))
+}
+
+// ============================================
+// Hazard Helpers
+// ============================================
+
+/**
+ * Place a hazard block
+ */
+export function hazard(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.HAZARD_FULL }]
+}
+
+/**
+ * Create a row of spikes pointing up
+ */
+export function spikesUp(startCol: number, row: number, length: number): TilePlacement[] {
+  return Array.from({ length }, (_, i) => ({
+    col: startCol + i,
+    row,
+    type: TileTypeId.HAZARD_SPIKE_UP,
+  }))
+}
+
+/**
+ * Create a row of spikes pointing down
+ */
+export function spikesDown(startCol: number, row: number, length: number): TilePlacement[] {
+  return Array.from({ length }, (_, i) => ({
+    col: startCol + i,
+    row,
+    type: TileTypeId.HAZARD_SPIKE_DOWN,
+  }))
+}
+
+/**
+ * Create a column of spikes pointing left
+ */
+export function spikesLeft(col: number, startRow: number, height: number): TilePlacement[] {
+  return Array.from({ length: height }, (_, i) => ({
+    col,
+    row: startRow + i,
+    type: TileTypeId.HAZARD_SPIKE_LEFT,
+  }))
+}
+
+/**
+ * Create a column of spikes pointing right
+ */
+export function spikesRight(col: number, startRow: number, height: number): TilePlacement[] {
+  return Array.from({ length: height }, (_, i) => ({
+    col,
+    row: startRow + i,
+    type: TileTypeId.HAZARD_SPIKE_RIGHT,
+  }))
+}
+
+// ============================================
+// Pickup Helpers
+// ============================================
+
+/**
+ * Place a coin
+ */
+export function coin(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.COIN }]
+}
+
+/**
+ * Place multiple coins at positions
+ */
+export function coins(positions: GridPosition[]): TilePlacement[] {
+  return positions.map(pos => ({
+    col: pos.col,
+    row: pos.row,
+    type: TileTypeId.COIN,
+  }))
+}
+
+/**
+ * Create a row of coins
+ */
+export function coinRow(startCol: number, row: number, length: number): TilePlacement[] {
+  return Array.from({ length }, (_, i) => ({
+    col: startCol + i,
+    row,
+    type: TileTypeId.COIN,
+  }))
+}
+
+/**
+ * Create an arc of coins (for jumping paths)
+ */
+export function coinArc(startCol: number, peakRow: number, length: number, height: number = 2): TilePlacement[] {
+  const placements: TilePlacement[] = []
+  const mid = Math.floor(length / 2)
+  
+  for (let i = 0; i < length; i++) {
+    const distFromMid = Math.abs(i - mid)
+    const rowOffset = Math.floor((distFromMid / mid) * height)
+    placements.push({
+      col: startCol + i,
+      row: peakRow + rowOffset,
+      type: TileTypeId.COIN,
+    })
+  }
+  
+  return placements
+}
+
+/**
+ * Place a double jump power-up
+ */
+export function doubleJump(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.POWERUP_DOUBLE_JUMP }]
+}
+
+// ============================================
+// Trigger Helpers
+// ============================================
+
+/**
+ * Place a goal tile
+ */
+export function goal(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.GOAL }]
+}
+
+/**
+ * Place a checkpoint
+ */
+export function checkpoint(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.CHECKPOINT }]
+}
+
+// ============================================
+// Stair Helpers
+// ============================================
 
 /**
  * Create stairs going up-right
@@ -140,7 +394,7 @@ export function stairsUpRight(
     
     // Each step is a platform
     for (let w = 0; w < stepWidth; w++) {
-      placements.push({ col: col + w, row, type: CollisionType.SOLID })
+      placements.push({ col: col + w, row, type: TileTypeId.SOLID_FULL })
     }
   }
   
@@ -164,7 +418,7 @@ export function stairsUpLeft(
     const row = startRow - step * stepHeight
     
     for (let w = 0; w < stepWidth; w++) {
-      placements.push({ col: col + w, row, type: CollisionType.SOLID })
+      placements.push({ col: col + w, row, type: TileTypeId.SOLID_FULL })
     }
   }
   
@@ -188,6 +442,7 @@ export function createLevel(
   options?: {
     description?: string
     author?: string
+    startingLives?: number
     parTime?: number
     themeId?: string
   }

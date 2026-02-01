@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react'
+import { TILE_SIZE } from '../core/constants'
 import { GameStore } from './GameStore'
 import { PlayerStore } from './PlayerStore'
 import { LevelStore } from './LevelStore'
@@ -37,45 +38,71 @@ export class RootStore {
       this.playerStore,
       this.gameStore
     )
+    
+    // Initialize game store for the level
+    if (this.levelStore.currentLevelId) {
+      this.gameStore.initLevel(
+        this.levelStore.currentLevelId,
+        this.levelStore.startingLives
+      )
+    }
   }
 
   /**
    * Load a level by ID from the registry
    */
   loadLevel(levelId: string): boolean {
-    return levelLoaderService.loadFromRegistry(
+    const success = levelLoaderService.loadFromRegistry(
       levelId,
       this.levelStore,
       this.cameraStore,
       this.playerStore,
       this.gameStore
     )
+    
+    if (success) {
+      this.gameStore.initLevel(levelId, this.levelStore.startingLives)
+    }
+    
+    return success
   }
 
   /**
    * Load a level definition directly
    */
   loadLevelDefinition(level: LevelDefinition): boolean {
-    return levelLoaderService.loadLevel(
+    const success = levelLoaderService.loadLevel(
       level,
       this.levelStore,
       this.cameraStore,
       this.playerStore,
       this.gameStore
     )
+    
+    if (success) {
+      this.gameStore.initLevel(level.id, level.startingLives ?? 3)
+    }
+    
+    return success
   }
 
   /**
    * Load a level from JSON data
    */
   loadLevelFromJSON(json: LevelJSON): { success: boolean; errors: string[] } {
-    return levelLoaderService.loadFromJSON(
+    const result = levelLoaderService.loadFromJSON(
       json,
       this.levelStore,
       this.cameraStore,
       this.playerStore,
       this.gameStore
     )
+    
+    if (result.success) {
+      this.gameStore.initLevel(json.id, json.startingLives ?? 3)
+    }
+    
+    return result
   }
 
   /**
@@ -93,10 +120,36 @@ export class RootStore {
   }
 
   /**
-   * Reset all stores for level restart
+   * Respawn player after death (at checkpoint or level start)
+   */
+  respawnPlayer(): void {
+    const checkpoint = this.gameStore.spawnPosition
+    
+    let spawnPos = this.levelStore.playerSpawn
+    if (checkpoint) {
+      // Convert grid to world coordinates
+      spawnPos = {
+        x: checkpoint.col * TILE_SIZE,
+        y: checkpoint.row * TILE_SIZE,
+      }
+    }
+    
+    this.playerStore.respawn(spawnPos)
+    
+    // Center camera on spawn
+    const playerCenter = this.playerStore.center
+    this.cameraStore.setPosition(
+      playerCenter.x - this.cameraStore.viewportWidth / 2,
+      playerCenter.y - this.cameraStore.viewportHeight / 2
+    )
+  }
+
+  /**
+   * Reset all stores for level restart (R key)
    */
   reset(): void {
     this.gameStore.reset()
+    this.levelStore.resetToOriginal()
     this.playerStore.reset(this.levelStore.playerSpawn)
     
     // Reset camera to player spawn

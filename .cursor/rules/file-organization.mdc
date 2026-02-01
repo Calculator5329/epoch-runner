@@ -1,0 +1,169 @@
+---
+description: File organization and where to put new code in Epoch Runner
+globs: src/**/*
+alwaysApply: true
+---
+
+# File Organization
+
+This rule helps AI agents know exactly where to create or modify files.
+
+## Directory Structure
+
+```
+src/
+├── core/                     # Shared foundations
+│   ├── types/                # TypeScript interfaces & enums
+│   │   └── index.ts          # Re-exports all types
+│   └── constants/            # Global constants
+│       └── index.ts          # TILE_SIZE, GRAVITY, etc.
+│
+├── services/                 # Stateless business logic
+│   ├── PhysicsService.ts     # Movement, collision
+│   ├── InputService.ts       # Keyboard handling
+│   ├── CanvasRenderer.ts     # Drawing to canvas
+│   ├── CameraService.ts      # Camera following
+│   ├── GameLoopService.ts    # RAF orchestration
+│   └── LevelLoaderService.ts # Level loading/saving
+│
+├── stores/                   # MobX state containers
+│   ├── RootStore.ts          # Store composition + context
+│   ├── GameStore.ts          # Game loop state
+│   ├── PlayerStore.ts        # Player state
+│   ├── LevelStore.ts         # Active level data
+│   └── CameraStore.ts        # Viewport state
+│
+├── levels/                   # Level definitions
+│   ├── index.ts              # Registry + exports
+│   ├── types.ts              # Level interfaces
+│   ├── helpers.ts            # Building functions
+│   └── level_*.ts            # Individual levels
+│
+├── features/                 # Feature modules (React)
+│   ├── game/                 # Core gameplay
+│   │   └── GameCanvas.tsx
+│   ├── editor/               # Level builder (future)
+│   │   ├── EditorCanvas.tsx
+│   │   ├── TilePalette.tsx
+│   │   └── LayerPanel.tsx
+│   └── campaign/             # Progression (future)
+│       └── LevelSelect.tsx
+│
+├── components/               # Shared React components
+│   └── ui/                   # Buttons, modals, etc.
+│
+└── assets/                   # Static files
+    ├── sprites/              # Spritesheets
+    ├── themes/               # Theme definitions
+    └── audio/                # Sound effects, music
+```
+
+## Decision Tree: Where Does It Go?
+
+```
+Is it shared state? ──────────────────────────────────────┐
+  │                                                       │
+  ├─ Yes: PlayerStore, LevelStore, etc.                   │
+  │       → stores/{Name}Store.ts                         │
+  │                                                       │
+  └─ No: Does it have side effects (API, canvas, etc.)?   │
+         │                                                │
+         ├─ Yes: Stateless logic that operates on stores  │
+         │       → services/{Name}Service.ts              │
+         │                                                │
+         └─ No: Is it a React component?                  │
+                │                                         │
+                ├─ Yes: Part of a specific feature?       │
+                │       │                                 │
+                │       ├─ Yes → features/{feature}/      │
+                │       └─ No  → components/              │
+                │                                         │
+                └─ No: Is it a type/interface?            │
+                       │                                  │
+                       ├─ Level-related → levels/types.ts │
+                       └─ Global → core/types/index.ts    │
+```
+
+## Adding New Files
+
+### New Store
+
+```bash
+# Create file
+src/stores/CampaignStore.ts
+
+# Update RootStore.ts to include it
+# Add convenience hook: useCampaignStore()
+```
+
+### New Service
+
+```bash
+# Create file
+src/services/AudioService.ts
+
+# Export singleton at bottom:
+export const audioService = new AudioService()
+```
+
+### New Level
+
+```bash
+# Create file (or use npm run new:level <name>)
+src/levels/level_tutorial_01.ts
+
+# Register in src/levels/index.ts
+import { level_tutorial_01 } from './level_tutorial_01'
+export const levelRegistry = {
+  ...
+  [level_tutorial_01.id]: level_tutorial_01,
+}
+```
+
+### New Type/Interface
+
+```bash
+# Game-wide types
+src/core/types/index.ts
+
+# Level-specific types
+src/levels/types.ts
+
+# Entity-specific types (future)
+src/core/types/entities.ts
+```
+
+### New React Feature
+
+```bash
+# Create feature folder
+src/features/inventory/
+
+# Add components inside
+src/features/inventory/InventoryPanel.tsx
+src/features/inventory/ItemSlot.tsx
+```
+
+## Import Order Convention
+
+```typescript
+// 1. External packages
+import { observer } from 'mobx-react-lite'
+import { useEffect, useRef } from 'react'
+
+// 2. Internal - core
+import { TILE_SIZE } from '../core/constants'
+import type { Vector2 } from '../core/types'
+
+// 3. Internal - stores
+import { usePlayerStore } from '../stores/RootStore'
+
+// 4. Internal - services
+import { physicsService } from '../services/PhysicsService'
+
+// 5. Internal - local (same feature)
+import { LocalComponent } from './LocalComponent'
+
+// 6. Styles (if any)
+import './Component.css'
+```

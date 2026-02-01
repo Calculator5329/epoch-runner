@@ -52,6 +52,12 @@
 - Created `/add-platform` - Add platforms/obstacles to levels
 - Created `/explain-physics` - Physics system documentation
 - Created `/debug-collision` - Collision troubleshooting guide
+- Created `/add-store` - Create new MobX store with proper patterns
+- Created `/add-service` - Create new stateless service
+- Created `/add-entity` - Add enemy, collectible, or trigger
+- Created `/check-patterns` - Validate code against architecture rules
+- Created `/project-overview` - Quick project context for agent onboarding
+- Created `/refactor-component` - Split large components following patterns
 
 #### Project Rules
 - Created `.cursor/rules/architecture.mdc` - Three-layer separation (always applies)
@@ -59,6 +65,13 @@
 - Created `.cursor/rules/service-patterns.mdc` - Stateless singleton services
 - Created `.cursor/rules/level-building.mdc` - Level definition patterns
 - Created `.cursor/rules/grid-physics.mdc` - Coordinate systems and physics conventions
+- Created `.cursor/rules/naming-conventions.mdc` - File, class, function, variable naming
+- Created `.cursor/rules/react-components.mdc` - React/MobX component patterns
+- Created `.cursor/rules/entity-patterns.mdc` - Enemy, collectible, trigger patterns (future)
+- Created `.cursor/rules/file-organization.mdc` - Where to put new files (always applies)
+- Created `.cursor/rules/common-pitfalls.mdc` - AI agent mistake prevention (always applies)
+- Created `.cursor/rules/events-signals.mdc` - Event system blueprint (future)
+- Created `.cursor/rules/testing-patterns.mdc` - Test file patterns (when tests added)
 
 #### Code-Based Level Builder
 - Created `src/stores/CameraStore.ts` - Camera position, deadzone, bounds clamping
@@ -71,6 +84,76 @@
 - Created `src/services/LevelLoaderService.ts` - Load/save levels from registry or JSON
 - Updated `src/stores/RootStore.ts` - Level loading and export methods
 - Updated `src/features/game/GameCanvas.tsx` - File import/export UI (Ctrl+S, Ctrl+O)
+
+#### Quality of Life Improvements
+- Added debug mode toggle (F3 key) - Shows camera, player position, velocity, grounded state
+- Created barrel exports `src/services/index.ts` and `src/stores/index.ts` for cleaner imports
+- Fixed `scripts/validate-levels.js` bug (was calling wrong API method)
+- Added `debugMode` observable to GameStore
+- Updated CanvasRenderer to conditionally show debug info
+
+### Session: 2026-01-31 (Gameplay Systems)
+
+#### Collision Shape System
+- Created `src/core/types/shapes.ts` - TileTypeId enum, CollisionShape, SHAPES, TileType registry
+- Created `src/services/CollisionUtils.ts` - AABB/polygon collision, SAT algorithm
+- Predefined shapes: FULL, HALF_LEFT/RIGHT/TOP/BOTTOM, QUARTER_TL/TR/BL/BR, slopes, spikes
+- Updated `src/services/PhysicsService.ts` - Shape-based collision detection
+
+#### Hazards & Lives System
+- Added TileTypeId values for hazards (HAZARD_FULL, HAZARD_SPIKE_UP/DOWN/LEFT/RIGHT)
+- Updated GameStore with lives, maxLives, isGameOver, onPlayerDeath()
+- Death respawns player at checkpoint or level start
+- Game over screen when lives = 0
+- Updated CanvasRenderer with heart icons for lives
+
+#### Checkpoints & Respawning
+- Added TileTypeId.CHECKPOINT tile type
+- GameStore tracks lastCheckpoint position
+- RootStore.respawnPlayer() handles respawn logic
+- Coins reset on death, preserved on game over
+
+#### Coin Economy
+- Added TileTypeId.COIN tile type
+- GameStore tracks coinsThisAttempt, totalCoins, levelEarnings
+- Replay multiplier: 0.9^n for completed levels
+- HUD shows current coins and total wallet
+- Coins collected are removed from level grid
+
+#### Power-ups (Double Jump)
+- Added TileTypeId.POWERUP_DOUBLE_JUMP tile type
+- PlayerStore: hasDoubleJump, jumpsRemaining, doubleJumpTimer
+- 10 second duration, visual indicator above player
+- Jump allowed when jumpsRemaining > 0, reset on landing
+
+#### One-Way Platforms
+- Added TileTypeId.PLATFORM_FULL/HALF_LEFT/HALF_RIGHT
+- Platform collision only from above (when falling)
+- Player can jump through from below
+
+#### Level Building Helpers (New)
+- `halfBlockLeft/Right/Top/Bottom()` - Half-tile collision
+- `quarterBlock(col, row, corner)` - Quarter-tile collision
+- `slopeUpRight/UpLeft()` - Slope tiles
+- `rampUpRight/UpLeft()` - Multi-tile ramps with fill
+- `oneWayPlatform()` - Pass-through platforms
+- `hazard()`, `spikesUp/Down/Left/Right()` - Hazard tiles
+- `coin()`, `coins()`, `coinRow()`, `coinArc()` - Coin placement
+- `doubleJump()` - Power-up placement
+- `checkpoint()` - Checkpoint tile
+
+#### Age 0 Test Levels
+- `level_0_basic` - Basic platforming (renamed from level_test)
+- `level_0_shapes` - Half blocks, quarter blocks, slopes demo
+- `level_0_hazards` - Spike pits, wall spikes, hazard maze
+- `level_0_coins` - Coin collection, arcs, checkpoints
+- `level_0_powerup` - Double jump challenges, timed sections
+
+#### Store Updates
+- GameStore: lives, coins, checkpoints, game over, replay multiplier
+- PlayerStore: double jump, jumpsRemaining, death state
+- LevelStore: startingLives, resetToOriginal(), tile type helpers
+- RootStore: respawnPlayer(), level initialization
 
 ---
 

@@ -1,0 +1,198 @@
+---
+description: Entity patterns for enemies, collectibles, and interactive objects
+globs: src/**/entities/**/*.ts, src/stores/EntityStore.ts
+alwaysApply: false
+---
+
+# Entity Patterns
+
+Entities are game objects beyond tiles: enemies, collectibles, triggers, NPCs.
+
+## Entity Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     EntityStore                              │
+│  • Manages all active entities                               │
+│  • Entity creation/destruction                               │
+│  • Entity lookup by ID or type                               │
+├─────────────────────────────────────────────────────────────┤
+│                     EntityService                            │
+│  • Entity update logic (AI, physics)                         │
+│  • Entity-player collision                                   │
+│  • Entity-entity collision                                   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Entity Interface
+
+```typescript
+interface Entity {
+  id: string                    // Unique runtime ID
+  type: EntityType              // Category for behavior
+  definitionId: string          // Points to static definition
+  
+  // Position (world pixels)
+  x: number
+  y: number
+  
+  // Dimensions
+  width: number
+  height: number
+  
+  // State
+  isActive: boolean             // Can be interacted with
+  health?: number               // For destructible entities
+  
+  // Behavior-specific data
+  data: Record<string, unknown>
+}
+
+type EntityType = 
+  | 'enemy_patrol'      // Walks back and forth
+  | 'enemy_static'      // Stationary hazard
+  | 'enemy_flying'      // Aerial enemy
+  | 'collectible_coin'  // Currency pickup
+  | 'collectible_powerup'
+  | 'checkpoint'        // Save progress
+  | 'trigger_zone'      // Event trigger
+  | 'npc'               // Dialog/quest giver
+```
+
+## Entity Definition (Static Data)
+
+```typescript
+// In core/types/entities.ts
+interface EntityDefinition {
+  id: string                    // e.g., 'enemy_goomba'
+  type: EntityType
+  displayName: string
+  
+  // Default dimensions
+  width: number
+  height: number
+  
+  // Behavior parameters
+  speed?: number                // Movement speed
+  damage?: number               // Damage dealt to player
+  health?: number               // Starting health
+  
+  // Visual (future)
+  spriteId?: string
+  animationId?: string
+}
+```
+
+## Level Entity Placement
+
+```typescript
+// In level definition
+interface EntitySpawn {
+  definitionId: string          // 'enemy_goomba'
+  position: GridPosition        // Grid coords
+  properties?: {                // Override defaults
+    patrolRange?: number
+    startDirection?: 'left' | 'right'
+    respawns?: boolean
+  }
+}
+
+// Example level with entities
+export const level_with_enemies = createLevel(
+  'level_with_enemies',
+  'Danger Zone',
+  30, 15,
+  { col: 2, row: 12 },
+  tiles(
+    ground(30, 14),
+    // ...
+  ),
+  {
+    entities: [
+      { definitionId: 'enemy_patrol', position: { col: 10, row: 13 } },
+      { definitionId: 'collectible_coin', position: { col: 15, row: 10 } },
+    ]
+  }
+)
+```
+
+## Entity Update Flow
+
+```typescript
+// In GameLoopService tick order:
+// 1. InputService.consumeFrame()
+// 2. PlayerStore.applyInput()
+// 3. EntityService.update()      // NEW - Update all entities
+// 4. PhysicsService.update()     // Player + entity physics
+// 5. CollisionService.check()    // Player-entity collisions
+// 6. CameraStore.follow()
+// 7. CanvasRenderer.draw()
+```
+
+## EntityStore Pattern
+
+```typescript
+class EntityStore {
+  entities: Map<string, Entity> = new Map()
+  
+  constructor() {
+    makeAutoObservable(this)
+  }
+  
+  spawn(definition: EntityDefinition, position: Vector2): Entity {
+    const entity: Entity = {
+      id: generateId(),
+      type: definition.type,
+      definitionId: definition.id,
+      x: position.x,
+      y: position.y,
+      width: definition.width,
+      height: definition.height,
+      isActive: true,
+      data: {},
+    }
+    this.entities.set(entity.id, entity)
+    return entity
+  }
+  
+  despawn(id: string): void {
+    this.entities.delete(id)
+  }
+  
+  getByType(type: EntityType): Entity[] {
+    return [...this.entities.values()].filter(e => e.type === type)
+  }
+}
+```
+
+## Collision Response
+
+```typescript
+// In CollisionService or PhysicsService
+function handleEntityCollision(
+  player: PlayerStore,
+  entity: Entity,
+  game: GameStore
+): void {
+  switch (entity.type) {
+    case 'collectible_coin':
+      game.addScore(10)
+      entityStore.despawn(entity.id)
+      break
+      
+    case 'enemy_patrol':
+      // Check if stomping from above
+      if (player.vy > 0 && player.y + player.height < entity.y + 10) {
+        entityStore.despawn(entity.id)
+        player.vy = JUMP_VELOCITY / 2  // Bounce
+      } else {
+        game.damagePlayer(1)
+      }
+      break
+      
+    case 'checkpoint':
+      levelStore.setCheckpoint(entity.x, entity.y)
+      break
+  }
+}
+```

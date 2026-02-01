@@ -1,0 +1,251 @@
+---
+description: Testing patterns for Epoch Runner (when tests are added)
+globs: src/**/*.test.ts, src/**/*.spec.ts, tests/**/*
+alwaysApply: false
+---
+
+# Testing Patterns
+
+Guidelines for when testing is added to the project.
+
+## Test File Organization
+
+```
+src/
+├── stores/
+│   ├── PlayerStore.ts
+│   └── PlayerStore.test.ts      # Co-located with source
+├── services/
+│   ├── PhysicsService.ts
+│   └── PhysicsService.test.ts
+└── levels/
+    └── helpers.test.ts          # Test level helpers
+
+tests/
+├── integration/                  # Multi-system tests
+│   └── gameLoop.test.ts
+└── e2e/                         # End-to-end (Playwright)
+    └── gameplay.spec.ts
+```
+
+## Store Testing
+
+```typescript
+import { PlayerStore } from './PlayerStore'
+
+describe('PlayerStore', () => {
+  let store: PlayerStore
+
+  beforeEach(() => {
+    store = new PlayerStore()
+  })
+
+  describe('applyInput', () => {
+    it('should move right when right key pressed', () => {
+      store.applyInput({ left: false, right: true, jump: false, jumpJustPressed: false })
+      expect(store.vx).toBe(300)  // PLAYER_SPEED
+      expect(store.isFacingRight).toBe(true)
+    })
+
+    it('should jump only when grounded', () => {
+      store.isGrounded = true
+      store.applyInput({ left: false, right: false, jump: true, jumpJustPressed: true })
+      expect(store.vy).toBe(-640)  // JUMP_VELOCITY
+      expect(store.isGrounded).toBe(false)
+    })
+
+    it('should not jump when not grounded', () => {
+      store.isGrounded = false
+      store.applyInput({ left: false, right: false, jump: true, jumpJustPressed: true })
+      expect(store.vy).toBe(0)  // No jump
+    })
+  })
+
+  describe('reset', () => {
+    it('should reset to spawn position', () => {
+      store.x = 500
+      store.y = 300
+      store.vx = 100
+      store.reset({ x: 64, y: 128 })
+      
+      expect(store.x).toBe(64)
+      expect(store.y).toBe(128)
+      expect(store.vx).toBe(0)
+    })
+  })
+})
+```
+
+## Service Testing
+
+Services are stateless - test inputs and outputs:
+
+```typescript
+import { physicsService } from './PhysicsService'
+import { PlayerStore } from '../stores/PlayerStore'
+import { LevelStore } from '../stores/LevelStore'
+import { GameStore } from '../stores/GameStore'
+
+describe('PhysicsService', () => {
+  let player: PlayerStore
+  let level: LevelStore
+  let game: GameStore
+
+  beforeEach(() => {
+    player = new PlayerStore()
+    level = new LevelStore()
+    game = new GameStore()
+    
+    // Set up a basic level
+    level.loadLevel({
+      width: 16,
+      height: 12,
+      collision: createTestGrid(16, 12),
+      playerSpawn: { x: 64, y: 640 }
+    })
+  })
+
+  describe('gravity', () => {
+    it('should apply gravity to falling player', () => {
+      player.y = 100
+      player.isGrounded = false
+      
+      physicsService.update(1/60, player, level, game)
+      
+      expect(player.vy).toBeGreaterThan(0)  // Falling
+    })
+  })
+
+  describe('collision', () => {
+    it('should stop player at solid tiles', () => {
+      // Place solid tile
+      level.setTileAt(5, 10, CollisionType.SOLID)
+      
+      // Move player toward it
+      player.x = 4 * 64
+      player.vx = 300
+      
+      physicsService.update(1, player, level, game)
+      
+      expect(player.x).toBeLessThan(5 * 64)  // Stopped before tile
+    })
+  })
+})
+```
+
+## Level Validation Testing
+
+```typescript
+import { validateLevel } from './types'
+import { createLevel, tiles, ground, goal } from './helpers'
+
+describe('Level Validation', () => {
+  it('should pass for valid level', () => {
+    const level = createLevel(
+      'test', 'Test', 16, 12,
+      { col: 2, row: 10 },
+      tiles(ground(16, 11), goal(14, 10))
+    )
+    
+    expect(validateLevel(level)).toEqual([])
+  })
+
+  it('should fail if no goal', () => {
+    const level = createLevel(
+      'test', 'Test', 16, 12,
+      { col: 2, row: 10 },
+      tiles(ground(16, 11))  // No goal!
+    )
+    
+    const errors = validateLevel(level)
+    expect(errors).toContain('Level has no goal tile')
+  })
+
+  it('should fail if spawn in solid', () => {
+    const level = createLevel(
+      'test', 'Test', 16, 12,
+      { col: 0, row: 11 },  // In ground!
+      tiles(ground(16, 11), goal(14, 10))
+    )
+    
+    const errors = validateLevel(level)
+    expect(errors).toContain('Player spawn is inside a solid tile')
+  })
+})
+```
+
+## Integration Testing
+
+Test multiple systems working together:
+
+```typescript
+describe('Game Loop Integration', () => {
+  it('should complete level when reaching goal', () => {
+    // Set up minimal game state
+    const rootStore = new RootStore()
+    rootStore.init()
+    
+    // Move player to goal position
+    const { playerStore, levelStore, gameStore } = rootStore
+    // Find goal position
+    // Move player there
+    // Run physics update
+    
+    expect(gameStore.levelComplete).toBe(true)
+  })
+})
+```
+
+## Test Utilities
+
+Create helpers for common test scenarios:
+
+```typescript
+// tests/utils/testHelpers.ts
+export function createTestGrid(
+  width: number, 
+  height: number, 
+  floorRow?: number
+): CollisionType[][] {
+  const grid = Array.from({ length: height }, () =>
+    Array.from({ length: width }, () => CollisionType.EMPTY)
+  )
+  
+  if (floorRow !== undefined) {
+    grid[floorRow] = Array(width).fill(CollisionType.SOLID)
+  }
+  
+  return grid
+}
+
+export function createTestLevel(overrides?: Partial<LevelDefinition>): LevelDefinition {
+  return {
+    id: 'test_level',
+    name: 'Test Level',
+    width: 16,
+    height: 12,
+    playerSpawn: { col: 2, row: 10 },
+    collision: createTestGrid(16, 12, 11),
+    ...overrides
+  }
+}
+```
+
+## Recommended Test Stack
+
+- **Unit tests**: Vitest (fast, Vite-native)
+- **Integration tests**: Vitest with jsdom
+- **E2E tests**: Playwright (if needed for browser testing)
+
+## Test Commands (When Added)
+
+```json
+{
+  "scripts": {
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
+    "test:e2e": "playwright test"
+  }
+}
+```

@@ -24,7 +24,8 @@ Open http://localhost:5173 in your browser. You'll see the test level - use **Ar
 | Arrow Right / D | Move right |
 | Space / W / Arrow Up | Jump |
 | R | Restart level |
-| P | Pause |
+| Esc | Pause |
+| F3 | Toggle debug overlay |
 | Ctrl+S | Export level to JSON |
 | Ctrl+O | Import level from JSON |
 
@@ -62,6 +63,31 @@ Type `/` in Cursor chat to access these:
 | `/add-platform` | Guided platform/obstacle placement |
 | `/explain-physics` | Physics system documentation |
 | `/debug-collision` | Troubleshooting guide for collision bugs |
+| `/add-store` | Create a new MobX store with proper patterns |
+| `/add-service` | Create a new stateless service |
+| `/add-entity` | Add enemy, collectible, or trigger type |
+| `/check-patterns` | Validate code against architecture rules |
+| `/project-overview` | Quick project context for agent onboarding |
+| `/refactor-component` | Guide for splitting large components |
+
+### Cursor Rules (Auto-Applied)
+
+These rules are automatically applied to relevant files to ensure consistent patterns:
+
+| Rule | Scope | Purpose |
+|------|-------|---------|
+| `architecture.mdc` | Always | Three-layer separation |
+| `file-organization.mdc` | Always | Where to put new code |
+| `common-pitfalls.mdc` | Always | AI mistake prevention |
+| `store-patterns.mdc` | `stores/**/*.ts` | MobX store conventions |
+| `service-patterns.mdc` | `services/**/*.ts` | Stateless service patterns |
+| `level-building.mdc` | `levels/**/*.ts` | Level definition patterns |
+| `grid-physics.mdc` | Physics files | Coordinate systems |
+| `naming-conventions.mdc` | All `src/` | Naming standards |
+| `react-components.mdc` | React files | Component patterns |
+| `entity-patterns.mdc` | Entity files | Enemy/collectible patterns |
+| `events-signals.mdc` | Events (future) | Decoupled communication |
+| `testing-patterns.mdc` | Test files | Test conventions |
 
 ---
 

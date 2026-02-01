@@ -16,12 +16,11 @@ const ROOT = path.join(__dirname, '..')
 // This script creates a temporary validation runner
 
 const validationCode = `
-import { levelRegistry } from './src/levels/index'
-import { validateLevel } from './src/levels/types'
+import { getAllLevels, validateLevel } from './src/levels/index'
 
 console.log('\\n🔍 Validating registered levels...\\n')
 
-const levels = levelRegistry.getAll()
+const levels = getAllLevels()
 let hasErrors = false
 
 for (const level of levels) {

@@ -1,0 +1,220 @@
+---
+description: Common mistakes AI agents make in this codebase and how to avoid them
+globs: src/**/*
+alwaysApply: true
+---
+
+# Common Pitfalls
+
+This rule helps AI agents avoid mistakes that break the architecture or cause bugs.
+
+## Architecture Violations
+
+### ❌ Importing stores directly in services
+
+```typescript
+// WRONG - Service imports store
+import { playerStore } from '../stores/PlayerStore'
+
+class BadService {
+  update() {
+    playerStore.x += 10  // Direct access breaks pattern
+  }
+}
+```
+
+```typescript
+// CORRECT - Service receives stores as parameters
+class GoodService {
+  update(deltaTime: number, playerStore: PlayerStore) {
+    playerStore.x += 10 * deltaTime
+  }
+}
+```
+
+### ❌ Business logic in React components
+
+```typescript
+// WRONG - Logic in component
+const handleJump = () => {
+  if (playerStore.isGrounded && playerStore.vy === 0) {
+    playerStore.vy = -550
+    playerStore.isGrounded = false
+  }
+}
+```
+
+```typescript
+// CORRECT - Delegate to store method
+const handleJump = () => {
+  playerStore.requestJump()
+}
+```
+
+### ❌ Cross-feature imports
+
+```typescript
+// WRONG - features importing from each other
+import { EditorTool } from '../editor/types'  // From game/ folder
+
+// CORRECT - Communicate through stores
+const tool = useEditorStore().selectedTool
+```
+
+## Grid System Bugs
+
+### ❌ Wrong array indexing (col/row confusion)
+
+```typescript
+// WRONG - x,y order (column-major)
+collision[col][row]  // This will cause out-of-bounds errors
+
+// CORRECT - row-major indexing
+collision[row][col]
+```
+
+### ❌ Forgetting TILE_SIZE conversion
+
+```typescript
+// WRONG - Mixing pixel and grid coordinates
+const tile = collision[player.y][player.x]  // player.x/y are pixels!
+
+// CORRECT - Convert pixels to grid
+const col = Math.floor(player.x / TILE_SIZE)
+const row = Math.floor(player.y / TILE_SIZE)
+const tile = collision[row][col]
+```
+
+### ❌ Player spawn in solid tile
+
+```typescript
+// WRONG - Spawn inside wall
+createLevel('test', 'Test', 30, 15, 
+  { col: 0, row: 13 },  // col 0 might be a wall!
+  ...
+)
+
+// CORRECT - Spawn in empty space (usually col 1-2)
+createLevel('test', 'Test', 30, 15,
+  { col: 2, row: 13 },  // Safe spawn point
+  ...
+)
+```
+
+## Physics Gotchas
+
+### ❌ Forgetting deltaTime
+
+```typescript
+// WRONG - Frame-rate dependent
+player.x += player.vx
+
+// CORRECT - Frame-rate independent
+player.x += player.vx * deltaTime
+```
+
+### ❌ Wrong velocity direction
+
+```typescript
+// WRONG - Positive Y is up (it's not!)
+player.vy = 550  // This makes player fall faster
+
+// CORRECT - Negative Y is up (screen coordinates)
+player.vy = -550  // This makes player jump
+```
+
+## MobX Mistakes
+
+### ❌ Missing makeAutoObservable
+
+```typescript
+// WRONG - State won't be reactive
+class MyStore {
+  value = 0
+  // Missing makeAutoObservable(this)
+}
+```
+
+### ❌ Missing observer wrapper
+
+```typescript
+// WRONG - Component won't react to changes
+export const MyComponent = function MyComponent() {
+  const store = useMyStore()
+  return <div>{store.value}</div>  // Won't update!
+}
+
+// CORRECT
+export const MyComponent = observer(function MyComponent() {
+  const store = useMyStore()
+  return <div>{store.value}</div>  // Updates reactively
+})
+```
+
+## Level Building
+
+### ❌ Level ID doesn't match filename
+
+```typescript
+// File: level_tutorial.ts
+// WRONG - ID doesn't match
+export const level_tutorial = createLevel(
+  'tutorial',  // Should be 'level_tutorial'
+  ...
+)
+```
+
+### ❌ Forgetting to register level
+
+```typescript
+// Created new level file but didn't add to index.ts
+// Level won't be loadable!
+
+// CORRECT - Add to src/levels/index.ts
+import { level_tutorial } from './level_tutorial'
+export const levelRegistry = {
+  ...
+  [level_tutorial.id]: level_tutorial,
+}
+```
+
+### ❌ Goal placed inside solid tile
+
+```typescript
+// WRONG - Goal and solid in same position
+tiles(
+  rect(25, 10, 5, 5),  // Solid block
+  goal(27, 12),        // Goal inside the block!
+)
+
+// CORRECT - Goal on empty tile
+tiles(
+  rect(25, 10, 5, 5),
+  goal(27, 9),  // Goal above the block
+)
+```
+
+## Type Safety
+
+### ❌ Using `any` type
+
+```typescript
+// WRONG
+function processData(data: any) { }
+
+// CORRECT - Use proper types
+function processData(data: LevelDefinition) { }
+```
+
+### ❌ Non-null assertion without check
+
+```typescript
+// WRONG - May crash
+const ctx = canvasRef.current!.getContext('2d')!
+
+// CORRECT - Proper null check
+const canvas = canvasRef.current
+if (!canvas) return
+const ctx = canvas.getContext('2d')
+if (!ctx) return
+```

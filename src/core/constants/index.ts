@@ -30,7 +30,18 @@ export const COLORS = {
   background: '#1a1a2e',
   empty: '#16213e',
   solid: '#4a5568',
+  platform: '#9f7aea',
+  hazard: '#e53e3e',
+  coin: '#f6e05e',
+  powerup: '#38b2ac',
   goal: '#48bb78',
+  checkpoint: '#4299e1',
   player: '#4299e1',
   playerOutline: '#2b6cb0',
 } as const
+
+// Default lives per level
+export const DEFAULT_LIVES = 3
+
+// Power-up durations (seconds)
+export const DOUBLE_JUMP_DURATION = 10

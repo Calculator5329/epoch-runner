@@ -1,4 +1,4 @@
-import { CollisionType } from '../core/types'
+import { CollisionType, TileTypeId } from '../core/types'
 
 /**
  * Position in grid coordinates (tiles, not pixels)
@@ -10,11 +10,12 @@ export interface GridPosition {
 
 /**
  * A tile placement instruction for level building
+ * Supports both legacy CollisionType and new TileTypeId
  */
 export interface TilePlacement {
   col: number
   row: number
-  type: CollisionType
+  type: number  // CollisionType or TileTypeId
 }
 
 /**
@@ -34,9 +35,13 @@ export interface LevelDefinition {
   // Player spawn position (grid coordinates)
   playerSpawn: GridPosition
   
-  // Collision grid - 2D array of CollisionType
+  // Collision grid - 2D array of tile IDs
   // collision[row][col] - row-major order
-  collision: CollisionType[][]
+  // Supports both CollisionType (legacy) and TileTypeId (new)
+  collision: number[][]
+  
+  // Optional: Starting lives for this level (default 3)
+  startingLives?: number
   
   // Optional: Par time for time-star (seconds)
   parTime?: number
@@ -46,7 +51,7 @@ export interface LevelDefinition {
 }
 
 /**
- * Level definition for JSON serialization (player spawn as object)
+ * Level definition for JSON serialization
  */
 export interface LevelJSON {
   id: string
@@ -56,7 +61,8 @@ export interface LevelJSON {
   width: number
   height: number
   playerSpawn: { col: number; row: number }
-  collision: number[][]  // CollisionType values as numbers
+  collision: number[][]
+  startingLives?: number
   parTime?: number
   themeId?: string
 }
@@ -74,6 +80,7 @@ export function levelToJSON(level: LevelDefinition): LevelJSON {
     height: level.height,
     playerSpawn: { col: level.playerSpawn.col, row: level.playerSpawn.row },
     collision: level.collision.map(row => row.map(tile => tile as number)),
+    startingLives: level.startingLives,
     parTime: level.parTime,
     themeId: level.themeId,
   }
@@ -91,7 +98,8 @@ export function jsonToLevel(json: LevelJSON): LevelDefinition {
     width: json.width,
     height: json.height,
     playerSpawn: { col: json.playerSpawn.col, row: json.playerSpawn.row },
-    collision: json.collision.map(row => row.map(tile => tile as CollisionType)),
+    collision: json.collision.map(row => [...row]),
+    startingLives: json.startingLives,
     parTime: json.parTime,
     themeId: json.themeId,
   }
@@ -127,17 +135,30 @@ export function validateLevel(level: LevelDefinition): string[] {
   }
   
   // Check player spawn is not inside a solid tile
-  if (level.collision[level.playerSpawn.row]?.[level.playerSpawn.col] === CollisionType.SOLID) {
+  const spawnTile = level.collision[level.playerSpawn.row]?.[level.playerSpawn.col]
+  const solidTileIds = [
+    CollisionType.SOLID,
+    TileTypeId.SOLID_FULL,
+    TileTypeId.SOLID_HALF_LEFT,
+    TileTypeId.SOLID_HALF_RIGHT,
+    TileTypeId.SOLID_HALF_TOP,
+    TileTypeId.SOLID_HALF_BOTTOM,
+  ]
+  if (solidTileIds.includes(spawnTile)) {
     errors.push('Player spawn is inside a solid tile')
   }
   
   // Check there's at least one goal
   let hasGoal = false
+  const goalTileIds = [CollisionType.GOAL, TileTypeId.GOAL]
   for (const row of level.collision) {
-    if (row.includes(CollisionType.GOAL)) {
-      hasGoal = true
-      break
+    for (const tile of row) {
+      if (goalTileIds.includes(tile)) {
+        hasGoal = true
+        break
+      }
     }
+    if (hasGoal) break
   }
   if (!hasGoal) {
     errors.push('Level has no goal tile')
