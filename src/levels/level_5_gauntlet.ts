@@ -73,20 +73,20 @@ export const level_5_gauntlet = createLevel(
     
     // ===== Section 3: Hazard Corridor =====
     
-    // Walls shortened to allow ground entry (rows 14-16, open at 17-18)
-    wall(23, 14, 3),
-    wall(31, 14, 3),
-    spikesRight(23, 15, 1),  // Single spike on wall
-    spikesLeft(31, 15, 1),
+    // Walls shortened to allow ground entry (player needs 2+ tile clearance)
+    wall(23, 12, 3),  // rows 12-14
+    wall(31, 12, 3),
+    spikesRight(23, 13, 1),  // Single spike on wall
+    spikesLeft(31, 13, 1),
     
     // Navigate through (more room to maneuver)
-    oneWayPlatform(25, 17, 4),
-    coin(27, 16),
-    platform(27, 15, 2),
+    oneWayPlatform(25, 16, 4),  // Lower platform with 3-tile clearance above ground
+    coin(27, 15),
+    platform(27, 13, 2),
     
-    // Ceiling spikes (moved to fit new layout)
-    platform(33, 15, 4),
-    spikesDown(34, 15, 2),
+    // Ceiling spikes (raised for clearance)
+    platform(33, 12, 4),
+    spikesDown(34, 12, 2),
     
     // Second checkpoint
     checkpoint(36, 18),
@@ -107,20 +107,20 @@ export const level_5_gauntlet = createLevel(
     platform(44, 18, 3),
     
     // ===== Section 5: Vertical Challenge =====
-    // (~2-tile steps so single jump between each)
+    // (3-tile gaps for safe clearance)
     
     checkpoint(48, 18),
     tripleJump(49, 18),
     
-    oneWayPlatform(50, 17, 4),
-    coin(52, 16),
+    oneWayPlatform(50, 16, 4),  // 3-tile gap from ground (row 19)
+    coin(52, 15),
     
-    oneWayPlatform(50, 14, 4),
-    coin(52, 13),
-    spikesRight(49, 13, 1),
+    oneWayPlatform(50, 13, 4),  // 3-tile gap
+    coin(52, 12),
+    spikesRight(49, 12, 1),
     
-    oneWayPlatform(50, 11, 4),
-    coin(52, 10),
+    oneWayPlatform(50, 10, 4),  // 3-tile gap
+    coin(52, 9),
     
     // ===== Section 6: Final Gauntlet =====
     

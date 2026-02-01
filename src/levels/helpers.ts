@@ -539,6 +539,27 @@ export function tripleJump(col: number, row: number): TilePlacement[] {
   return [{ col, row, type: TileTypeId.POWERUP_TRIPLE_JUMP }]
 }
 
+/**
+ * Place a speed boost power-up (2x movement speed)
+ */
+export function speedBoost(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.POWERUP_SPEED }]
+}
+
+/**
+ * Place a super jump power-up (1.5x jump height)
+ */
+export function superJump(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.POWERUP_SUPER_JUMP }]
+}
+
+/**
+ * Place an invincibility power-up (immune to damage)
+ */
+export function invincibility(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.POWERUP_INVINCIBILITY }]
+}
+
 // ============================================
 // Trigger Helpers
 // ============================================
@@ -630,6 +651,7 @@ export function createLevel(
     startingLives?: number
     parTime?: number
     themeId?: string
+    entities?: EntitySpawn[]
   }
 ): LevelDefinition {
   const grid = createEmptyGrid(width, height)
@@ -682,4 +704,59 @@ export function ceiling(width: number): TilePlacement[] {
  */
 export function border(width: number, height: number): TilePlacement[] {
   return hollowRect(0, 0, width, height)
+}
+
+// ============================================
+// Entity Helpers
+// ============================================
+
+import type { EntitySpawn, EntityDirection } from '../core/types/entities'
+
+/**
+ * Create a patrol enemy spawn
+ */
+export function patrolEnemy(
+  col: number,
+  row: number,
+  direction: EntityDirection = 'right'
+): EntitySpawn {
+  return {
+    definitionId: 'enemy_patrol',
+    position: { col, row },
+    properties: { startDirection: direction },
+  }
+}
+
+/**
+ * Create a static enemy spawn
+ */
+export function staticEnemy(col: number, row: number): EntitySpawn {
+  return {
+    definitionId: 'enemy_static',
+    position: { col, row },
+  }
+}
+
+/**
+ * Create multiple patrol enemies in a row
+ */
+export function patrolEnemyRow(
+  startCol: number,
+  row: number,
+  count: number,
+  spacing: number = 5,
+  direction: EntityDirection = 'right'
+): EntitySpawn[] {
+  const enemies: EntitySpawn[] = []
+  for (let i = 0; i < count; i++) {
+    enemies.push(patrolEnemy(startCol + i * spacing, row, direction))
+  }
+  return enemies
+}
+
+/**
+ * Merge multiple entity spawn arrays
+ */
+export function entities(...spawnArrays: (EntitySpawn | EntitySpawn[])[]): EntitySpawn[] {
+  return spawnArrays.flat()
 }

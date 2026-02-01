@@ -3,6 +3,7 @@ import type { LevelStore } from '../stores/LevelStore'
 import type { CameraStore } from '../stores/CameraStore'
 import type { PlayerStore } from '../stores/PlayerStore'
 import type { GameStore } from '../stores/GameStore'
+import type { EntityStore } from '../stores/EntityStore'
 import { 
   getLevel, 
   getLevelIds, 
@@ -28,7 +29,8 @@ class LevelLoaderService {
     levelStore: LevelStore,
     cameraStore: CameraStore,
     playerStore: PlayerStore,
-    gameStore: GameStore
+    gameStore: GameStore,
+    entityStore?: EntityStore
   ): boolean {
     const level = getLevel(levelId)
     if (!level) {
@@ -36,7 +38,7 @@ class LevelLoaderService {
       return false
     }
 
-    return this.loadLevel(level, levelStore, cameraStore, playerStore, gameStore)
+    return this.loadLevel(level, levelStore, cameraStore, playerStore, gameStore, entityStore)
   }
 
   /**
@@ -46,9 +48,10 @@ class LevelLoaderService {
     levelStore: LevelStore,
     cameraStore: CameraStore,
     playerStore: PlayerStore,
-    gameStore: GameStore
+    gameStore: GameStore,
+    entityStore?: EntityStore
   ): boolean {
-    return this.loadFromRegistry(DEFAULT_LEVEL_ID, levelStore, cameraStore, playerStore, gameStore)
+    return this.loadFromRegistry(DEFAULT_LEVEL_ID, levelStore, cameraStore, playerStore, gameStore, entityStore)
   }
 
   /**
@@ -59,7 +62,8 @@ class LevelLoaderService {
     levelStore: LevelStore,
     cameraStore: CameraStore,
     playerStore: PlayerStore,
-    gameStore: GameStore
+    gameStore: GameStore,
+    entityStore?: EntityStore
   ): { success: boolean; errors: string[] } {
     try {
       const level = jsonToLevel(json)
@@ -69,7 +73,7 @@ class LevelLoaderService {
         return { success: false, errors }
       }
 
-      const success = this.loadLevel(level, levelStore, cameraStore, playerStore, gameStore)
+      const success = this.loadLevel(level, levelStore, cameraStore, playerStore, gameStore, entityStore)
       return { success, errors: [] }
     } catch (error) {
       return { 
@@ -87,7 +91,8 @@ class LevelLoaderService {
     levelStore: LevelStore,
     cameraStore: CameraStore,
     playerStore: PlayerStore,
-    gameStore: GameStore
+    gameStore: GameStore,
+    entityStore?: EntityStore
   ): boolean {
     // Validate the level
     const errors = validateLevel(level)
@@ -109,6 +114,15 @@ class LevelLoaderService {
     const spawnX = level.playerSpawn.col * TILE_SIZE
     const spawnY = level.playerSpawn.row * TILE_SIZE
     playerStore.reset({ x: spawnX, y: spawnY })
+
+    // Load entities (enemies, etc.)
+    if (entityStore) {
+      entityStore.fullReset()
+      if (level.entities && level.entities.length > 0) {
+        entityStore.loadFromLevel(level.entities)
+        console.log(`Loaded ${level.entities.length} entities`)
+      }
+    }
 
     // Center camera on player
     const playerCenter = playerStore.center

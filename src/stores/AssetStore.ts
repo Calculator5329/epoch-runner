@@ -47,7 +47,9 @@ export interface PackManifest {
     tiles: Record<string, string>  // TileTypeId name -> relative path in zip
     player?: {
       idle?: string
-      run?: string
+      run?: string       // Legacy single run sprite
+      run1?: string      // Run animation frame 1
+      run2?: string      // Run animation frame 2
       jump?: string
     }
     background?: string
@@ -70,7 +72,9 @@ export interface LoadedAssets {
   tileSprites: Map<TileTypeId, HTMLImageElement>
   playerSprites: {
     idle?: HTMLImageElement
-    run?: HTMLImageElement
+    run?: HTMLImageElement       // Legacy single run sprite
+    run1?: HTMLImageElement      // Run animation frame 1
+    run2?: HTMLImageElement      // Run animation frame 2
     jump?: HTMLImageElement
   }
   background?: HTMLImageElement
@@ -109,7 +113,9 @@ export class AssetStore {
   /** Player sprite variants */
   playerSprites: {
     idle?: HTMLImageElement
-    run?: HTMLImageElement
+    run?: HTMLImageElement      // Legacy single run sprite
+    run1?: HTMLImageElement     // Run animation frame 1
+    run2?: HTMLImageElement     // Run animation frame 2
     jump?: HTMLImageElement
   } = {}
 
@@ -206,6 +212,8 @@ export class AssetStore {
   setPlayerSprites(sprites: {
     idle?: HTMLImageElement
     run?: HTMLImageElement
+    run1?: HTMLImageElement
+    run2?: HTMLImageElement
     jump?: HTMLImageElement
   }): void {
     this.playerSprites = sprites

@@ -1,4 +1,14 @@
-import { TILE_SIZE, COLORS, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, TRIPLE_JUMP_DURATION } from '../../core/constants'
+import { 
+  TILE_SIZE, 
+  COLORS, 
+  VIEWPORT_WIDTH, 
+  VIEWPORT_HEIGHT, 
+  TRIPLE_JUMP_DURATION,
+  SPEED_BOOST_DURATION,
+  SUPER_JUMP_DURATION,
+  INVINCIBILITY_DURATION,
+} from '../../core/constants'
+import { TILE_COLORS } from '../../core/types/shapes'
 import { getTileType, TileTypeId } from '../../core/types/shapes'
 import type { CollisionShape, NormalizedPoint } from '../../core/types/shapes'
 import type { PlayerStore } from '../../stores/PlayerStore'
@@ -6,6 +16,9 @@ import type { LevelStore } from '../../stores/LevelStore'
 import type { GameStore } from '../../stores/GameStore'
 import type { CameraStore } from '../../stores/CameraStore'
 import type { AssetStore } from '../../stores/AssetStore'
+import type { EntityStore } from '../../stores/EntityStore'
+import type { Entity } from '../../core/types/entities'
+import { getEntityDefinition } from '../../core/types/entities'
 
 /**
  * GameplayRenderer - Renders core gameplay elements
@@ -23,7 +36,8 @@ export class GameplayRenderer {
     playerStore: PlayerStore,
     gameStore: GameStore,
     cameraStore: CameraStore,
-    assetStore?: AssetStore
+    assetStore?: AssetStore,
+    entityStore?: EntityStore
   ): void {
     // Clear canvas with background color
     ctx.fillStyle = COLORS.background
@@ -36,6 +50,11 @@ export class GameplayRenderer {
 
     // Draw tiles (with camera offset, only visible tiles)
     this.drawTiles(ctx, levelStore, cameraStore, assetStore)
+
+    // Draw entities (enemies, etc.)
+    if (entityStore) {
+      this.drawEntities(ctx, entityStore, cameraStore)
+    }
 
     // Draw player (with camera offset)
     this.drawPlayer(ctx, playerStore, cameraStore, assetStore)
@@ -188,6 +207,95 @@ export class GameplayRenderer {
     ctx.fill()
   }
 
+  // ============================================
+  // Entity Rendering
+  // ============================================
+
+  /**
+   * Draw all active entities
+   */
+  private drawEntities(
+    ctx: CanvasRenderingContext2D,
+    entityStore: EntityStore,
+    camera: CameraStore
+  ): void {
+    const entities = entityStore.getActive()
+    
+    for (const entity of entities) {
+      this.drawEntity(ctx, entity, camera)
+    }
+  }
+
+  /**
+   * Draw a single entity
+   */
+  private drawEntity(
+    ctx: CanvasRenderingContext2D,
+    entity: Entity,
+    camera: CameraStore
+  ): void {
+    // Convert world position to screen position
+    const screenX = Math.round(entity.x - camera.x)
+    const screenY = Math.round(entity.y - camera.y)
+
+    // Skip if off-screen
+    if (
+      screenX + entity.width < 0 ||
+      screenX > VIEWPORT_WIDTH ||
+      screenY + entity.height < 0 ||
+      screenY > VIEWPORT_HEIGHT
+    ) {
+      return
+    }
+
+    // Get entity definition for color
+    const definition = getEntityDefinition(entity.definitionId)
+    const color = definition?.color || '#e53e3e'
+
+    // Draw entity as colored rectangle (MVP rendering)
+    ctx.fillStyle = color
+    ctx.fillRect(screenX, screenY, entity.width, entity.height)
+
+    // Draw eyes to indicate direction
+    this.drawEntityFace(ctx, entity, screenX, screenY)
+  }
+
+  /**
+   * Draw enemy face (eyes) to show direction
+   */
+  private drawEntityFace(
+    ctx: CanvasRenderingContext2D,
+    entity: Entity,
+    screenX: number,
+    screenY: number
+  ): void {
+    const eyeRadius = 4
+    const eyeOffsetY = entity.height * 0.3
+    const eyeSpacing = entity.width * 0.25
+
+    // Eye positions based on facing direction
+    const centerX = screenX + entity.width / 2
+    const eyeY = screenY + eyeOffsetY
+
+    // Shift eyes in the direction of movement
+    const directionOffset = entity.direction === 'right' ? 4 : -4
+    
+    // Draw eye whites
+    ctx.fillStyle = '#ffffff'
+    ctx.beginPath()
+    ctx.arc(centerX - eyeSpacing + directionOffset, eyeY, eyeRadius, 0, Math.PI * 2)
+    ctx.arc(centerX + eyeSpacing + directionOffset, eyeY, eyeRadius, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Draw pupils (offset in direction of movement)
+    const pupilOffset = entity.direction === 'right' ? 1.5 : -1.5
+    ctx.fillStyle = '#000000'
+    ctx.beginPath()
+    ctx.arc(centerX - eyeSpacing + directionOffset + pupilOffset, eyeY, eyeRadius * 0.5, 0, Math.PI * 2)
+    ctx.arc(centerX + eyeSpacing + directionOffset + pupilOffset, eyeY, eyeRadius * 0.5, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
   /**
    * Draw the player (with camera offset)
    */
@@ -203,7 +311,9 @@ export class GameplayRenderer {
 
     // Check for custom player sprites
     const playerSprites = assetStore?.playerSprites
-    const hasCustomSprites = playerSprites && (playerSprites.idle || playerSprites.run || playerSprites.jump)
+    const hasCustomSprites = playerSprites && (
+      playerSprites.idle || playerSprites.run || playerSprites.run1 || playerSprites.jump
+    )
 
     if (hasCustomSprites && !player.isDead) {
       // Determine which sprite to use based on player state
@@ -213,8 +323,15 @@ export class GameplayRenderer {
         // In air - use jump sprite if available
         sprite = playerSprites.jump || playerSprites.idle
       } else if (player.vx !== 0) {
-        // Moving - use run sprite if available
-        sprite = playerSprites.run || playerSprites.idle
+        // Moving - use run sprite(s) if available
+        // Support animated run: run1/run2 alternate, or fall back to single run sprite
+        if (playerSprites.run1 && playerSprites.run2) {
+          // Use animation frame to select between run1 and run2
+          sprite = player.runAnimationFrame === 0 ? playerSprites.run1 : playerSprites.run2
+        } else {
+          // Fall back to single run sprite or idle
+          sprite = playerSprites.run || playerSprites.idle
+        }
       } else {
         // Idle
         sprite = playerSprites.idle
@@ -231,24 +348,140 @@ export class GameplayRenderer {
       this.drawPlayerProcedural(ctx, player, screenX, screenY)
     }
 
-    // Triple jump indicator (always draw on top of sprite)
+    // Draw power-up indicators (stacked above player)
+    this.drawPowerUpIndicators(ctx, player, screenX, screenY)
+  }
+
+  /**
+   * Draw power-up indicators above the player
+   */
+  private drawPowerUpIndicators(
+    ctx: CanvasRenderingContext2D,
+    player: PlayerStore,
+    screenX: number,
+    screenY: number
+  ): void {
+    let indicatorOffset = 0
+    const indicatorSpacing = 18
+    const timerWidth = 30
+    const timerHeight = 4
+    const centerX = screenX + player.width / 2
+
+    // Triple jump indicator
     if (player.hasTripleJump) {
+      const indicatorY = screenY - 10 - indicatorOffset
       ctx.fillStyle = COLORS.powerup
       ctx.beginPath()
-      ctx.arc(screenX + player.width / 2, screenY - 10, 6, 0, Math.PI * 2)
+      ctx.arc(centerX, indicatorY, 6, 0, Math.PI * 2)
       ctx.fill()
       
       // Timer bar
-      const timerWidth = 30
-      const timerHeight = 4
-      const timerX = screenX + player.width / 2 - timerWidth / 2
-      const timerY = screenY - 20
+      const timerX = centerX - timerWidth / 2
+      const timerY = indicatorY - 10
       const fillRatio = player.tripleJumpTimer / TRIPLE_JUMP_DURATION
       
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
       ctx.fillRect(timerX, timerY, timerWidth, timerHeight)
       ctx.fillStyle = COLORS.powerup
       ctx.fillRect(timerX, timerY, timerWidth * fillRatio, timerHeight)
+      
+      indicatorOffset += indicatorSpacing
+    }
+
+    // Speed boost indicator (orange)
+    if (player.hasSpeedBoost) {
+      const indicatorY = screenY - 10 - indicatorOffset
+      ctx.fillStyle = TILE_COLORS.speedBoost
+      ctx.beginPath()
+      ctx.arc(centerX, indicatorY, 6, 0, Math.PI * 2)
+      ctx.fill()
+      
+      // Speed lines decoration
+      ctx.strokeStyle = TILE_COLORS.speedBoost
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.moveTo(centerX - 10, indicatorY)
+      ctx.lineTo(centerX - 14, indicatorY)
+      ctx.moveTo(centerX + 10, indicatorY)
+      ctx.lineTo(centerX + 14, indicatorY)
+      ctx.stroke()
+      
+      // Timer bar
+      const timerX = centerX - timerWidth / 2
+      const timerY = indicatorY - 10
+      const fillRatio = player.speedBoostTimer / SPEED_BOOST_DURATION
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
+      ctx.fillRect(timerX, timerY, timerWidth, timerHeight)
+      ctx.fillStyle = TILE_COLORS.speedBoost
+      ctx.fillRect(timerX, timerY, timerWidth * fillRatio, timerHeight)
+      
+      indicatorOffset += indicatorSpacing
+    }
+
+    // Super jump indicator (purple)
+    if (player.hasSuperJump) {
+      const indicatorY = screenY - 10 - indicatorOffset
+      ctx.fillStyle = TILE_COLORS.superJump
+      ctx.beginPath()
+      ctx.arc(centerX, indicatorY, 6, 0, Math.PI * 2)
+      ctx.fill()
+      
+      // Up arrow decoration
+      ctx.strokeStyle = TILE_COLORS.superJump
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.moveTo(centerX, indicatorY - 10)
+      ctx.lineTo(centerX, indicatorY - 4)
+      ctx.moveTo(centerX - 3, indicatorY - 7)
+      ctx.lineTo(centerX, indicatorY - 10)
+      ctx.lineTo(centerX + 3, indicatorY - 7)
+      ctx.stroke()
+      
+      // Timer bar
+      const timerX = centerX - timerWidth / 2
+      const timerY = indicatorY - 16
+      const fillRatio = player.superJumpTimer / SUPER_JUMP_DURATION
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
+      ctx.fillRect(timerX, timerY, timerWidth, timerHeight)
+      ctx.fillStyle = TILE_COLORS.superJump
+      ctx.fillRect(timerX, timerY, timerWidth * fillRatio, timerHeight)
+      
+      indicatorOffset += indicatorSpacing
+    }
+
+    // Invincibility indicator (gold, pulsing)
+    if (player.hasInvincibility) {
+      const indicatorY = screenY - 10 - indicatorOffset
+      const pulseScale = 1 + Math.sin(Date.now() / 100) * 0.2
+      
+      // Glowing effect
+      ctx.fillStyle = TILE_COLORS.invincibility
+      ctx.shadowColor = TILE_COLORS.invincibility
+      ctx.shadowBlur = 10
+      ctx.beginPath()
+      ctx.arc(centerX, indicatorY, 6 * pulseScale, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.shadowBlur = 0
+      
+      // Timer bar
+      const timerX = centerX - timerWidth / 2
+      const timerY = indicatorY - 10
+      const fillRatio = player.invincibilityTimer / INVINCIBILITY_DURATION
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
+      ctx.fillRect(timerX, timerY, timerWidth, timerHeight)
+      ctx.fillStyle = TILE_COLORS.invincibility
+      ctx.fillRect(timerX, timerY, timerWidth * fillRatio, timerHeight)
+      
+      // Also draw gold outline around player when invincible
+      ctx.strokeStyle = TILE_COLORS.invincibility
+      ctx.lineWidth = 3
+      ctx.shadowColor = TILE_COLORS.invincibility
+      ctx.shadowBlur = 5
+      ctx.strokeRect(screenX - 2, screenY - 2, player.width + 4, player.height + 4)
+      ctx.shadowBlur = 0
     }
   }
 

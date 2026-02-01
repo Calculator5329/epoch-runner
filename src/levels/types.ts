@@ -1,4 +1,5 @@
 import { CollisionType, TileTypeId } from '../core/types'
+import type { EntitySpawn } from '../core/types/entities'
 
 /**
  * Position in grid coordinates (tiles, not pixels)
@@ -40,6 +41,9 @@ export interface LevelDefinition {
   // Supports both CollisionType (legacy) and TileTypeId (new)
   collision: number[][]
   
+  // Optional: Entity spawn data (enemies, etc.)
+  entities?: EntitySpawn[]
+  
   // Optional: Starting lives for this level (default 3)
   startingLives?: number
   
@@ -48,6 +52,19 @@ export interface LevelDefinition {
   
   // Optional: Theme ID for visual styling (future)
   themeId?: string
+}
+
+/**
+ * Entity spawn for JSON serialization
+ */
+export interface EntitySpawnJSON {
+  definitionId: string
+  position: { col: number; row: number }
+  properties?: {
+    startDirection?: 'left' | 'right'
+    respawns?: boolean
+    patrolRange?: number
+  }
 }
 
 /**
@@ -62,6 +79,7 @@ export interface LevelJSON {
   height: number
   playerSpawn: { col: number; row: number }
   collision: number[][]
+  entities?: EntitySpawnJSON[]
   startingLives?: number
   parTime?: number
   themeId?: string
@@ -80,6 +98,11 @@ export function levelToJSON(level: LevelDefinition): LevelJSON {
     height: level.height,
     playerSpawn: { col: level.playerSpawn.col, row: level.playerSpawn.row },
     collision: level.collision.map(row => row.map(tile => tile as number)),
+    entities: level.entities?.map(e => ({
+      definitionId: e.definitionId,
+      position: { col: e.position.col, row: e.position.row },
+      properties: e.properties,
+    })),
     startingLives: level.startingLives,
     parTime: level.parTime,
     themeId: level.themeId,
@@ -99,6 +122,11 @@ export function jsonToLevel(json: LevelJSON): LevelDefinition {
     height: json.height,
     playerSpawn: { col: json.playerSpawn.col, row: json.playerSpawn.row },
     collision: json.collision.map(row => [...row]),
+    entities: json.entities?.map(e => ({
+      definitionId: e.definitionId,
+      position: { col: e.position.col, row: e.position.row },
+      properties: e.properties,
+    })),
     startingLives: json.startingLives,
     parTime: json.parTime,
     themeId: json.themeId,
