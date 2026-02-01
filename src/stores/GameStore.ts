@@ -14,6 +14,7 @@ export class GameStore {
   levelComplete = false
   isPaused = false
   isGameOver = false
+  isAdminMenuOpen = false
 
   // Lives system
   lives = DEFAULT_LIVES
@@ -49,6 +50,29 @@ export class GameStore {
 
   setPaused(paused: boolean): void {
     this.isPaused = paused
+  }
+
+  // ============================================
+  // Admin Menu
+  // ============================================
+
+  /**
+   * Toggle admin level selector overlay
+   */
+  toggleAdminMenu(): void {
+    this.isAdminMenuOpen = !this.isAdminMenuOpen
+    // Pause game when admin menu is open
+    this.isPaused = this.isAdminMenuOpen
+  }
+
+  /**
+   * Close admin menu
+   */
+  closeAdminMenu(): void {
+    if (this.isAdminMenuOpen) {
+      this.isAdminMenuOpen = false
+      this.isPaused = false
+    }
   }
 
   // ============================================

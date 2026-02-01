@@ -89,12 +89,13 @@ Goal: Single hardcoded level with player movement, collision, and win state.
   - [x] Platform tile types
   - [x] Pass-through from below, land from above
 
-- [x] **Age 0 Test Levels**
-  - [x] level_0_basic - Basic platforming
-  - [x] level_0_shapes - Half/quarter blocks, slopes
-  - [x] level_0_hazards - Spikes and hazard gauntlet
-  - [x] level_0_coins - Coin collection, checkpoints
-  - [x] level_0_powerup - Double jump challenges
+- [x] **Core Test Levels (Progression)**
+  - [x] level_0_basic - Basic platforming (tutorial)
+  - [x] level_1_shapes - Half/quarter blocks (slopes disabled)
+  - [x] level_2_hazards - Spikes and hazard gauntlet
+  - [x] level_3_coins - Coin collection, checkpoints
+  - [x] level_4_powerup - Double jump challenges
+  - [x] level_5_gauntlet - All features combined (final test)
 
 ---
 

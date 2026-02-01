@@ -1,0 +1,148 @@
+# Level Design Validation
+
+**IMPORTANT**: Always visualize levels before considering them complete. Many layout bugs are invisible without seeing the grid.
+
+## Visualize Every Level
+
+Before finalizing any level changes, run:
+
+```bash
+npm run viz:level <level-id>
+```
+
+Example:
+```bash
+npm run viz:level level_4_powerup
+```
+
+This outputs an ASCII grid showing the entire level layout:
+```
+  3 |#......................................#........G#|
+  4 |#......................................#..o...####|
+  5 |#......................................######....#|
+```
+
+**Legend:**
+- `#` solid, `.` empty, `=` one-way platform
+- `P` player spawn, `G` goal, `C` checkpoint
+- `o` coin, `*` powerup
+- `^v<>` spikes (direction they point)
+- `LRTB` half blocks
+
+## Physics Constraints (MEMORIZE THESE)
+
+| Jump Type | Max Height | Tiles |
+|-----------|------------|-------|
+| Single jump | ~136 pixels | ~2 tiles |
+| Double jump (perfect timing) | ~270 pixels | ~4 tiles |
+
+**Critical**: Platform spacing > 4 tiles is IMPOSSIBLE even with double jump.
+
+## Common Level Design Mistakes
+
+### 1. Walls Blocking Entry/Exit
+
+**Problem**: Walls extending to ground level block passage.
+
+```typescript
+// ❌ WRONG - Wall blocks ground entry
+wall(39, 2, 17)  // rows 2-18, blocks row 18 (ground level)
+
+// ✅ CORRECT - Leave gap for entry
+wall(39, 2, 15)  // rows 2-16, leaves rows 17-18 open
+```
+
+**Check in visualizer**: Look for `#` characters where the player needs to walk through.
+
+### 2. Platform Spacing Too Large
+
+**Problem**: Vertical gaps > 4 tiles are impossible.
+
+```typescript
+// ❌ WRONG - 5-tile gap is impossible
+platform(40, 15, 5),  // row 15
+platform(40, 10, 5),  // row 10 (5-tile gap!)
+
+// ✅ CORRECT - 4-tile gaps are achievable with double jump
+platform(40, 16, 5),  // row 16
+platform(40, 12, 5),  // row 12 (4-tile gap)
+platform(40, 8, 5),   // row 8 (4-tile gap)
+```
+
+**Check in visualizer**: Count rows between platforms. If gap > 4, it's impossible.
+
+### 3. Goal Trapped Behind Walls
+
+**Problem**: Goal placed in unreachable area.
+
+```
+❌ WRONG:
+  3 |#.......#G#|  <- Goal between two walls, unreachable
+
+✅ CORRECT:
+  3 |#........G#|  <- Clear path to goal
+```
+
+**Check in visualizer**: Trace a path from the last platform to the goal tile.
+
+### 4. Hazard Corridors Too Narrow
+
+**Problem**: Wall spikes on both sides with no room to pass.
+
+```typescript
+// ❌ WRONG - Only 5 tiles between walls, spikes leave ~3 tile gap
+wall(24, 14, 5),
+wall(29, 14, 5),
+spikesRight(24, 15, 3),  // Takes 1 tile
+spikesLeft(29, 15, 3),   // Takes 1 tile
+
+// ✅ CORRECT - 8 tiles between walls, plenty of room
+wall(23, 14, 5),
+wall(31, 14, 5),
+spikesRight(23, 16, 2),
+spikesLeft(31, 16, 2),
+```
+
+**Check in visualizer**: Count empty `.` tiles between hazards. Player needs ~2 tiles width.
+
+### 5. One-Way Platform Tower Blocked
+
+**Problem**: Hazards or walls blocking approach to platforms.
+
+```typescript
+// ❌ WRONG - Wall spike blocks left approach
+oneWayPlatform(50, 11, 3),
+spikesRight(49, 11, 2),  // Blocks approach!
+
+// ✅ CORRECT - Single spike as warning, not blocking
+oneWayPlatform(50, 12, 4),
+spikesRight(49, 13, 1),  // Single spike, doesn't block
+```
+
+## Validation Checklist
+
+Before committing level changes:
+
+- [ ] Ran `npm run viz:level <id>` and reviewed ASCII output
+- [ ] Player spawn is not inside a wall (check row where P appears)
+- [ ] All platform gaps ≤ 4 tiles (or have power-up nearby for larger gaps)
+- [ ] Entry points to enclosed areas have openings
+- [ ] Exit paths to goal are not blocked by walls
+- [ ] Hazard corridors have ≥ 2 tiles of clearance
+- [ ] Goal tile is reachable from the last platform
+- [ ] Power-ups placed BEFORE sections that require them
+
+## Quick Reference: Wall Height Math
+
+```typescript
+wall(col, startRow, height)
+// Fills rows: startRow to (startRow + height - 1)
+
+// Example:
+wall(39, 2, 17)  // Fills rows 2, 3, 4... 18 (row 2 + 17 - 1 = 18)
+wall(39, 2, 15)  // Fills rows 2, 3, 4... 16 (row 2 + 15 - 1 = 16)
+```
+
+Ground level is typically row 18 or 19. To leave ground open:
+- For 20-row level: `wall(col, 2, 15)` leaves rows 17-18 open
+- For 15-row level: `wall(col, 2, 11)` leaves rows 13-14 open

@@ -39,10 +39,10 @@ export class CameraStore {
    * Set camera position instantly (e.g., on level load)
    */
   setPosition(x: number, y: number): void {
-    this.x = x
-    this.y = y
-    this.targetX = x
-    this.targetY = y
+    this.x = Math.round(x)
+    this.y = Math.round(y)
+    this.targetX = this.x
+    this.targetY = this.y
     this.clampToBounds()
   }
 
@@ -96,6 +96,10 @@ export class CameraStore {
     const maxY = Math.max(0, this.levelHeight - this.viewportHeight)
     this.x = Math.min(maxX, this.x)
     this.y = Math.min(maxY, this.y)
+    
+    // Round to nearest pixel to avoid sub-pixel rendering artifacts
+    this.x = Math.round(this.x)
+    this.y = Math.round(this.y)
   }
 
   /**

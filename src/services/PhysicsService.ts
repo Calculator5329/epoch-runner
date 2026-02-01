@@ -1,5 +1,6 @@
 import { TILE_SIZE, GRAVITY, MAX_FALL_SPEED } from '../core/constants'
-import { TileTypeId, getTileType, isTileTypeSolid, isTileTypeHazard, isTileTypePlatform } from '../core/types/shapes'
+import { TileTypeId, getTileType, isTileTypeSolid, isTileTypeHazard, isTileTypePlatform, SHAPES } from '../core/types/shapes'
+import type { CollisionShape, NormalizedPoint } from '../core/types/shapes'
 import {
   checkSolidCollision,
   checkHazardCollision,
@@ -56,6 +57,9 @@ class PhysicsService {
 
     // Check for hazard collision
     this.checkHazards(playerStore, levelStore, gameStore)
+
+    // Check for falling off the map
+    this.checkBoundaries(playerStore, levelStore, gameStore)
 
     // Check for pickups (coins, powerups)
     this.checkPickups(playerStore, levelStore, gameStore)
@@ -181,13 +185,24 @@ class PhysicsService {
             if (tileType.collision.type === 'rect' && tileType.collision.rect) {
               const shapeTop = col.tileY + tileType.collision.rect.y * TILE_SIZE
               minY = Math.min(minY, shapeTop)
+            } else if (tileType.collision.type === 'polygon') {
+              // For slopes, calculate the surface Y at player's position
+              const surfaceY = getSlopeSurfaceY(
+                tileType.collision,
+                col.tileX,
+                col.tileY,
+                player.x,
+                player.width
+              )
+              minY = Math.min(minY, surfaceY)
             } else {
               minY = Math.min(minY, col.tileY)
             }
           }
           if (minY !== Infinity) {
             player.y = minY - player.height
-            player.isGrounded = true
+            // Don't set isGrounded here - let updateGroundedState handle it
+            // so that onLand() is called properly to reset jumpsRemaining
           }
         }
       } else {
@@ -243,7 +258,15 @@ class PhysicsService {
       (id) => isTileTypeSolid(id) || isTileTypePlatform(id)
     )
 
-    player.isGrounded = belowCollision.length > 0
+    const wasGrounded = player.isGrounded
+    const isNowGrounded = belowCollision.length > 0
+
+    // Call onLand() when transitioning from air to ground (resets jumpsRemaining)
+    if (!wasGrounded && isNowGrounded) {
+      player.onLand()
+    } else {
+      player.isGrounded = isNowGrounded
+    }
   }
 
   /**
@@ -265,6 +288,24 @@ class PhysicsService {
     const hazard = checkHazardCollision(aabb, getTile, level.width, level.height)
 
     if (hazard) {
+      game.onPlayerDeath()
+    }
+  }
+
+  /**
+   * Check for falling off the map (below level bounds)
+   * Treats falling off as death to respawn player at checkpoint or start
+   */
+  private checkBoundaries(
+    player: PlayerStore,
+    level: LevelStore,
+    game: GameStore
+  ): void {
+    // Level height in pixels (bottom edge of level)
+    const levelBottomY = level.height * TILE_SIZE
+    
+    // If player's top edge is below the level, they've fallen off
+    if (player.y > levelBottomY) {
       game.onPlayerDeath()
     }
   }
@@ -332,6 +373,79 @@ class PhysicsService {
       }
     }
   }
+}
+
+/**
+ * Get the Y position on a slope surface at a given X position
+ * Returns the Y in world coordinates where the player should land
+ */
+function getSlopeSurfaceY(
+  shape: CollisionShape,
+  tileX: number,
+  tileY: number,
+  playerX: number,
+  playerWidth: number
+): number {
+  if (shape.type !== 'polygon' || !shape.vertices) {
+    return tileY
+  }
+
+  // Find the player's center X relative to the tile (0-1)
+  const playerCenterX = playerX + playerWidth / 2
+  const relX = Math.max(0, Math.min(1, (playerCenterX - tileX) / TILE_SIZE))
+  
+  // For slopes, find the surface Y at this X position
+  // We need to find which edge of the polygon forms the "top" surface
+  const verts = shape.vertices
+  
+  // Check if this is a slope we recognize
+  if (verts.length === 3) {
+    // SLOPE_UP_RIGHT: bottom-left (0,1), bottom-right (1,1), top-right (1,0)
+    // Surface goes from (0,1) to (1,0) - Y decreases as X increases
+    if (isShapeMatch(verts, SHAPES.SLOPE_UP_RIGHT.vertices!)) {
+      const surfaceY = 1 - relX  // Y = 1 at x=0, Y = 0 at x=1
+      return tileY + surfaceY * TILE_SIZE
+    }
+    
+    // SLOPE_UP_LEFT: top-left (0,0), bottom-left (0,1), bottom-right (1,1)
+    // Surface goes from (0,0) to (1,1) - Y increases as X increases
+    if (isShapeMatch(verts, SHAPES.SLOPE_UP_LEFT.vertices!)) {
+      const surfaceY = relX  // Y = 0 at x=0, Y = 1 at x=1
+      return tileY + surfaceY * TILE_SIZE
+    }
+    
+    // SLOPE_DOWN_RIGHT: top-left (0,0), top-right (1,0), bottom-right (1,1)
+    // Surface goes from (0,0) to (1,1) on the right side
+    if (isShapeMatch(verts, SHAPES.SLOPE_DOWN_RIGHT.vertices!)) {
+      const surfaceY = relX  // Y = 0 at x=0, Y = 1 at x=1
+      return tileY + surfaceY * TILE_SIZE
+    }
+    
+    // SLOPE_DOWN_LEFT: top-left (0,0), top-right (1,0), bottom-left (0,1)
+    // Surface goes from (1,0) to (0,1)
+    if (isShapeMatch(verts, SHAPES.SLOPE_DOWN_LEFT.vertices!)) {
+      const surfaceY = 1 - relX  // Y = 1 at x=0, Y = 0 at x=1
+      return tileY + surfaceY * TILE_SIZE
+    }
+  }
+  
+  // Default fallback: use tile top
+  return tileY
+}
+
+/**
+ * Check if two vertex arrays represent the same shape
+ */
+function isShapeMatch(a: NormalizedPoint[], b: NormalizedPoint[]): boolean {
+  if (a.length !== b.length) return false
+  
+  // Check if all vertices match (allowing for floating point tolerance)
+  for (let i = 0; i < a.length; i++) {
+    if (Math.abs(a[i].x - b[i].x) > 0.001 || Math.abs(a[i].y - b[i].y) > 0.001) {
+      return false
+    }
+  }
+  return true
 }
 
 // Singleton instance

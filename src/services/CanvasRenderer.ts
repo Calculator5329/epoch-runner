@@ -1,10 +1,11 @@
 import { TILE_SIZE, COLORS, VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '../core/constants'
-import { getTileType, TileTypeId, SHAPES } from '../core/types/shapes'
+import { getTileType, TileTypeId } from '../core/types/shapes'
 import type { CollisionShape, NormalizedPoint } from '../core/types/shapes'
 import type { PlayerStore } from '../stores/PlayerStore'
 import type { LevelStore } from '../stores/LevelStore'
 import type { GameStore } from '../stores/GameStore'
 import type { CameraStore } from '../stores/CameraStore'
+import { getAllLevels } from '../levels'
 
 /**
  * CanvasRenderer - Stateless rendering service
@@ -58,8 +59,13 @@ class CanvasRenderer {
       this.drawGameOver(ctx, gameStore)
     }
 
-    if (gameStore.isPaused && !gameStore.levelComplete && !gameStore.isGameOver) {
+    if (gameStore.isPaused && !gameStore.levelComplete && !gameStore.isGameOver && !gameStore.isAdminMenuOpen) {
       this.drawPaused(ctx)
+    }
+
+    // Admin menu overlay (on top of everything)
+    if (gameStore.isAdminMenuOpen) {
+      this.drawAdminMenu(ctx, levelStore.currentLevelId)
     }
   }
 
@@ -86,9 +92,9 @@ class CanvasRenderer {
         const worldX = col * TILE_SIZE
         const worldY = row * TILE_SIZE
         
-        // Screen position (offset by camera)
-        const screenX = worldX - camera.x
-        const screenY = worldY - camera.y
+        // Screen position (offset by camera) - round to avoid sub-pixel rendering artifacts
+        const screenX = Math.round(worldX - camera.x)
+        const screenY = Math.round(worldY - camera.y)
 
         // Draw background for all tiles
         ctx.fillStyle = COLORS.empty
@@ -98,11 +104,6 @@ class CanvasRenderer {
         if (tileId !== TileTypeId.EMPTY) {
           this.drawTileShape(ctx, tileType.collision, tileType.color, screenX, screenY)
         }
-
-        // Draw tile border for visual separation
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'
-        ctx.lineWidth = 1
-        ctx.strokeRect(screenX, screenY, TILE_SIZE, TILE_SIZE)
       }
     }
   }
@@ -168,9 +169,9 @@ class CanvasRenderer {
     player: PlayerStore,
     camera: CameraStore
   ): void {
-    // Convert world position to screen position
-    const screenX = player.x - camera.x
-    const screenY = player.y - camera.y
+    // Convert world position to screen position - round to avoid sub-pixel artifacts
+    const screenX = Math.round(player.x - camera.x)
+    const screenY = Math.round(player.y - camera.y)
 
     // Player body
     ctx.fillStyle = player.isDead ? '#666' : COLORS.player
@@ -349,6 +350,164 @@ class CanvasRenderer {
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText('PAUSED', VIEWPORT_WIDTH / 2, VIEWPORT_HEIGHT / 2)
+  }
+
+  /**
+   * Draw admin level selector overlay
+   */
+  drawAdminMenu(ctx: CanvasRenderingContext2D, currentLevelId: string | null): void {
+    const levels = getAllLevels()
+    
+    // Menu dimensions
+    const menuWidth = 500
+    const menuHeight = 60 + levels.length * 40 + 60  // title + items + footer
+    const menuX = (VIEWPORT_WIDTH - menuWidth) / 2
+    const menuY = (VIEWPORT_HEIGHT - menuHeight) / 2
+    const itemHeight = 40
+    const startY = menuY + 60  // After title
+    
+    // Dark overlay
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)'
+    ctx.fillRect(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
+    
+    // Menu background
+    ctx.fillStyle = 'rgba(30, 30, 50, 0.95)'
+    ctx.fillRect(menuX, menuY, menuWidth, menuHeight)
+    
+    // Menu border
+    ctx.strokeStyle = '#4299e1'
+    ctx.lineWidth = 2
+    ctx.strokeRect(menuX, menuY, menuWidth, menuHeight)
+    
+    // Title
+    ctx.fillStyle = '#4299e1'
+    ctx.font = 'bold 28px Arial'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('ADMIN: LEVEL SELECT', VIEWPORT_WIDTH / 2, menuY + 35)
+    
+    // Level list
+    ctx.font = '18px Arial'
+    ctx.textAlign = 'left'
+    
+    levels.forEach((level, index) => {
+      const itemY = startY + index * itemHeight
+      const isCurrentLevel = level.id === currentLevelId
+      const isHovered = this.hoveredLevelIndex === index
+      
+      // Highlight hovered level
+      if (isHovered && !isCurrentLevel) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'
+        ctx.fillRect(menuX + 10, itemY, menuWidth - 20, itemHeight - 5)
+      }
+      
+      // Highlight current level
+      if (isCurrentLevel) {
+        ctx.fillStyle = 'rgba(66, 153, 225, 0.3)'
+        ctx.fillRect(menuX + 10, itemY, menuWidth - 20, itemHeight - 5)
+      }
+      
+      // Text color based on state
+      const textColor = isCurrentLevel ? '#4299e1' : (isHovered ? '#63b3ed' : '#ffffff')
+      ctx.fillStyle = textColor
+      
+      // Level indicator
+      const indicator = isCurrentLevel ? '>' : (isHovered ? '>' : ' ')
+      ctx.fillText(`[${indicator}]`, menuX + 20, itemY + itemHeight / 2)
+      
+      // Level ID
+      ctx.fillStyle = isHovered ? '#aaa' : '#888'
+      ctx.fillText(level.id, menuX + 60, itemY + itemHeight / 2)
+      
+      // Level name
+      ctx.fillStyle = textColor
+      ctx.fillText(`- ${level.name}`, menuX + 220, itemY + itemHeight / 2)
+    })
+    
+    // Footer instructions
+    const footerY = startY + levels.length * itemHeight + 20
+    ctx.fillStyle = '#666'
+    ctx.font = '14px Arial'
+    ctx.textAlign = 'center'
+    ctx.fillText('Click to load  |  ` or ESC to close', VIEWPORT_WIDTH / 2, footerY)
+    
+    // Store menu bounds for click detection
+    this.adminMenuBounds = {
+      x: menuX,
+      y: startY,
+      width: menuWidth,
+      itemHeight,
+      levelCount: levels.length,
+    }
+  }
+  
+  // Store bounds for click detection
+  adminMenuBounds: {
+    x: number
+    y: number
+    width: number
+    itemHeight: number
+    levelCount: number
+  } | null = null
+  
+  // Track hovered level index for visual feedback
+  hoveredLevelIndex: number | null = null
+  
+  /**
+   * Update hover position for admin menu
+   */
+  updateHoverPosition(mouseX: number, mouseY: number): void {
+    if (!this.adminMenuBounds) {
+      this.hoveredLevelIndex = null
+      return
+    }
+    
+    const { x, y, width, itemHeight, levelCount } = this.adminMenuBounds
+    
+    // Check if mouse is within menu item bounds
+    if (mouseX < x || mouseX > x + width) {
+      this.hoveredLevelIndex = null
+      return
+    }
+    if (mouseY < y || mouseY > y + levelCount * itemHeight) {
+      this.hoveredLevelIndex = null
+      return
+    }
+    
+    // Calculate which level is hovered
+    const index = Math.floor((mouseY - y) / itemHeight)
+    if (index >= 0 && index < levelCount) {
+      this.hoveredLevelIndex = index
+    } else {
+      this.hoveredLevelIndex = null
+    }
+  }
+  
+  /**
+   * Clear hover state when menu closes
+   */
+  clearHover(): void {
+    this.hoveredLevelIndex = null
+  }
+  
+  /**
+   * Get level ID from click position in admin menu
+   */
+  getLevelAtPosition(clickX: number, clickY: number): string | null {
+    if (!this.adminMenuBounds) return null
+    
+    const { x, y, width, itemHeight, levelCount } = this.adminMenuBounds
+    
+    // Check if click is within menu bounds
+    if (clickX < x || clickX > x + width) return null
+    if (clickY < y || clickY > y + levelCount * itemHeight) return null
+    
+    // Calculate which level was clicked
+    const index = Math.floor((clickY - y) / itemHeight)
+    if (index < 0 || index >= levelCount) return null
+    
+    const levels = getAllLevels()
+    return levels[index]?.id || null
   }
 
   /**

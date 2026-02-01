@@ -52,11 +52,17 @@ export class LevelStore {
   }
 
   /**
-   * Convert legacy CollisionType to new TileTypeId
+   * Convert legacy CollisionType to new TileTypeId (only for legacy levels)
+   * 
+   * Legacy levels use CollisionType values 0-4.
+   * New levels use TileTypeId values which can overlap (e.g., SOLID_HALF_LEFT = 2).
+   * 
+   * We detect legacy levels by checking if all values are in the 0-4 range.
+   * This is called with isLegacy=true only for legacy LevelData format.
    */
-  private convertLegacyTile(tile: number): number {
-    // If it's already a new TileTypeId (>= 50), return as-is
-    if (tile >= 50) return tile
+  private convertLegacyTile(tile: number, isLegacy: boolean): number {
+    // Only convert if this is a legacy level
+    if (!isLegacy) return tile
     
     // Convert legacy CollisionType to TileTypeId
     switch (tile) {
@@ -79,19 +85,25 @@ export class LevelStore {
    * Load a level from LevelDefinition
    */
   loadLevelDefinition(level: LevelDefinition): void {
+    // Validate required fields
+    if (!level || !level.collision || !Array.isArray(level.collision)) {
+      console.error('Invalid level definition: missing collision grid')
+      return
+    }
+    if (level.collision.length !== level.height) {
+      console.error(`Invalid level: collision grid height (${level.collision.length}) doesn't match declared height (${level.height})`)
+      return
+    }
+    
     this.currentLevelId = level.id
     this.currentLevelName = level.name
     this.width = level.width
     this.height = level.height
     this.startingLives = level.startingLives ?? 3
     
-    // Convert and deep copy collision grid
-    this.collision = level.collision.map(row => 
-      row.map(tile => this.convertLegacyTile(tile))
-    )
-    this.originalCollision = level.collision.map(row => 
-      row.map(tile => this.convertLegacyTile(tile))
-    )
+    // Deep copy collision grid (no conversion needed - new format uses TileTypeId directly)
+    this.collision = level.collision.map(row => [...row])
+    this.originalCollision = level.collision.map(row => [...row])
     
     this.playerSpawn = {
       x: level.playerSpawn.col * TILE_SIZE,
@@ -106,11 +118,12 @@ export class LevelStore {
     if (data) {
       this.width = data.width
       this.height = data.height
+      // Legacy format uses CollisionType values, so convert them
       this.collision = data.collision.map(row => 
-        row.map(tile => this.convertLegacyTile(tile))
+        row.map(tile => this.convertLegacyTile(tile, true))
       )
       this.originalCollision = data.collision.map(row => 
-        row.map(tile => this.convertLegacyTile(tile))
+        row.map(tile => this.convertLegacyTile(tile, true))
       )
       this.playerSpawn = { ...data.playerSpawn }
     } else {
