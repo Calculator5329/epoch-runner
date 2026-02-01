@@ -242,7 +242,7 @@ export class GameStore {
   /**
    * Collect a coin at position
    */
-  collectCoin(col: number, row: number): void {
+  collectCoin(_col: number, _row: number): void {
     this.coinsThisAttempt += 1
   }
 

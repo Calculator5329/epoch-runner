@@ -1,5 +1,5 @@
 import { TILE_SIZE, GRAVITY, MAX_FALL_SPEED, PLAYER_SPEED } from '../core/constants'
-import { TileTypeId, getTileType, isTileTypeSolid, isTileTypeHazard, isTileTypePlatform, SHAPES } from '../core/types/shapes'
+import { TileTypeId, getTileType, isTileTypeSolid, isTileTypePlatform, SHAPES } from '../core/types/shapes'
 import type { CollisionShape, NormalizedPoint } from '../core/types/shapes'
 import type { InputState } from '../core/types'
 import {
@@ -8,7 +8,6 @@ import {
   checkPickupCollision,
   checkPlatformCollision,
   checkTileCollisions,
-  checkShapeCollision,
 } from './CollisionUtils'
 import type { PlayerStore } from '../stores/PlayerStore'
 import type { LevelStore } from '../stores/LevelStore'

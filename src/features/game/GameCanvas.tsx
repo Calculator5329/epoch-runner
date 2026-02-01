@@ -286,7 +286,7 @@ export const GameCanvas = observer(function GameCanvas() {
         gameStore.closeAdminMenu()
       }
     }
-  }, [rootStore, gameStore, campaignStore.screenState])
+  }, [rootStore, gameStore, campaignStore])
 
   // Handle canvas mouse move (for admin menu, roadmap, and intro terminal hover effects)
   const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {

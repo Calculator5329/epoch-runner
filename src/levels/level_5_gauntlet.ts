@@ -8,14 +8,12 @@
 import { 
   createLevel, 
   tiles, 
-  ground, 
   platform, 
   goal,
   wall,
   // Shapes
   halfBlockLeft,
   halfBlockRight,
-  quarterBlock,
   // Hazards
   spikesUp,
   spikesDown,

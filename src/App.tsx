@@ -1,10 +1,9 @@
 import { observer } from 'mobx-react-lite'
 import { GameCanvas } from './features/game/GameCanvas'
-import { RootStoreProvider, rootStore, useCampaignStore } from './stores/RootStore'
+import { RootStoreProvider, rootStore } from './stores/RootStore'
 import './App.css'
 
 const AppContent = observer(function AppContent() {
-  const campaignStore = useCampaignStore()
   const showHeader = false
   return (
     <div className="app">

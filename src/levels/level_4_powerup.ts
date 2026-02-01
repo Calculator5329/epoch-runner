@@ -17,7 +17,6 @@ import {
   coinRow,
   spikesUp,
   checkpoint,
-  oneWayPlatform,
 } from './helpers'
 
 export const level_4_powerup = createLevel(

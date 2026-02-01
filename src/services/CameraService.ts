@@ -17,7 +17,7 @@ class CameraService {
     deltaTime: number,
     cameraStore: CameraStore,
     playerStore: PlayerStore,
-    _levelStore: LevelStore
+    _levelStore?: LevelStore
   ): void {
     // Get player center position
     const playerCenter = playerStore.center

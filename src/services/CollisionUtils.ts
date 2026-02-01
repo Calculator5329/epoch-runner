@@ -1,5 +1,5 @@
 import { TILE_SIZE } from '../core/constants'
-import type { CollisionShape, NormalizedPoint, NormalizedRect } from '../core/types/shapes'
+import type { CollisionShape, NormalizedPoint } from '../core/types/shapes'
 import { getTileType, isTileTypeSolid, isTileTypeHazard, isTileTypePickup, isTileTypePlatform } from '../core/types/shapes'
 
 /**

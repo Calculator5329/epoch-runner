@@ -275,7 +275,7 @@ class CanvasRenderer {
   private drawHUD(
     ctx: CanvasRenderingContext2D,
     game: GameStore,
-    player: PlayerStore
+    _player: PlayerStore
   ): void {
     const padding = 20
     
@@ -304,7 +304,7 @@ class CanvasRenderer {
     // Coins (top-right)
     ctx.fillStyle = COLORS.coin
     ctx.beginPath()
-    ctx.arc(VIEWPORT_WIDTH - padding - 80, padding + 12, 12, 0, Math.PI * 2)
+    ctx.arc(VIEWPORT_WIDTH - padding, padding + 12, 12, 0, Math.PI * 2)
     ctx.fill()
     ctx.strokeStyle = '#d69e2e'
     ctx.lineWidth = 2
@@ -312,7 +312,7 @@ class CanvasRenderer {
     
     ctx.fillStyle = '#ffffff'
     ctx.textAlign = 'right'
-    ctx.fillText(`${game.coinsThisAttempt}`, VIEWPORT_WIDTH - padding - 100, padding)
+    ctx.fillText(`${game.coinsThisAttempt}`, VIEWPORT_WIDTH - padding - 20, padding)
 
     // Replay multiplier if applicable
     if (game.replayMultiplier < 1) {
@@ -671,7 +671,7 @@ class CanvasRenderer {
   /**
    * Draw the full roadmap screen with phase details
    */
-  private drawRoadmapScreen(ctx: CanvasRenderingContext2D, campaign: CampaignStore): void {
+  private drawRoadmapScreen(ctx: CanvasRenderingContext2D, _campaign: CampaignStore): void {
     const centerX = VIEWPORT_WIDTH / 2
 
     // Gradient background (same as intro)
@@ -869,7 +869,7 @@ class CanvasRenderer {
       const isHovered = this.hoveredRoadmapPhase === index
 
       // Card background
-      let bgColor = isHovered ? 'rgba(33, 38, 45, 0.95)' : 'rgba(22, 27, 34, 0.9)'
+      const bgColor = isHovered ? 'rgba(33, 38, 45, 0.95)' : 'rgba(22, 27, 34, 0.9)'
       let borderColor = '#30363d'
       let statusColor = '#6e7681'
       let progressColor = '#484f58'
@@ -1383,7 +1383,7 @@ class CanvasRenderer {
    */
   private drawGameOver(
     ctx: CanvasRenderingContext2D,
-    game: GameStore
+    _game: GameStore
   ): void {
     // Semi-transparent overlay
     ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'

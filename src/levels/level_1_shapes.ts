@@ -17,7 +17,6 @@ import {
   halfBlockTop,
   quarterBlock,
   stairsUpRight,
-  stairsUpLeft,
 } from './helpers'
 
 export const level_1_shapes = createLevel(
