@@ -5,6 +5,7 @@ import { PlayerStore } from './PlayerStore'
 import { LevelStore } from './LevelStore'
 import { CameraStore } from './CameraStore'
 import { CampaignStore } from './CampaignStore'
+import { UIStore } from './UIStore'
 import { levelLoaderService } from '../services/LevelLoaderService'
 import { CAMPAIGN_LEVELS } from '../levels'
 import type { LevelDefinition } from '../levels/types'
@@ -22,6 +23,7 @@ export class RootStore {
   levelStore: LevelStore
   cameraStore: CameraStore
   campaignStore: CampaignStore
+  uiStore: UIStore
 
   constructor() {
     this.gameStore = new GameStore()
@@ -29,6 +31,7 @@ export class RootStore {
     this.levelStore = new LevelStore()
     this.cameraStore = new CameraStore()
     this.campaignStore = new CampaignStore()
+    this.uiStore = new UIStore()
   }
 
   /**
@@ -289,4 +292,8 @@ export function useCameraStore(): CameraStore {
 
 export function useCampaignStore(): CampaignStore {
   return useRootStore().campaignStore
+}
+
+export function useUIStore(): UIStore {
+  return useRootStore().uiStore
 }
