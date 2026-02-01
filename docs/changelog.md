@@ -2,6 +2,53 @@
 
 ## [Unreleased]
 
+### Session: 2026-02-01 - New Power-ups System
+
+#### Added: Three New Power-ups
+
+Implemented Speed Boost, Super Jump, and Invincibility power-ups with timed effects.
+
+| Power-up | Effect | Duration | Color |
+|----------|--------|----------|-------|
+| Speed Boost | 2x movement speed | 8 seconds | Orange |
+| Super Jump | 1.5x jump height | 8 seconds | Purple |
+| Invincibility | Immune to hazards/enemies | 6 seconds | Gold |
+
+**New Tile Types:**
+- `POWERUP_SPEED` (ID: 82) - Orange orb
+- `POWERUP_SUPER_JUMP` (ID: 83) - Purple orb
+- `POWERUP_INVINCIBILITY` (ID: 84) - Gold orb
+
+**Files Modified:**
+- `src/core/types/shapes.ts` - Added new TileTypeId values and TILE_TYPES entries
+- `src/core/constants/index.ts` - Added duration and multiplier constants
+- `src/stores/PlayerStore.ts` - Added state, grant methods, and timer updates
+- `src/services/PhysicsService.ts` - Added collection logic and invincibility checks
+- `src/services/renderers/GameplayRenderer.ts` - Added visual indicators for active power-ups
+- `src/levels/helpers.ts` - Added `speedBoost()`, `superJump()`, `invincibility()` helpers
+
+**Visual Indicators:**
+- Each power-up shows colored circle above player
+- Timer bar shows remaining duration
+- Invincibility adds pulsing gold outline around player
+- Indicators stack when multiple power-ups active
+
+#### Added: Level 8 - Power Surge
+
+Created a challenging gauntlet level that requires strategic power-up usage.
+
+**New Level:**
+- `src/levels/level_8_powerups.ts` - "Power Surge"
+- 70x25 tiles (tall for vertical sections)
+- 7 starting lives (challenging level)
+
+**Level Sections:**
+1. Speed Gauntlet - Long spike pit requiring 2x speed to clear
+2. Super Jump Tower - Vertical climb with 5-tile platform gaps
+3. Invincibility Corridor - Dense hazard zone with spikes and enemies
+
+---
+
 ### Session: 2026-02-01 - Enemy System Implementation
 
 #### Added: Level 7 - Enemy Territory

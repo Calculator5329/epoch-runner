@@ -223,6 +223,9 @@ export enum TileTypeId {
   // Pickups (80-99)
   COIN = 80,
   POWERUP_TRIPLE_JUMP = 81,
+  POWERUP_SPEED = 82,
+  POWERUP_SUPER_JUMP = 83,
+  POWERUP_INVINCIBILITY = 84,
   
   // Triggers (100-119)
   GOAL = 100,
@@ -236,7 +239,10 @@ export const TILE_COLORS = {
   platform: '#9f7aea',
   hazard: '#e53e3e',
   coin: '#f6e05e',
-  powerup: '#48bb78',  // Green for triple jump power-up
+  powerup: '#48bb78',       // Green for triple jump power-up
+  speedBoost: '#f6ad55',    // Orange for speed boost
+  superJump: '#9f7aea',     // Purple for super jump
+  invincibility: '#ffd700', // Gold for invincibility
   goal: '#48bb78',
   checkpoint: '#4299e1',
   // Custom solid colors (for different sprite themes)
@@ -501,6 +507,27 @@ export const TILE_TYPES: Record<TileTypeId, TileType> = {
     category: 'pickup',
     collision: SHAPES.PICKUP,
     color: TILE_COLORS.powerup,
+  },
+  [TileTypeId.POWERUP_SPEED]: {
+    id: TileTypeId.POWERUP_SPEED,
+    name: 'Speed Boost',
+    category: 'pickup',
+    collision: SHAPES.PICKUP,
+    color: TILE_COLORS.speedBoost,
+  },
+  [TileTypeId.POWERUP_SUPER_JUMP]: {
+    id: TileTypeId.POWERUP_SUPER_JUMP,
+    name: 'Super Jump',
+    category: 'pickup',
+    collision: SHAPES.PICKUP,
+    color: TILE_COLORS.superJump,
+  },
+  [TileTypeId.POWERUP_INVINCIBILITY]: {
+    id: TileTypeId.POWERUP_INVINCIBILITY,
+    name: 'Invincibility',
+    category: 'pickup',
+    collision: SHAPES.PICKUP,
+    color: TILE_COLORS.invincibility,
   },
   
   // Triggers

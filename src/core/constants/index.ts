@@ -45,3 +45,10 @@ export const DEFAULT_LIVES = 3
 
 // Power-up durations (seconds)
 export const TRIPLE_JUMP_DURATION = 10
+export const SPEED_BOOST_DURATION = 8
+export const SUPER_JUMP_DURATION = 8
+export const INVINCIBILITY_DURATION = 6
+
+// Power-up multipliers
+export const SPEED_BOOST_MULTIPLIER = 2.0    // 2x movement speed
+export const SUPER_JUMP_MULTIPLIER = 1.5     // 1.5x jump height

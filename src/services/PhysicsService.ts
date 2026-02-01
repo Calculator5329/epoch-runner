@@ -315,8 +315,8 @@ class PhysicsService {
     level: LevelStore,
     game: GameStore
   ): void {
-    // Skip hazard damage in god mode
-    if (game.isGodMode) return
+    // Skip hazard damage in god mode or with invincibility
+    if (game.isGodMode || player.hasInvincibility) return
 
     const aabb = this.createPlayerAABB(player, player.x, player.y)
     const getTile = (col: number, row: number) => level.getTileAt(col, row)
@@ -365,6 +365,15 @@ class PhysicsService {
         level.setTileAt(pickup.col, pickup.row, TileTypeId.EMPTY)
       } else if (pickup.tileId === TileTypeId.POWERUP_TRIPLE_JUMP) {
         player.grantTripleJump()
+        level.setTileAt(pickup.col, pickup.row, TileTypeId.EMPTY)
+      } else if (pickup.tileId === TileTypeId.POWERUP_SPEED) {
+        player.grantSpeedBoost()
+        level.setTileAt(pickup.col, pickup.row, TileTypeId.EMPTY)
+      } else if (pickup.tileId === TileTypeId.POWERUP_SUPER_JUMP) {
+        player.grantSuperJump()
+        level.setTileAt(pickup.col, pickup.row, TileTypeId.EMPTY)
+      } else if (pickup.tileId === TileTypeId.POWERUP_INVINCIBILITY) {
+        player.grantInvincibility()
         level.setTileAt(pickup.col, pickup.row, TileTypeId.EMPTY)
       }
     }
@@ -418,6 +427,12 @@ class PhysicsService {
     for (const enemy of enemies) {
       // Check AABB overlap
       if (!this.aabbOverlap(playerAABB, enemy)) continue
+
+      // If player has invincibility, kill enemy on any contact
+      if (player.hasInvincibility) {
+        entityStore.despawn(enemy.id)
+        continue
+      }
 
       // Determine if this is a stomp (player landing on enemy from above)
       const isStomping = this.isStompingEnemy(player, enemy)

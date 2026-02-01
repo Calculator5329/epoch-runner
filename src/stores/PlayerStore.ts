@@ -1,5 +1,16 @@
 import { makeAutoObservable } from 'mobx'
-import { PLAYER_SPEED, JUMP_VELOCITY, PLAYER_WIDTH, PLAYER_HEIGHT, TRIPLE_JUMP_DURATION } from '../core/constants'
+import { 
+  PLAYER_SPEED, 
+  JUMP_VELOCITY, 
+  PLAYER_WIDTH, 
+  PLAYER_HEIGHT, 
+  TRIPLE_JUMP_DURATION,
+  SPEED_BOOST_DURATION,
+  SUPER_JUMP_DURATION,
+  INVINCIBILITY_DURATION,
+  SPEED_BOOST_MULTIPLIER,
+  SUPER_JUMP_MULTIPLIER,
+} from '../core/constants'
 import type { InputState, Vector2 } from '../core/types'
 import { audioService } from '../services/AudioService'
 
@@ -38,6 +49,18 @@ export class PlayerStore {
   // Triple jump power-up
   hasTripleJump = false
   tripleJumpTimer = 0  // Seconds remaining
+  
+  // Speed boost power-up
+  hasSpeedBoost = false
+  speedBoostTimer = 0
+  
+  // Super jump power-up
+  hasSuperJump = false
+  superJumpTimer = 0
+  
+  // Invincibility power-up
+  hasInvincibility = false
+  invincibilityTimer = 0
 
   constructor() {
     makeAutoObservable(this)
@@ -58,12 +81,17 @@ export class PlayerStore {
   applyInput(input: InputState): void {
     if (this.isDead) return
 
+    // Calculate effective speed (with speed boost if active)
+    const effectiveSpeed = this.hasSpeedBoost 
+      ? PLAYER_SPEED * SPEED_BOOST_MULTIPLIER 
+      : PLAYER_SPEED
+
     // Horizontal movement
     if (input.left && !input.right) {
-      this.vx = -PLAYER_SPEED
+      this.vx = -effectiveSpeed
       this.isFacingRight = false
     } else if (input.right && !input.left) {
-      this.vx = PLAYER_SPEED
+      this.vx = effectiveSpeed
       this.isFacingRight = true
     } else {
       this.vx = 0
@@ -71,7 +99,12 @@ export class PlayerStore {
 
     // Jump (uses jumpsRemaining for double jump support)
     if (input.jumpJustPressed && this.jumpsRemaining > 0) {
-      this.vy = JUMP_VELOCITY
+      // Calculate effective jump velocity (with super jump if active)
+      const effectiveJumpVelocity = this.hasSuperJump
+        ? JUMP_VELOCITY * SUPER_JUMP_MULTIPLIER
+        : JUMP_VELOCITY
+      
+      this.vy = effectiveJumpVelocity
       this.jumpsRemaining -= 1
       this.isGrounded = false
       
@@ -85,6 +118,7 @@ export class PlayerStore {
    * Called each frame with deltaTime
    */
   updatePowerUps(deltaTime: number): void {
+    // Triple jump timer
     if (this.hasTripleJump && this.tripleJumpTimer > 0) {
       this.tripleJumpTimer -= deltaTime
       
@@ -92,6 +126,36 @@ export class PlayerStore {
         this.hasTripleJump = false
         this.tripleJumpTimer = 0
         // Don't reset jumpsRemaining mid-air
+      }
+    }
+    
+    // Speed boost timer
+    if (this.hasSpeedBoost && this.speedBoostTimer > 0) {
+      this.speedBoostTimer -= deltaTime
+      
+      if (this.speedBoostTimer <= 0) {
+        this.hasSpeedBoost = false
+        this.speedBoostTimer = 0
+      }
+    }
+    
+    // Super jump timer
+    if (this.hasSuperJump && this.superJumpTimer > 0) {
+      this.superJumpTimer -= deltaTime
+      
+      if (this.superJumpTimer <= 0) {
+        this.hasSuperJump = false
+        this.superJumpTimer = 0
+      }
+    }
+    
+    // Invincibility timer
+    if (this.hasInvincibility && this.invincibilityTimer > 0) {
+      this.invincibilityTimer -= deltaTime
+      
+      if (this.invincibilityTimer <= 0) {
+        this.hasInvincibility = false
+        this.invincibilityTimer = 0
       }
     }
   }
@@ -156,6 +220,30 @@ export class PlayerStore {
   }
 
   /**
+   * Grant speed boost power-up (2x movement speed)
+   */
+  grantSpeedBoost(): void {
+    this.hasSpeedBoost = true
+    this.speedBoostTimer = SPEED_BOOST_DURATION
+  }
+
+  /**
+   * Grant super jump power-up (1.5x jump height)
+   */
+  grantSuperJump(): void {
+    this.hasSuperJump = true
+    this.superJumpTimer = SUPER_JUMP_DURATION
+  }
+
+  /**
+   * Grant invincibility power-up (immune to damage)
+   */
+  grantInvincibility(): void {
+    this.hasInvincibility = true
+    this.invincibilityTimer = INVINCIBILITY_DURATION
+  }
+
+  /**
    * Get player center position
    */
   get center(): Vector2 {
@@ -200,9 +288,18 @@ export class PlayerStore {
     this.isGrounded = false
     this.isFacingRight = true
     this.isDead = false
+    
+    // Reset all power-ups
     this.hasTripleJump = false
-    this.jumpsRemaining = this.baseMaxJumps
     this.tripleJumpTimer = 0
+    this.hasSpeedBoost = false
+    this.speedBoostTimer = 0
+    this.hasSuperJump = false
+    this.superJumpTimer = 0
+    this.hasInvincibility = false
+    this.invincibilityTimer = 0
+    
+    this.jumpsRemaining = this.baseMaxJumps
   }
 
   /**
@@ -215,7 +312,14 @@ export class PlayerStore {
     this.vy = 0
     this.isGrounded = false
     this.isDead = false
-    // Keep power-ups if timer still active
+    // Keep power-ups if timer still active (they persist through death)
     this.jumpsRemaining = this.hasTripleJump ? 3 : this.baseMaxJumps
+  }
+
+  /**
+   * Check if player has any active power-up
+   */
+  get hasAnyPowerUp(): boolean {
+    return this.hasTripleJump || this.hasSpeedBoost || this.hasSuperJump || this.hasInvincibility
   }
 }

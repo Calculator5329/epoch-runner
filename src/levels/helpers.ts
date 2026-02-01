@@ -539,6 +539,27 @@ export function tripleJump(col: number, row: number): TilePlacement[] {
   return [{ col, row, type: TileTypeId.POWERUP_TRIPLE_JUMP }]
 }
 
+/**
+ * Place a speed boost power-up (2x movement speed)
+ */
+export function speedBoost(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.POWERUP_SPEED }]
+}
+
+/**
+ * Place a super jump power-up (1.5x jump height)
+ */
+export function superJump(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.POWERUP_SUPER_JUMP }]
+}
+
+/**
+ * Place an invincibility power-up (immune to damage)
+ */
+export function invincibility(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.POWERUP_INVINCIBILITY }]
+}
+
 // ============================================
 // Trigger Helpers
 // ============================================

@@ -1,4 +1,14 @@
-import { TILE_SIZE, COLORS, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, TRIPLE_JUMP_DURATION } from '../../core/constants'
+import { 
+  TILE_SIZE, 
+  COLORS, 
+  VIEWPORT_WIDTH, 
+  VIEWPORT_HEIGHT, 
+  TRIPLE_JUMP_DURATION,
+  SPEED_BOOST_DURATION,
+  SUPER_JUMP_DURATION,
+  INVINCIBILITY_DURATION,
+} from '../../core/constants'
+import { TILE_COLORS } from '../../core/types/shapes'
 import { getTileType, TileTypeId } from '../../core/types/shapes'
 import type { CollisionShape, NormalizedPoint } from '../../core/types/shapes'
 import type { PlayerStore } from '../../stores/PlayerStore'
@@ -338,24 +348,140 @@ export class GameplayRenderer {
       this.drawPlayerProcedural(ctx, player, screenX, screenY)
     }
 
-    // Triple jump indicator (always draw on top of sprite)
+    // Draw power-up indicators (stacked above player)
+    this.drawPowerUpIndicators(ctx, player, screenX, screenY)
+  }
+
+  /**
+   * Draw power-up indicators above the player
+   */
+  private drawPowerUpIndicators(
+    ctx: CanvasRenderingContext2D,
+    player: PlayerStore,
+    screenX: number,
+    screenY: number
+  ): void {
+    let indicatorOffset = 0
+    const indicatorSpacing = 18
+    const timerWidth = 30
+    const timerHeight = 4
+    const centerX = screenX + player.width / 2
+
+    // Triple jump indicator
     if (player.hasTripleJump) {
+      const indicatorY = screenY - 10 - indicatorOffset
       ctx.fillStyle = COLORS.powerup
       ctx.beginPath()
-      ctx.arc(screenX + player.width / 2, screenY - 10, 6, 0, Math.PI * 2)
+      ctx.arc(centerX, indicatorY, 6, 0, Math.PI * 2)
       ctx.fill()
       
       // Timer bar
-      const timerWidth = 30
-      const timerHeight = 4
-      const timerX = screenX + player.width / 2 - timerWidth / 2
-      const timerY = screenY - 20
+      const timerX = centerX - timerWidth / 2
+      const timerY = indicatorY - 10
       const fillRatio = player.tripleJumpTimer / TRIPLE_JUMP_DURATION
       
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
       ctx.fillRect(timerX, timerY, timerWidth, timerHeight)
       ctx.fillStyle = COLORS.powerup
       ctx.fillRect(timerX, timerY, timerWidth * fillRatio, timerHeight)
+      
+      indicatorOffset += indicatorSpacing
+    }
+
+    // Speed boost indicator (orange)
+    if (player.hasSpeedBoost) {
+      const indicatorY = screenY - 10 - indicatorOffset
+      ctx.fillStyle = TILE_COLORS.speedBoost
+      ctx.beginPath()
+      ctx.arc(centerX, indicatorY, 6, 0, Math.PI * 2)
+      ctx.fill()
+      
+      // Speed lines decoration
+      ctx.strokeStyle = TILE_COLORS.speedBoost
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.moveTo(centerX - 10, indicatorY)
+      ctx.lineTo(centerX - 14, indicatorY)
+      ctx.moveTo(centerX + 10, indicatorY)
+      ctx.lineTo(centerX + 14, indicatorY)
+      ctx.stroke()
+      
+      // Timer bar
+      const timerX = centerX - timerWidth / 2
+      const timerY = indicatorY - 10
+      const fillRatio = player.speedBoostTimer / SPEED_BOOST_DURATION
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
+      ctx.fillRect(timerX, timerY, timerWidth, timerHeight)
+      ctx.fillStyle = TILE_COLORS.speedBoost
+      ctx.fillRect(timerX, timerY, timerWidth * fillRatio, timerHeight)
+      
+      indicatorOffset += indicatorSpacing
+    }
+
+    // Super jump indicator (purple)
+    if (player.hasSuperJump) {
+      const indicatorY = screenY - 10 - indicatorOffset
+      ctx.fillStyle = TILE_COLORS.superJump
+      ctx.beginPath()
+      ctx.arc(centerX, indicatorY, 6, 0, Math.PI * 2)
+      ctx.fill()
+      
+      // Up arrow decoration
+      ctx.strokeStyle = TILE_COLORS.superJump
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.moveTo(centerX, indicatorY - 10)
+      ctx.lineTo(centerX, indicatorY - 4)
+      ctx.moveTo(centerX - 3, indicatorY - 7)
+      ctx.lineTo(centerX, indicatorY - 10)
+      ctx.lineTo(centerX + 3, indicatorY - 7)
+      ctx.stroke()
+      
+      // Timer bar
+      const timerX = centerX - timerWidth / 2
+      const timerY = indicatorY - 16
+      const fillRatio = player.superJumpTimer / SUPER_JUMP_DURATION
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
+      ctx.fillRect(timerX, timerY, timerWidth, timerHeight)
+      ctx.fillStyle = TILE_COLORS.superJump
+      ctx.fillRect(timerX, timerY, timerWidth * fillRatio, timerHeight)
+      
+      indicatorOffset += indicatorSpacing
+    }
+
+    // Invincibility indicator (gold, pulsing)
+    if (player.hasInvincibility) {
+      const indicatorY = screenY - 10 - indicatorOffset
+      const pulseScale = 1 + Math.sin(Date.now() / 100) * 0.2
+      
+      // Glowing effect
+      ctx.fillStyle = TILE_COLORS.invincibility
+      ctx.shadowColor = TILE_COLORS.invincibility
+      ctx.shadowBlur = 10
+      ctx.beginPath()
+      ctx.arc(centerX, indicatorY, 6 * pulseScale, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.shadowBlur = 0
+      
+      // Timer bar
+      const timerX = centerX - timerWidth / 2
+      const timerY = indicatorY - 10
+      const fillRatio = player.invincibilityTimer / INVINCIBILITY_DURATION
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
+      ctx.fillRect(timerX, timerY, timerWidth, timerHeight)
+      ctx.fillStyle = TILE_COLORS.invincibility
+      ctx.fillRect(timerX, timerY, timerWidth * fillRatio, timerHeight)
+      
+      // Also draw gold outline around player when invincible
+      ctx.strokeStyle = TILE_COLORS.invincibility
+      ctx.lineWidth = 3
+      ctx.shadowColor = TILE_COLORS.invincibility
+      ctx.shadowBlur = 5
+      ctx.strokeRect(screenX - 2, screenY - 2, player.width + 4, player.height + 4)
+      ctx.shadowBlur = 0
     }
   }
 
