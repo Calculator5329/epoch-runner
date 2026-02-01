@@ -12,7 +12,7 @@ import {
   platform, 
   goal,
   wall,
-  doubleJump,
+  tripleJump,
   coin,
   coinRow,
   spikesUp,
@@ -30,23 +30,23 @@ export const level_4_powerup = createLevel(
     ground(50, 19),
     
     // ===== Section 1: Normal Jumps First =====
+    // (Heights tuned for max jump ~136px / ~2 tiles)
     
-    // Show what's possible without power-up
-    platform(5, 16, 3),
-    platform(10, 14, 3),
-    coinRow(10, 13, 3),
+    platform(5, 17, 3),
+    platform(10, 15, 3),
+    coinRow(10, 14, 3),
     
     // ===== Section 2: First Power-up =====
     
     // Power-up introduction
-    doubleJump(15, 18),
+    tripleJump(15, 18),
     
     // Impossible without double jump
     platform(17, 10, 3),
     coinRow(17, 9, 3),
     
-    // Return path
-    platform(21, 14, 2),
+    // Return path (reachable after landing from high platform)
+    platform(21, 15, 2),
     
     // Checkpoint
     checkpoint(24, 18),
@@ -54,13 +54,13 @@ export const level_4_powerup = createLevel(
     // ===== Section 3: Spike Gap Challenge =====
     
     // Power-up for spike gap
-    doubleJump(26, 18),
+    tripleJump(26, 18),
     
-    // Wide spike pit
-    spikesUp(28, 19, 6),
+    // Spike pit (gap tuned for double-jump horizontal distance ~5 tiles)
+    spikesUp(28, 19, 4),
     
-    // Must double jump to clear
-    platform(34, 18, 3),
+    // Landing platform (close enough to clear with double jump)
+    platform(32, 18, 3),
     
     // ===== Section 4: Vertical Tower =====
     
@@ -68,21 +68,30 @@ export const level_4_powerup = createLevel(
     checkpoint(37, 18),
     
     // Power-up for tower
-    doubleJump(38, 18),
+    tripleJump(38, 18),
     
     // Tower walls (shortened for entry and exit)
     wall(39, 2, 15),   // rows 2-16, leaves rows 17-18 open for entry
     wall(47, 6, 13),   // rows 6-18, leaves rows 2-5 open for exit
     
-    // Tower platforms (4-tile spacing = achievable with double jump)
-    platform(40, 16, 5),
-    coin(42, 15),
+    // Tower platforms (~2-tile steps = single jump between each)
+    platform(40, 17, 5),
+    coin(42, 16),
     
-    platform(40, 12, 5),
-    coin(42, 11),
+    platform(40, 15, 5),
+    coin(42, 14),
     
-    platform(40, 8, 5),
-    coin(42, 7),
+    platform(40, 13, 5),
+    coin(42, 12),
+    
+    platform(40, 11, 5),
+    coin(42, 10),
+    
+    platform(40, 9, 5),
+    coin(42, 8),
+    
+    platform(40, 7, 5),
+    coin(42, 6),
     
     platform(40, 5, 5),
     coin(42, 4),

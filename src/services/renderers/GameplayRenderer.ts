@@ -1,4 +1,4 @@
-import { TILE_SIZE, COLORS, VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '../../core/constants'
+import { TILE_SIZE, COLORS, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, TRIPLE_JUMP_DURATION } from '../../core/constants'
 import { getTileType, TileTypeId } from '../../core/types/shapes'
 import type { CollisionShape, NormalizedPoint } from '../../core/types/shapes'
 import type { PlayerStore } from '../../stores/PlayerStore'
@@ -172,8 +172,8 @@ export class GameplayRenderer {
       ctx.fill()
     }
 
-    // Double jump indicator
-    if (player.hasDoubleJump) {
+    // Triple jump indicator
+    if (player.hasTripleJump) {
       ctx.fillStyle = COLORS.powerup
       ctx.beginPath()
       ctx.arc(screenX + player.width / 2, screenY - 10, 6, 0, Math.PI * 2)
@@ -184,7 +184,7 @@ export class GameplayRenderer {
       const timerHeight = 4
       const timerX = screenX + player.width / 2 - timerWidth / 2
       const timerY = screenY - 20
-      const fillRatio = player.doubleJumpTimer / 10  // Assuming 10 second duration
+      const fillRatio = player.tripleJumpTimer / TRIPLE_JUMP_DURATION
       
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
       ctx.fillRect(timerX, timerY, timerWidth, timerHeight)

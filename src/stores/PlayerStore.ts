@@ -1,5 +1,5 @@
 import { makeAutoObservable } from 'mobx'
-import { PLAYER_SPEED, JUMP_VELOCITY, PLAYER_WIDTH, PLAYER_HEIGHT, DOUBLE_JUMP_DURATION } from '../core/constants'
+import { PLAYER_SPEED, JUMP_VELOCITY, PLAYER_WIDTH, PLAYER_HEIGHT, TRIPLE_JUMP_DURATION } from '../core/constants'
 import type { InputState, Vector2 } from '../core/types'
 
 /**
@@ -26,10 +26,13 @@ export class PlayerStore {
   readonly width = PLAYER_WIDTH
   readonly height = PLAYER_HEIGHT
 
-  // Double jump power-up
-  hasDoubleJump = false
+  // Jump system - baseMaxJumps determined by level (1 for levels 0-3, 2 for level 4+)
+  baseMaxJumps = 1
   jumpsRemaining = 1
-  doubleJumpTimer = 0  // Seconds remaining
+  
+  // Triple jump power-up
+  hasTripleJump = false
+  tripleJumpTimer = 0  // Seconds remaining
 
   constructor() {
     makeAutoObservable(this)
@@ -74,12 +77,12 @@ export class PlayerStore {
    * Called each frame with deltaTime
    */
   updatePowerUps(deltaTime: number): void {
-    if (this.hasDoubleJump && this.doubleJumpTimer > 0) {
-      this.doubleJumpTimer -= deltaTime
+    if (this.hasTripleJump && this.tripleJumpTimer > 0) {
+      this.tripleJumpTimer -= deltaTime
       
-      if (this.doubleJumpTimer <= 0) {
-        this.hasDoubleJump = false
-        this.doubleJumpTimer = 0
+      if (this.tripleJumpTimer <= 0) {
+        this.hasTripleJump = false
+        this.tripleJumpTimer = 0
         // Don't reset jumpsRemaining mid-air
       }
     }
@@ -90,23 +93,35 @@ export class PlayerStore {
    */
   onLand(): void {
     this.isGrounded = true
-    // Reset jumps: 1 normally, 2 with double jump power-up
-    this.jumpsRemaining = this.hasDoubleJump ? 2 : 1
+    // Reset jumps: baseMaxJumps normally (1 or 2), 3 with triple jump power-up
+    this.jumpsRemaining = this.hasTripleJump ? 3 : this.baseMaxJumps
   }
 
   /**
-   * Grant double jump power-up
+   * Set base max jumps for current level
+   * 1 for levels 0-3, 2 for level 4+
    */
-  grantDoubleJump(): void {
-    this.hasDoubleJump = true
-    this.doubleJumpTimer = DOUBLE_JUMP_DURATION
+  setBaseMaxJumps(maxJumps: number): void {
+    this.baseMaxJumps = maxJumps
+    // Update jumpsRemaining if grounded and no power-up active
+    if (this.isGrounded && !this.hasTripleJump) {
+      this.jumpsRemaining = maxJumps
+    }
+  }
+
+  /**
+   * Grant triple jump power-up
+   */
+  grantTripleJump(): void {
+    this.hasTripleJump = true
+    this.tripleJumpTimer = TRIPLE_JUMP_DURATION
     
-    // If grounded, immediately get the extra jump
+    // If grounded, immediately get triple jump
     if (this.isGrounded) {
-      this.jumpsRemaining = 2
+      this.jumpsRemaining = 3
     } else {
-      // If mid-air, grant one additional jump
-      this.jumpsRemaining = Math.min(this.jumpsRemaining + 1, 2)
+      // If mid-air, grant additional jumps up to 3
+      this.jumpsRemaining = Math.min(this.jumpsRemaining + (3 - this.baseMaxJumps), 3)
     }
   }
 
@@ -152,9 +167,9 @@ export class PlayerStore {
     this.isGrounded = false
     this.isFacingRight = true
     this.isDead = false
-    this.hasDoubleJump = false
-    this.jumpsRemaining = 1
-    this.doubleJumpTimer = 0
+    this.hasTripleJump = false
+    this.jumpsRemaining = this.baseMaxJumps
+    this.tripleJumpTimer = 0
   }
 
   /**
@@ -168,6 +183,6 @@ export class PlayerStore {
     this.isGrounded = false
     this.isDead = false
     // Keep power-ups if timer still active
-    this.jumpsRemaining = this.hasDoubleJump ? 2 : 1
+    this.jumpsRemaining = this.hasTripleJump ? 3 : this.baseMaxJumps
   }
 }

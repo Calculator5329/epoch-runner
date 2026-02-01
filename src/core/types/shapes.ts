@@ -210,7 +210,7 @@ export enum TileTypeId {
   
   // Pickups (80-99)
   COIN = 80,
-  POWERUP_DOUBLE_JUMP = 81,
+  POWERUP_TRIPLE_JUMP = 81,
   
   // Triggers (100-119)
   GOAL = 100,
@@ -224,7 +224,7 @@ export const TILE_COLORS = {
   platform: '#9f7aea',
   hazard: '#e53e3e',
   coin: '#f6e05e',
-  powerup: '#38b2ac',
+  powerup: '#48bb78',  // Green for triple jump power-up
   goal: '#48bb78',
   checkpoint: '#4299e1',
 } as const
@@ -400,9 +400,9 @@ export const TILE_TYPES: Record<TileTypeId, TileType> = {
     collision: SHAPES.PICKUP,
     color: TILE_COLORS.coin,
   },
-  [TileTypeId.POWERUP_DOUBLE_JUMP]: {
-    id: TileTypeId.POWERUP_DOUBLE_JUMP,
-    name: 'Double Jump',
+  [TileTypeId.POWERUP_TRIPLE_JUMP]: {
+    id: TileTypeId.POWERUP_TRIPLE_JUMP,
+    name: 'Triple Jump',
     category: 'pickup',
     collision: SHAPES.PICKUP,
     color: TILE_COLORS.powerup,

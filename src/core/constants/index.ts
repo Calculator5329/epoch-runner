@@ -33,7 +33,7 @@ export const COLORS = {
   platform: '#9f7aea',
   hazard: '#e53e3e',
   coin: '#f6e05e',
-  powerup: '#38b2ac',
+  powerup: '#48bb78',  // Green for triple jump power-up
   goal: '#48bb78',
   checkpoint: '#4299e1',
   player: '#4299e1',
@@ -44,4 +44,4 @@ export const COLORS = {
 export const DEFAULT_LIVES = 3
 
 // Power-up durations (seconds)
-export const DOUBLE_JUMP_DURATION = 10
+export const TRIPLE_JUMP_DURATION = 10

@@ -359,8 +359,8 @@ class PhysicsService {
       if (pickup.tileId === TileTypeId.COIN) {
         game.collectCoin(pickup.col, pickup.row)
         level.setTileAt(pickup.col, pickup.row, TileTypeId.EMPTY)
-      } else if (pickup.tileId === TileTypeId.POWERUP_DOUBLE_JUMP) {
-        player.grantDoubleJump()
+      } else if (pickup.tileId === TileTypeId.POWERUP_TRIPLE_JUMP) {
+        player.grantTripleJump()
         level.setTileAt(pickup.col, pickup.row, TileTypeId.EMPTY)
       }
     }

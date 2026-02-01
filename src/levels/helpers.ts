@@ -349,10 +349,10 @@ export function coinArc(startCol: number, peakRow: number, length: number, heigh
 }
 
 /**
- * Place a double jump power-up
+ * Place a triple jump power-up
  */
-export function doubleJump(col: number, row: number): TilePlacement[] {
-  return [{ col, row, type: TileTypeId.POWERUP_DOUBLE_JUMP }]
+export function tripleJump(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.POWERUP_TRIPLE_JUMP }]
 }
 
 // ============================================

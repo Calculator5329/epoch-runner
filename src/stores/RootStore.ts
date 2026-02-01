@@ -7,7 +7,7 @@ import { CameraStore } from './CameraStore'
 import { CampaignStore } from './CampaignStore'
 import { UIStore } from './UIStore'
 import { levelLoaderService } from '../services/LevelLoaderService'
-import { CAMPAIGN_LEVELS } from '../levels'
+import { CAMPAIGN_LEVELS, hasDoubleJumpUnlocked } from '../levels'
 import type { LevelDefinition } from '../levels/types'
 import type { LevelJSON } from '../levels/types'
 
@@ -130,6 +130,8 @@ export class RootStore {
     
     if (success) {
       this.gameStore.initLevel(levelId, this.levelStore.startingLives)
+      // Set base max jumps: 2 for level 4+, 1 for levels 0-3
+      this.playerStore.setBaseMaxJumps(hasDoubleJumpUnlocked(levelId) ? 2 : 1)
     }
     
     return success
@@ -149,6 +151,8 @@ export class RootStore {
     
     if (success) {
       this.gameStore.initLevel(level.id, level.startingLives ?? 3)
+      // Set base max jumps: 2 for level 4+, 1 for levels 0-3
+      this.playerStore.setBaseMaxJumps(hasDoubleJumpUnlocked(level.id) ? 2 : 1)
     }
     
     return success
@@ -168,6 +172,8 @@ export class RootStore {
     
     if (result.success) {
       this.gameStore.initLevel(json.id, json.startingLives ?? 3)
+      // Custom/imported levels get double jump by default
+      this.playerStore.setBaseMaxJumps(hasDoubleJumpUnlocked(json.id) ? 2 : 1)
     }
     
     return result
