@@ -12,6 +12,8 @@ export { LevelStore } from './LevelStore'
 export { CameraStore } from './CameraStore'
 export { CampaignStore } from './CampaignStore'
 export type { ScreenState, SessionStats, LevelStats } from './CampaignStore'
+export { UIStore } from './UIStore'
+export type { Bounds, AdminMenuBounds, RoadmapPhaseBounds } from './UIStore'
 
 // Root store and hooks
 export { 
@@ -24,4 +26,5 @@ export {
   useLevelStore,
   useCameraStore,
   useCampaignStore,
+  useUIStore,
 } from './RootStore'

@@ -2,6 +2,80 @@
 
 ## [Unreleased]
 
+### Session: 2026-02-01 (Part 5) - CanvasRenderer Refactor
+
+#### Architecture Refactor: CanvasRenderer Modularization
+
+The monolithic 1893-line `CanvasRenderer.ts` has been refactored into focused, single-responsibility modules.
+
+**Problem**: The original file violated the "stateless service" principle by holding UI interaction state, mixed multiple concerns (gameplay, debug, screens), and had embedded data.
+
+**Solution**: Extracted into 11 new files with clear separation of concerns.
+
+#### New File Structure
+
+```
+services/
+  renderers/
+    CanvasRenderer.ts          # Main orchestrator (~100 lines)
+    GameplayRenderer.ts        # Tiles, player, HUD (~200 lines)
+    DebugRenderer.ts           # Grid, collision, debug panel (~180 lines)
+    DrawingUtils.ts            # roundRect, gradients, helpers (~200 lines)
+    index.ts                   # Barrel exports
+    screens/
+      IntroScreenRenderer.ts   # Welcome screen
+      RoadmapScreenRenderer.ts # Roadmap + phase detail
+      LevelCompleteRenderer.ts # Level complete overlay
+      CampaignCompleteRenderer.ts # Final stats screen
+      AdminMenuRenderer.ts     # Level select overlay
+      OverlayRenderer.ts       # Pause, game over
+
+stores/
+  UIStore.ts                   # UI interaction state (hover, selection, bounds)
+
+core/
+  data/
+    roadmapData.ts             # Extracted roadmap phases data
+```
+
+#### Added
+- **UIStore** - MobX store for UI interaction state
+  - Hover states: `hoveredLevelIndex`, `hoveredRoadmapPhase`, `isTerminalHovered`
+  - Selection states: `selectedRoadmapPhase`
+  - Bounds for hit testing: `adminMenuBounds`, `roadmapPhaseBounds`, `terminalBounds`
+  - Methods: `updateAdminMenuHover()`, `updateRoadmapHover()`, `handleRoadmapClick()`, etc.
+  - Computed: `isClickable` for cursor styling
+- **DrawingUtils** - Common canvas drawing utilities
+  - `roundRect()`, `createDarkGradient()`, `drawGridPattern()`
+  - `drawCornerAccents()`, `createFadeGradient()`, `drawOverlay()`
+  - `drawCenteredText()`, `drawProgressBar()`
+- **roadmapData.ts** - Extracted roadmap phase definitions
+  - `ROADMAP_PHASES` array with status, progress, completed/upcoming items
+  - `MILESTONES` array
+  - `OVERALL_PROGRESS`, `VERSION` constants
+- **Screen Renderers** - Each screen type has its own renderer class
+  - `IntroScreenRenderer`, `RoadmapScreenRenderer`, `LevelCompleteRenderer`
+  - `CampaignCompleteRenderer`, `AdminMenuRenderer`, `OverlayRenderer`
+- **GameplayRenderer** - Core gameplay rendering (tiles, player, HUD)
+- **DebugRenderer** - Debug overlays (grid, collision shapes, debug panel)
+
+#### Changed
+- **CanvasRenderer** is now an orchestrator that delegates to sub-renderers
+- **GameCanvas.tsx** uses `UIStore` for all UI interaction state (no more renderer state)
+- **RootStore** now includes `UIStore` instance
+- Added `useUIStore()` convenience hook
+- Services barrel export (`services/index.ts`) now exports from `renderers/`
+
+#### Benefits
+- Single responsibility: Each file has one clear purpose
+- Testability: Screen renderers can be tested in isolation
+- Maintainability: Changes to one screen don't risk breaking others
+- State management: UI state follows MobX patterns like rest of app
+- Discoverability: New developers can find relevant code easily
+- ~1900 lines reduced to ~150 line orchestrator + focused modules
+
+---
+
 ### Session: 2026-02-01 (Part 4)
 
 #### Added

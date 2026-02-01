@@ -5,7 +5,7 @@ import { gameLoopService } from '../../services/GameLoopService'
 import { inputService } from '../../services/InputService'
 import { physicsService } from '../../services/PhysicsService'
 import { cameraService } from '../../services/CameraService'
-import { canvasRenderer } from '../../services/CanvasRenderer'
+import { canvasRenderer } from '../../services/renderers'
 import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '../../core/constants'
 import { CAMPAIGN_LEVELS } from '../../levels'
 import type { LevelJSON } from '../../levels/types'
@@ -19,7 +19,7 @@ export const GameCanvas = observer(function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const rootStore = useRootStore()
-  const { gameStore, playerStore, levelStore, cameraStore, campaignStore } = rootStore
+  const { gameStore, playerStore, levelStore, cameraStore, campaignStore, uiStore } = rootStore
 
   // Track if we need to respawn (set when player dies)
   const needsRespawnRef = useRef(false)
@@ -72,8 +72,8 @@ export const GameCanvas = observer(function GameCanvas() {
     }
 
     // 7. Render frame (always render for UI screens)
-    canvasRenderer.draw(levelStore, playerStore, gameStore, cameraStore, campaignStore)
-  }, [rootStore, gameStore, playerStore, levelStore, cameraStore, campaignStore])
+    canvasRenderer.draw(levelStore, playerStore, gameStore, cameraStore, campaignStore, uiStore)
+  }, [rootStore, gameStore, playerStore, levelStore, cameraStore, campaignStore, uiStore])
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -98,16 +98,16 @@ export const GameCanvas = observer(function GameCanvas() {
         if (e.code === 'Escape') {
           e.preventDefault()
           // If viewing phase detail, go back to list; otherwise go to intro
-          if (canvasRenderer.selectedRoadmapPhase !== null) {
-            canvasRenderer.selectedRoadmapPhase = null
+          if (uiStore.selectedRoadmapPhase !== null) {
+            uiStore.selectedRoadmapPhase = null
           } else {
-            canvasRenderer.clearRoadmapSelection()
+            uiStore.clearRoadmapSelection()
             campaignStore.setScreenState('intro')
           }
         }
         if (e.code === 'Tab') {
           e.preventDefault()
-          canvasRenderer.clearRoadmapSelection()
+          uiStore.clearRoadmapSelection()
           campaignStore.setScreenState('intro')
         }
         return
@@ -178,7 +178,7 @@ export const GameCanvas = observer(function GameCanvas() {
       // Escape closes admin menu or toggles pause
       if (e.code === 'Escape') {
         if (gameStore.isAdminMenuOpen) {
-          canvasRenderer.clearHover()
+          uiStore.clearAdminMenuHover()
           gameStore.closeAdminMenu()
         } else {
           gameStore.setPaused(!gameStore.isPaused)
@@ -248,7 +248,7 @@ export const GameCanvas = observer(function GameCanvas() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [rootStore, gameStore, campaignStore, levelStore])
+  }, [rootStore, gameStore, campaignStore, levelStore, uiStore])
 
   // Handle canvas click (for admin menu, roadmap, and intro terminal)
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -264,8 +264,8 @@ export const GameCanvas = observer(function GameCanvas() {
 
     // Handle intro screen terminal click
     if (campaignStore.screenState === 'intro') {
-      if (canvasRenderer.isTerminalClicked(clickX, clickY)) {
-        canvasRenderer.clearTerminalState()
+      if (uiStore.isTerminalClicked(clickX, clickY)) {
+        uiStore.clearTerminalState()
         campaignStore.setScreenState('roadmap')
       }
       return
@@ -273,20 +273,20 @@ export const GameCanvas = observer(function GameCanvas() {
 
     // Handle roadmap screen clicks
     if (campaignStore.screenState === 'roadmap') {
-      canvasRenderer.handleRoadmapClick(clickX, clickY)
+      uiStore.handleRoadmapClick(clickX, clickY)
       return
     }
     
     // Handle admin menu clicks
     if (gameStore.isAdminMenuOpen) {
-      const levelId = canvasRenderer.getLevelAtPosition(clickX, clickY)
+      const levelId = uiStore.getLevelAtPosition(clickX, clickY)
       if (levelId) {
-        canvasRenderer.clearHover()
+        uiStore.clearAdminMenuHover()
         rootStore.adminJumpToLevelById(levelId)
         gameStore.closeAdminMenu()
       }
     }
-  }, [rootStore, gameStore, campaignStore])
+  }, [rootStore, gameStore, campaignStore, uiStore])
 
   // Handle canvas mouse move (for admin menu, roadmap, and intro terminal hover effects)
   const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -302,23 +302,23 @@ export const GameCanvas = observer(function GameCanvas() {
 
     // Handle intro screen terminal hover
     if (campaignStore.screenState === 'intro') {
-      canvasRenderer.updateTerminalHover(mouseX, mouseY)
+      uiStore.updateTerminalHover(mouseX, mouseY)
       return
     }
 
     // Handle roadmap hover
     if (campaignStore.screenState === 'roadmap') {
-      canvasRenderer.updateRoadmapHover(mouseX, mouseY)
+      uiStore.updateRoadmapHover(mouseX, mouseY)
       return
     }
     
     // Handle admin menu hover
     if (gameStore.isAdminMenuOpen) {
-      canvasRenderer.updateHoverPosition(mouseX, mouseY)
+      uiStore.updateAdminMenuHover(mouseX, mouseY)
     } else {
-      canvasRenderer.clearHover()
+      uiStore.clearAdminMenuHover()
     }
-  }, [gameStore.isAdminMenuOpen, campaignStore.screenState])
+  }, [gameStore.isAdminMenuOpen, campaignStore.screenState, uiStore])
 
   // Handle file import
   const handleFileImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -383,10 +383,9 @@ export const GameCanvas = observer(function GameCanvas() {
     }
   }, [rootStore, gameStore, tick])
 
-  // Determine cursor style based on hover state
-  const isClickable = canvasRenderer.isTerminalHovered || 
-                      canvasRenderer.hoveredRoadmapPhase !== null ||
-                      (gameStore.isAdminMenuOpen && canvasRenderer.hoveredLevelIndex !== null)
+  // Determine cursor style based on hover state (using UIStore)
+  const isClickable = uiStore.isClickable || 
+                      (gameStore.isAdminMenuOpen && uiStore.hoveredLevelIndex !== null)
 
   return (
     <div className="game-container">
