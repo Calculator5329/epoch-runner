@@ -1,73 +1,89 @@
-# React + TypeScript + Vite
+# Epoch Runner
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modular 2D platformer engine where game logic is entirely decoupled from level design. Build once, design infinitely.
 
-Currently, two official plugins are available:
+## Vision
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Epoch Runner prioritizes **Level Builder architecture**, shifting development from "coding levels" to "designing levels." The narrative, **The Chronological Odyssey**, leverages this modularity to transition players from primitive eras to deep-space sci-fi through visual "Epoch-Hopping."
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| UI & Tooling | React 19 + TypeScript | Component architecture, Level Builder interface |
+| Rendering | HTML5 Canvas | Game loop, sprite rendering, physics visualization |
+| State | MobX | High-frequency updates, real-time sync between editor and game |
+| Backend | Firebase Realtime DB | Level JSON storage, asset metadata, player progress |
 
-## Expanding the ESLint configuration
+## Architecture
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+┌─────────────────────────────────────────────────────────┐
+│                      UI Layer                           │
+│   React Components • Level Builder GUI • HUD Overlays   │
+└────────────────────────┬────────────────────────────────┘
+                         │ observes
+┌────────────────────────▼────────────────────────────────┐
+│                    Store Layer                          │
+│   GameStore • LevelStore • PlayerStore • EditorStore    │
+└────────────────────────┬────────────────────────────────┘
+                         │ calls
+┌────────────────────────▼────────────────────────────────┐
+│                   Service Layer                         │
+│   CanvasRenderer • PhysicsEngine • FirebaseService      │
+└─────────────────────────────────────────────────────────┘
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Project Structure
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+src/
+├── core/                 # Shared types, constants, utilities
+│   ├── types/            # TypeScript interfaces & schemas
+│   └── constants/        # Grid sizes, physics defaults
+├── services/             # Stateless services (API, rendering, physics)
+├── stores/               # MobX stores (game state, editor state)
+├── features/             # Feature modules
+│   ├── game/             # Canvas game loop, player controller
+│   ├── editor/           # Level Builder UI
+│   └── campaign/         # Overworld, level selection
+├── components/           # Shared React components
+└── assets/               # Spritesheets, audio, fonts
+```
+
+## Getting Started
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+```
+
+## Documentation
+
+- [Roadmap](./docs/roadmap.md) - Implementation phases and milestones
+- [Tech Spec](./docs/tech_spec.md) - Architecture decisions and schemas
+- [Changelog](./docs/changelog.md) - Development history
+
+## Core Concepts
+
+### Data-Driven Levels
+Levels are JSON manifests parsed by an agnostic game loop. Swap `themeID: "StoneAge"` for `themeID: "Cyberpunk"` and the visuals change while physics remain identical.
+
+### Grid System
+- **Unit-Based**: Fixed grid (1 unit = 64px default)
+- **Multi-Layer Rendering**: Collision (logic), Background (parallax), Entity (spawns)
+- **O(1) Collision**: Coordinate-to-grid mapping for efficient lookups
+
+### Dual-Access Level Builder
+1. **Code-First** (Priority): JSON/code-driven templates for rapid campaign development
+2. **In-Game GUI**: Player-facing editor unlocked post-campaign
+
+## License
+
+MIT
