@@ -5,7 +5,8 @@ import type { PlayerStore } from '../stores/PlayerStore'
 import type { LevelStore } from '../stores/LevelStore'
 import type { GameStore } from '../stores/GameStore'
 import type { CameraStore } from '../stores/CameraStore'
-import { getAllLevels } from '../levels'
+import type { CampaignStore, ScreenState } from '../stores/CampaignStore'
+import { getAllLevels, CAMPAIGN_LEVELS } from '../levels'
 
 /**
  * CanvasRenderer - Stateless rendering service
@@ -31,11 +32,27 @@ class CanvasRenderer {
     levelStore: LevelStore,
     playerStore: PlayerStore,
     gameStore: GameStore,
-    cameraStore: CameraStore
+    cameraStore: CameraStore,
+    campaignStore?: CampaignStore
   ): void {
     if (!this.ctx) return
 
     const ctx = this.ctx
+
+    // Handle screen states from campaign
+    const screenState: ScreenState = campaignStore?.screenState || 'playing'
+
+    // Draw intro screen (full screen overlay)
+    if (screenState === 'intro') {
+      this.drawIntroScreen(ctx, campaignStore!)
+      return
+    }
+
+    // Draw campaign complete screen (full screen overlay)
+    if (screenState === 'campaign_complete') {
+      this.drawCampaignComplete(ctx, campaignStore!)
+      return
+    }
 
     // Clear canvas with background color
     ctx.fillStyle = COLORS.background
@@ -50,11 +67,13 @@ class CanvasRenderer {
     // Draw HUD (screen space)
     this.drawHUD(ctx, gameStore, playerStore)
 
-    // Draw UI overlays (in screen space, no camera offset)
-    if (gameStore.levelComplete) {
-      this.drawLevelComplete(ctx, gameStore)
+    // Draw level complete overlay (campaign-aware)
+    if (screenState === 'level_complete' || gameStore.levelComplete) {
+      this.drawLevelCompleteScreen(ctx, gameStore, campaignStore)
+      return
     }
 
+    // Draw UI overlays (in screen space, no camera offset)
     if (gameStore.isGameOver) {
       this.drawGameOver(ctx, gameStore)
     }
@@ -284,7 +303,7 @@ class CanvasRenderer {
   }
 
   /**
-   * Draw level complete overlay (screen space)
+   * Draw level complete overlay (screen space) - legacy, use drawLevelCompleteScreen
    */
   private drawLevelComplete(
     ctx: CanvasRenderingContext2D,
@@ -310,6 +329,532 @@ class CanvasRenderer {
     ctx.fillStyle = '#ffffff'
     ctx.font = '24px Arial'
     ctx.fillText('Press R to restart', VIEWPORT_WIDTH / 2, VIEWPORT_HEIGHT / 2 + 60)
+  }
+
+  // ============================================
+  // Campaign Screen Overlays
+  // ============================================
+
+  /**
+   * Draw the intro/welcome screen with documentation
+   */
+  private drawIntroScreen(ctx: CanvasRenderingContext2D, campaign: CampaignStore): void {
+    const centerX = VIEWPORT_WIDTH / 2
+
+    // Gradient background
+    const bgGradient = ctx.createLinearGradient(0, 0, 0, VIEWPORT_HEIGHT)
+    bgGradient.addColorStop(0, '#0d1117')
+    bgGradient.addColorStop(0.5, '#161b22')
+    bgGradient.addColorStop(1, '#0d1117')
+    ctx.fillStyle = bgGradient
+    ctx.fillRect(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
+
+    // Subtle grid pattern overlay
+    ctx.strokeStyle = 'rgba(48, 54, 61, 0.3)'
+    ctx.lineWidth = 1
+    for (let x = 0; x < VIEWPORT_WIDTH; x += 40) {
+      ctx.beginPath()
+      ctx.moveTo(x, 0)
+      ctx.lineTo(x, VIEWPORT_HEIGHT)
+      ctx.stroke()
+    }
+    for (let y = 0; y < VIEWPORT_HEIGHT; y += 40) {
+      ctx.beginPath()
+      ctx.moveTo(0, y)
+      ctx.lineTo(VIEWPORT_WIDTH, y)
+      ctx.stroke()
+    }
+
+    // Corner accents
+    const cornerSize = 40
+    ctx.strokeStyle = '#58a6ff'
+    ctx.lineWidth = 3
+    // Top-left
+    ctx.beginPath()
+    ctx.moveTo(20, 20 + cornerSize)
+    ctx.lineTo(20, 20)
+    ctx.lineTo(20 + cornerSize, 20)
+    ctx.stroke()
+    // Top-right
+    ctx.beginPath()
+    ctx.moveTo(VIEWPORT_WIDTH - 20 - cornerSize, 20)
+    ctx.lineTo(VIEWPORT_WIDTH - 20, 20)
+    ctx.lineTo(VIEWPORT_WIDTH - 20, 20 + cornerSize)
+    ctx.stroke()
+    // Bottom-left
+    ctx.beginPath()
+    ctx.moveTo(20, VIEWPORT_HEIGHT - 20 - cornerSize)
+    ctx.lineTo(20, VIEWPORT_HEIGHT - 20)
+    ctx.lineTo(20 + cornerSize, VIEWPORT_HEIGHT - 20)
+    ctx.stroke()
+    // Bottom-right
+    ctx.beginPath()
+    ctx.moveTo(VIEWPORT_WIDTH - 20 - cornerSize, VIEWPORT_HEIGHT - 20)
+    ctx.lineTo(VIEWPORT_WIDTH - 20, VIEWPORT_HEIGHT - 20)
+    ctx.lineTo(VIEWPORT_WIDTH - 20, VIEWPORT_HEIGHT - 20 - cornerSize)
+    ctx.stroke()
+
+    let y = 60
+
+    // Title with glow effect
+    ctx.shadowColor = '#58a6ff'
+    ctx.shadowBlur = 20
+    ctx.fillStyle = '#58a6ff'
+    ctx.font = 'bold 52px Arial'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'top'
+    ctx.fillText('EPOCH RUNNER', centerX, y)
+    ctx.shadowBlur = 0
+
+    y += 60
+    ctx.fillStyle = '#8b949e'
+    ctx.font = 'italic 16px Georgia'
+    ctx.fillText('A Time-Traveling Platformer', centerX, y)
+
+    // Decorative line under title
+    y += 35
+    const lineWidth = 300
+    const gradient = ctx.createLinearGradient(centerX - lineWidth/2, 0, centerX + lineWidth/2, 0)
+    gradient.addColorStop(0, 'transparent')
+    gradient.addColorStop(0.2, '#58a6ff')
+    gradient.addColorStop(0.5, '#79c0ff')
+    gradient.addColorStop(0.8, '#58a6ff')
+    gradient.addColorStop(1, 'transparent')
+    ctx.strokeStyle = gradient
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(centerX - lineWidth/2, y)
+    ctx.lineTo(centerX + lineWidth/2, y)
+    ctx.stroke()
+
+    // Features in a cleaner layout
+    y += 40
+    ctx.fillStyle = '#c9d1d9'
+    ctx.font = '14px Arial'
+    const features = '6 Levels  •  Hazards  •  Coins  •  Checkpoints  •  Power-ups'
+    ctx.fillText(features, centerX, y)
+
+    // Controls section with better styling
+    y += 45
+    
+    // Control box background - taller for better padding
+    const boxWidth = 520
+    const boxHeight = 95
+    const boxX = centerX - boxWidth/2
+    ctx.fillStyle = 'rgba(22, 27, 34, 0.8)'
+    ctx.strokeStyle = 'rgba(48, 54, 61, 0.8)'
+    ctx.lineWidth = 1
+    this.roundRect(ctx, boxX, y, boxWidth, boxHeight, 8)
+    ctx.fill()
+    ctx.stroke()
+
+    // Controls header - more top padding
+    const controlsStartY = y + 22
+    ctx.fillStyle = '#58a6ff'
+    ctx.font = 'bold 12px Arial'
+    ctx.fillText('CONTROLS', centerX, controlsStartY)
+
+    // Control keys - evenly spaced columns
+    const colSpacing = 120
+    const cols = [
+      { label: 'MOVE', value: 'Arrows / WASD' },
+      { label: 'JUMP', value: 'Space / Up' },
+      { label: 'RESTART', value: 'R' },
+      { label: 'PAUSE', value: 'Esc' },
+    ]
+    const startX = centerX - (cols.length - 1) * colSpacing / 2
+
+    const labelY = controlsStartY + 30
+    const valueY = controlsStartY + 48
+
+    cols.forEach((col, i) => {
+      const x = startX + i * colSpacing
+      ctx.fillStyle = '#c9d1d9'
+      ctx.font = 'bold 12px Arial'
+      ctx.fillText(col.label, x, labelY)
+      ctx.fillStyle = '#6e7681'
+      ctx.font = '11px Arial'
+      ctx.fillText(col.value, x, valueY)
+    })
+
+    y += boxHeight
+
+    // Admin mode indicator (if enabled)
+    if (campaign.isAdminMode) {
+      y += 25
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.12)'
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.35)'
+      const adminBoxWidth = 380
+      const adminBoxHeight = 50
+      this.roundRect(ctx, centerX - adminBoxWidth/2, y, adminBoxWidth, adminBoxHeight, 6)
+      ctx.fill()
+      ctx.stroke()
+
+      ctx.fillStyle = '#f59e0b'
+      ctx.font = 'bold 11px Arial'
+      ctx.fillText('DEV BUILD', centerX, y + 18)
+      
+      ctx.fillStyle = '#b45309'
+      ctx.font = '11px Arial'
+      ctx.fillText('` Level Select  •  Ctrl+S Save  •  Ctrl+O Load', centerX, y + 35)
+
+      y += adminBoxHeight
+
+      // Hacker terminal progress box
+      y += 20
+      const termWidth = 580
+      const termHeight = 145
+      const termX = centerX - termWidth / 2
+
+      // Terminal background with scanline effect
+      ctx.fillStyle = '#0d1117'
+      ctx.strokeStyle = '#238636'
+      ctx.lineWidth = 1
+      this.roundRect(ctx, termX, y, termWidth, termHeight, 4)
+      ctx.fill()
+      ctx.stroke()
+
+      // Terminal header bar
+      ctx.fillStyle = '#161b22'
+      this.roundRect(ctx, termX, y, termWidth, 22, 4)
+      ctx.fill()
+      // Cover bottom corners of header
+      ctx.fillRect(termX, y + 18, termWidth, 4)
+
+      // Terminal dots
+      ctx.fillStyle = '#f85149'
+      ctx.beginPath()
+      ctx.arc(termX + 14, y + 11, 5, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = '#d29922'
+      ctx.beginPath()
+      ctx.arc(termX + 32, y + 11, 5, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = '#238636'
+      ctx.beginPath()
+      ctx.arc(termX + 50, y + 11, 5, 0, Math.PI * 2)
+      ctx.fill()
+
+      // Terminal title
+      ctx.fillStyle = '#6e7681'
+      ctx.font = '10px monospace'
+      ctx.textAlign = 'center'
+      ctx.fillText('system_status.log', centerX, y + 14)
+
+      // Terminal content
+      ctx.textAlign = 'left'
+      ctx.font = '11px monospace'
+      let termY = y + 40
+
+      // Progress data
+      ctx.fillStyle = '#238636'
+      ctx.fillText('>', termX + 12, termY)
+      ctx.fillStyle = '#58a6ff'
+      ctx.fillText('ROADMAP_STATUS:', termX + 26, termY)
+      ctx.fillStyle = '#c9d1d9'
+      ctx.fillText('Phase 1 - Core Gameplay', termX + 145, termY)
+      termY += 18
+
+      ctx.fillStyle = '#238636'
+      ctx.fillText('$', termX + 12, termY)
+      ctx.fillStyle = '#238636'
+      ctx.fillText('completed:', termX + 26, termY)
+      ctx.fillStyle = '#7ee787'
+      ctx.fillText('physics, collision, levels, hazards, coins, powerups', termX + 110, termY)
+      termY += 18
+
+      ctx.fillStyle = '#238636'
+      ctx.fillText('$', termX + 12, termY)
+      ctx.fillStyle = '#d29922'
+      ctx.fillText('in_progress:', termX + 26, termY)
+      ctx.fillStyle = '#e3b341'
+      ctx.fillText('campaign_flow, admin_tools', termX + 120, termY)
+      termY += 18
+
+      ctx.fillStyle = '#238636'
+      ctx.fillText('$', termX + 12, termY)
+      ctx.fillStyle = '#6e7681'
+      ctx.fillText('pending:', termX + 26, termY)
+      ctx.fillStyle = '#484f58'
+      ctx.fillText('level_editor, sprites, themes, cloud_saves', termX + 95, termY)
+      termY += 18
+
+      ctx.fillStyle = '#238636'
+      ctx.fillText('>', termX + 12, termY)
+      ctx.fillStyle = '#58a6ff'
+      ctx.fillText('PROGRESS:', termX + 26, termY)
+      // Progress bar background
+      const barX = termX + 115
+      const barY = termY 
+      const barWidth = 120
+      const barHeight = 8
+      const progress = 0.45
+      ctx.fillStyle = '#21262d'
+      ctx.fillRect(barX, barY, barWidth, barHeight)
+      // Progress bar fill
+      ctx.fillStyle = '#238636'
+      ctx.fillRect(barX, barY, barWidth * progress, barHeight)
+      // Border
+      ctx.strokeStyle = '#30363d'
+      ctx.lineWidth = 1
+      ctx.strokeRect(barX, barY, barWidth, barHeight)
+      // Percentage text
+      ctx.fillStyle = '#8b949e'
+      ctx.fillText('45%', barX + barWidth + 10, termY)
+      termY += 18
+
+      ctx.fillStyle = '#238636'
+      ctx.fillText('$', termX + 12, termY)
+      ctx.fillStyle = '#6e7681'
+      ctx.fillText('next_milestone:', termX + 26, termY)
+      ctx.fillStyle = '#8b949e'
+      ctx.fillText('Visual Level Builder', termX + 135, termY)
+
+      ctx.textAlign = 'center'
+    }
+
+    // Start prompt with pulsing glow
+    const promptY = VIEWPORT_HEIGHT - 75
+    const pulse = Math.sin(Date.now() / 400) * 0.4 + 0.6
+    
+    ctx.shadowColor = '#58a6ff'
+    ctx.shadowBlur = 15 * pulse
+    ctx.fillStyle = '#58a6ff'
+    ctx.font = 'bold 24px Arial'
+    ctx.fillText('Press SPACE or ENTER to Begin', centerX, promptY)
+    ctx.shadowBlur = 0
+
+    // Subtle version info
+    ctx.fillStyle = '#484f58'
+    ctx.font = '11px Arial'
+    ctx.fillText('v0.1.0 - Early Development', centerX, VIEWPORT_HEIGHT - 30)
+  }
+
+  /**
+   * Draw a rounded rectangle path
+   */
+  private roundRect(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    radius: number
+  ): void {
+    ctx.beginPath()
+    ctx.moveTo(x + radius, y)
+    ctx.lineTo(x + width - radius, y)
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius)
+    ctx.lineTo(x + width, y + height - radius)
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height)
+    ctx.lineTo(x + radius, y + height)
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius)
+    ctx.lineTo(x, y + radius)
+    ctx.quadraticCurveTo(x, y, x + radius, y)
+    ctx.closePath()
+  }
+
+  /**
+   * Draw level complete screen with stats and continue option
+   */
+  private drawLevelCompleteScreen(
+    ctx: CanvasRenderingContext2D, 
+    game: GameStore,
+    campaign?: CampaignStore
+  ): void {
+    // Semi-transparent overlay
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)'
+    ctx.fillRect(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
+
+    const centerX = VIEWPORT_WIDTH / 2
+    let y = 100
+
+    // Success message
+    ctx.fillStyle = COLORS.goal
+    ctx.font = 'bold 56px Arial'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'top'
+    ctx.fillText('LEVEL COMPLETE!', centerX, y)
+
+    // Level stats
+    y += 80
+    ctx.fillStyle = '#ffffff'
+    ctx.font = '24px Arial'
+    
+    const deaths = campaign?.currentLevelDeaths ?? 0
+    const coins = game.coinsThisAttempt
+    
+    ctx.fillText(`Deaths: ${deaths}`, centerX, y)
+    y += 35
+
+    // Coins earned
+    ctx.fillStyle = COLORS.coin
+    ctx.font = 'bold 28px Arial'
+    ctx.fillText(`+${coins} coins`, centerX, y)
+
+    // Progress indicator
+    y += 60
+    if (campaign) {
+      const currentLevel = campaign.currentLevelIndex + 1
+      const totalLevels = CAMPAIGN_LEVELS.length
+      
+      ctx.fillStyle = '#a0aec0'
+      ctx.font = '20px Arial'
+      ctx.fillText(`Level ${currentLevel} of ${totalLevels}`, centerX, y)
+
+      // Progress bar
+      y += 30
+      const barWidth = 300
+      const barHeight = 12
+      const barX = centerX - barWidth / 2
+      const progress = currentLevel / totalLevels
+
+      ctx.fillStyle = '#2d3748'
+      ctx.fillRect(barX, y, barWidth, barHeight)
+      ctx.fillStyle = COLORS.goal
+      ctx.fillRect(barX, y, barWidth * progress, barHeight)
+      ctx.strokeStyle = '#4a5568'
+      ctx.lineWidth = 1
+      ctx.strokeRect(barX, y, barWidth, barHeight)
+    }
+
+    // Continue prompt
+    y = VIEWPORT_HEIGHT - 120
+    const hasNextLevel = campaign?.hasNextLevel(CAMPAIGN_LEVELS.length) ?? false
+    
+    if (hasNextLevel) {
+      ctx.fillStyle = '#4299e1'
+      ctx.font = 'bold 24px Arial'
+      ctx.fillText('Press SPACE or ENTER to Continue', centerX, y)
+      
+      y += 35
+      ctx.fillStyle = '#a0aec0'
+      ctx.font = '18px Arial'
+      ctx.fillText('Press R to Replay Level', centerX, y)
+    } else {
+      ctx.fillStyle = COLORS.goal
+      ctx.font = 'bold 24px Arial'
+      ctx.fillText('CAMPAIGN COMPLETE!', centerX, y)
+      
+      y += 35
+      ctx.fillStyle = '#4299e1'
+      ctx.font = '20px Arial'
+      ctx.fillText('Press SPACE or ENTER to see your stats', centerX, y)
+    }
+  }
+
+  /**
+   * Draw campaign complete screen with full stats and level select
+   */
+  private drawCampaignComplete(ctx: CanvasRenderingContext2D, campaign: CampaignStore): void {
+    // Full dark background
+    ctx.fillStyle = '#0a0a1a'
+    ctx.fillRect(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
+
+    // Celebratory border
+    ctx.strokeStyle = COLORS.goal
+    ctx.lineWidth = 4
+    ctx.strokeRect(15, 15, VIEWPORT_WIDTH - 30, VIEWPORT_HEIGHT - 30)
+
+    const centerX = VIEWPORT_WIDTH / 2
+    let y = 50
+
+    // Title
+    ctx.fillStyle = COLORS.goal
+    ctx.font = 'bold 44px Arial'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'top'
+    ctx.fillText('CAMPAIGN COMPLETE!', centerX, y)
+
+    y += 55
+    ctx.fillStyle = '#a0aec0'
+    ctx.font = '18px Arial'
+    ctx.fillText('You have conquered all epochs!', centerX, y)
+
+    // Divider
+    y += 35
+    ctx.strokeStyle = COLORS.goal
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(100, y)
+    ctx.lineTo(VIEWPORT_WIDTH - 100, y)
+    ctx.stroke()
+
+    // Session stats
+    y += 25
+    ctx.fillStyle = '#63b3ed'
+    ctx.font = 'bold 22px Arial'
+    ctx.fillText('[ SESSION STATISTICS ]', centerX, y)
+
+    y += 40
+    ctx.fillStyle = '#ffffff'
+    ctx.font = '20px Arial'
+    
+    const stats = campaign.sessionStats
+    ctx.fillText(`Total Time: ${campaign.formattedPlayTime}`, centerX, y)
+    y += 30
+    ctx.fillText(`Total Deaths: ${stats.totalDeaths}`, centerX, y)
+    y += 30
+    ctx.fillStyle = COLORS.coin
+    ctx.fillText(`Total Coins Collected: ${stats.totalCoinsCollected}`, centerX, y)
+
+    // Per-level breakdown
+    y += 45
+    ctx.fillStyle = '#63b3ed'
+    ctx.font = 'bold 18px Arial'
+    ctx.fillText('[ LEVEL BREAKDOWN ]', centerX, y)
+
+    y += 30
+    ctx.font = '15px Arial'
+    ctx.textAlign = 'left'
+    const tableX = 200
+    
+    // Header
+    ctx.fillStyle = '#a0aec0'
+    ctx.fillText('Level', tableX, y)
+    ctx.fillText('Deaths', tableX + 250, y)
+    ctx.fillText('Coins', tableX + 350, y)
+    
+    y += 5
+    ctx.strokeStyle = '#4a5568'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(tableX - 10, y + 10)
+    ctx.lineTo(tableX + 420, y + 10)
+    ctx.stroke()
+    
+    y += 20
+    
+    // Level rows
+    campaign.allLevelStats.forEach((levelStat) => {
+      ctx.fillStyle = '#e2e8f0'
+      ctx.fillText(levelStat.levelName, tableX, y)
+      ctx.fillText(String(levelStat.deaths), tableX + 270, y)
+      ctx.fillStyle = COLORS.coin
+      ctx.fillText(String(levelStat.coinsCollected), tableX + 370, y)
+      y += 25
+    })
+
+    ctx.textAlign = 'center'
+
+    // Admin level select
+    if (campaign.isAdminMode) {
+      y = VIEWPORT_HEIGHT - 140
+      ctx.fillStyle = '#f56565'
+      ctx.font = 'bold 16px Arial'
+      ctx.fillText('[ ADMIN: Press 1-6 to jump to any level, or ` for level select ]', centerX, y)
+    }
+
+    // Options
+    y = VIEWPORT_HEIGHT - 90
+    ctx.fillStyle = '#4299e1'
+    ctx.font = 'bold 22px Arial'
+    ctx.fillText('Press SPACE to Play Again', centerX, y)
+    
+    y += 35
+    ctx.fillStyle = '#a0aec0'
+    ctx.font = '16px Arial'
+    ctx.fillText('Press ESC to return to title screen', centerX, y)
   }
 
   /**

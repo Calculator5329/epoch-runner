@@ -22,7 +22,7 @@ import {
 
 export const level_1_shapes = createLevel(
   'level_1_shapes',
-  'Level 1: Shape Shifter',
+  'Shape Shifter',
   45,  // 45 tiles wide
   15,  // 15 tiles tall
   { col: 2, row: 13 },  // Player spawn

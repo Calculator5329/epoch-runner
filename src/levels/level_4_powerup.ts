@@ -22,7 +22,7 @@ import {
 
 export const level_4_powerup = createLevel(
   'level_4_powerup',
-  'Level 4: Sky High',
+  'Sky High',
   50,  // 50 tiles wide
   20,  // 20 tiles tall (extra tall for vertical challenge)
   { col: 2, row: 18 },  // Player spawn

@@ -28,6 +28,7 @@ export class GameStore {
   totalCoins = 0  // Persistent wallet (would be saved to localStorage/Firebase)
   levelEarnings: Record<string, number> = {}  // Best earnings per level
   levelCompletionCount: Record<string, number> = {}  // Times completed per level
+  lastCompletionEarnings = 0  // Earnings from last level completion (for subsequent calls)
   
   // Current level ID for tracking
   currentLevelId: string | null = null
@@ -91,13 +92,17 @@ export class GameStore {
     this.maxLives = startingLives
     this.lastCheckpoint = null
     this.coinsThisAttempt = 0
+    this.lastCompletionEarnings = 0
   }
 
   /**
    * Complete the current level
+   * Returns the coins earned for display
+   * Returns cached earnings if called multiple times (safe to call repeatedly)
    */
-  completeLevel(): void {
-    if (this.levelComplete) return
+  completeLevel(): number {
+    // Return cached earnings if already complete
+    if (this.levelComplete) return this.lastCompletionEarnings
     
     this.levelComplete = true
     
@@ -125,6 +130,11 @@ export class GameStore {
     
     // Add to total wallet
     this.totalCoins += earnings
+    
+    // Cache earnings for subsequent calls
+    this.lastCompletionEarnings = earnings
+    
+    return earnings
   }
 
   // ============================================
@@ -212,6 +222,7 @@ export class GameStore {
     this.lives = this.maxLives
     this.lastCheckpoint = null
     this.coinsThisAttempt = 0
+    this.lastCompletionEarnings = 0
   }
 
   /**

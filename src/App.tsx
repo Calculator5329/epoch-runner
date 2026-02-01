@@ -1,19 +1,30 @@
+import { observer } from 'mobx-react-lite'
 import { GameCanvas } from './features/game/GameCanvas'
-import { RootStoreProvider, rootStore } from './stores/RootStore'
+import { RootStoreProvider, rootStore, useCampaignStore } from './stores/RootStore'
 import './App.css'
 
-function App() {
+const AppContent = observer(function AppContent() {
+  const campaignStore = useCampaignStore()
+  const showHeader = false
   return (
-    <RootStoreProvider value={rootStore}>
-      <div className="app">
+    <div className="app">
+      {showHeader && (
         <header className="app-header">
           <h1>Epoch Runner</h1>
           <p className="subtitle">The Chronological Odyssey</p>
         </header>
-        <main className="app-main">
-          <GameCanvas />
-        </main>
-      </div>
+      )}
+      <main className="app-main">
+        <GameCanvas />
+      </main>
+    </div>
+  )
+})
+
+function App() {
+  return (
+    <RootStoreProvider value={rootStore}>
+      <AppContent />
     </RootStoreProvider>
   )
 }

@@ -154,10 +154,18 @@ Goal: Single hardcoded level with player movement, collision, and win state.
   - [ ] Transparent PNG handling (prevent tile bleeding)
 
 ## Phase 4: Campaign & Progression
-*Priority: Medium*
+*Priority: Medium - In Progress*
+
+- [x] **Campaign Flow**
+  - [x] CampaignStore for progression state
+  - [x] Intro screen with documentation/roadmap
+  - [x] Level complete screen with continue option
+  - [x] Campaign complete screen with full stats
+  - [x] Ordered level progression (6 levels)
+  - [x] Admin mode for development/testing
 
 - [ ] **Overworld UI**
-  - [ ] Level selection screen
+  - [ ] Visual level selection screen
   - [ ] "Chronological Odyssey" epoch progression display
   - [ ] Level unlock system based on completion
 

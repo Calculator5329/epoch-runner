@@ -79,3 +79,42 @@ export function getAllLevels(): LevelDefinition[] {
  * Default level to load on game start
  */
 export const DEFAULT_LEVEL_ID = 'level_0_basic'
+
+/**
+ * Ordered array of campaign levels (progression order)
+ * This determines the order players progress through levels
+ */
+export const CAMPAIGN_LEVELS: string[] = [
+  'level_0_basic',
+  'level_1_shapes',
+  'level_2_hazards',
+  'level_3_coins',
+  'level_4_powerup',
+  'level_5_gauntlet',
+]
+
+/**
+ * Get level index in campaign progression
+ */
+export function getLevelIndex(levelId: string): number {
+  return CAMPAIGN_LEVELS.indexOf(levelId)
+}
+
+/**
+ * Get next level ID in campaign
+ */
+export function getNextLevelId(currentLevelId: string): string | null {
+  const currentIndex = getLevelIndex(currentLevelId)
+  if (currentIndex === -1 || currentIndex >= CAMPAIGN_LEVELS.length - 1) {
+    return null
+  }
+  return CAMPAIGN_LEVELS[currentIndex + 1]
+}
+
+/**
+ * Check if level is last in campaign
+ */
+export function isLastLevel(levelId: string): boolean {
+  const index = getLevelIndex(levelId)
+  return index === CAMPAIGN_LEVELS.length - 1
+}

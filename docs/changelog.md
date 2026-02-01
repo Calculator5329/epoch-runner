@@ -2,6 +2,70 @@
 
 ## [Unreleased]
 
+### Session: 2026-02-01 (Part 3)
+
+#### Fixed
+- **Level name redundancy**: Game info was showing "Level 3/6: Level 2: Danger Zone"
+  - Removed "Level X:" prefix from all level display names
+  - Now displays cleanly as "Level 3/6: Danger Zone"
+- **Coin tracking bug**: Coins collected was always showing 0 on campaign complete
+  - Root cause: `completeLevel()` was called twice (from PhysicsService and RootStore)
+  - Second call returned 0 because level was already marked complete
+  - Added `lastCompletionEarnings` field to cache earnings on first call
+  - Subsequent calls now return cached value instead of 0
+
+#### Changed
+- **Intro screen redesign**: More polished visual appearance
+  - Gradient background with subtle grid pattern overlay
+  - Corner accent decorations instead of full border
+  - Title with glow effect
+  - Controls section in a rounded card
+  - Admin mode section with highlighted warning box
+  - Pulsing glow effect on start prompt
+  - Added version number footer
+  - Removed roadmap section for cleaner look
+
+---
+
+### Session: 2026-02-01 (Part 2)
+
+#### Added
+- **Campaign Progression System** - Full game flow from intro to completion
+  - `CampaignStore` - Manages progression state, screen flow, session stats
+  - Intro screen with project documentation, roadmap, and controls
+  - Level complete screen with stats and continue/replay options
+  - Campaign complete screen with full session statistics
+  - Per-level breakdown showing deaths and coins collected
+  - Automatic level advancement on completion
+  - Admin mode flag for development (enables level select, skipping)
+- **Ordered Level Progression**
+  - `CAMPAIGN_LEVELS` array defines level order
+  - Player starts at level 0, progresses through all 6 levels
+  - Progress tracking with level unlock system
+  - Level index tracking for accurate progression display
+- **Session Statistics Tracking**
+  - Total deaths, coins collected, play time
+  - Per-level stats (deaths, coins, completion status)
+  - Formatted play time display
+
+#### Changed
+- **RootStore** - Added campaign integration methods:
+  - `startCampaign()` - Begin from intro screen
+  - `continueToNextLevel()` - Advance after completion
+  - `onLevelComplete()` - Trigger campaign flow on goal reach
+  - `restartCampaign()` - Return to intro
+  - `adminJumpToLevel/adminJumpToLevelById()` - Admin level selection
+- **GameCanvas** - Screen state aware controls and rendering
+  - Different key bindings per screen state (intro, playing, complete)
+  - Admin-only features gated behind `isAdminMode` flag
+  - Level progress indicator in game info
+- **CanvasRenderer** - New overlay screens:
+  - `drawIntroScreen()` - Welcome, documentation, roadmap
+  - `drawLevelCompleteScreen()` - Stats with continue prompt
+  - `drawCampaignComplete()` - Full stats breakdown with level select
+
+---
+
 ### Session: 2026-02-01
 
 #### Added
