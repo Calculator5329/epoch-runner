@@ -11,6 +11,7 @@
  * - Level 3: Introduces coins (currency, one-way platforms) - single jump
  * - Level 4: Introduces power-ups (triple jump) - double jump unlocked!
  * - Level 5: The Gauntlet (all features combined) - double jump
+ * - Level 6: ET Custom 1 (custom user level) - double jump
  */
 
 import type { LevelDefinition } from './types'
@@ -23,6 +24,7 @@ import { level_2_hazards } from './level_2_hazards'
 import { level_3_coins } from './level_3_coins'
 import { level_4_powerup } from './level_4_powerup'
 import { level_5_gauntlet } from './level_5_gauntlet'
+import { level_6_et_custom_1 } from './level_6_et_custom_1'
 
 // Re-export types and helpers for convenience
 export * from './types'
@@ -36,6 +38,7 @@ export { level_2_hazards }
 export { level_3_coins }
 export { level_4_powerup }
 export { level_5_gauntlet }
+export { level_6_et_custom_1 }
 
 /**
  * Registry of all available levels
@@ -52,6 +55,7 @@ export const levelRegistry: Record<string, LevelDefinition> = {
   [level_3_coins.id]: level_3_coins,
   [level_4_powerup.id]: level_4_powerup,
   [level_5_gauntlet.id]: level_5_gauntlet,
+  [level_6_et_custom_1.id]: level_6_et_custom_1,
 }
 
 /**
@@ -91,6 +95,7 @@ export const CAMPAIGN_LEVELS: string[] = [
   'level_3_coins',
   'level_4_powerup',
   'level_5_gauntlet',
+  'level_6_et_custom_1',
 ]
 
 /**

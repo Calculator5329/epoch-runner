@@ -243,4 +243,24 @@ export class LevelStore {
   get canvasHeight(): number {
     return this.levelHeight
   }
+
+  /**
+   * Convert current level to LevelDefinition format
+   */
+  toLevelDefinition(): LevelDefinition | null {
+    if (!this.currentLevelId) return null
+    
+    return {
+      id: this.currentLevelId,
+      name: this.currentLevelName || 'Untitled',
+      width: this.width,
+      height: this.height,
+      playerSpawn: {
+        col: Math.floor(this.playerSpawn.x / TILE_SIZE),
+        row: Math.floor(this.playerSpawn.y / TILE_SIZE),
+      },
+      collision: this.collision.map(row => [...row]),
+      startingLives: this.startingLives,
+    }
+  }
 }

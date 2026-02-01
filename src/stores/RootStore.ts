@@ -6,6 +6,7 @@ import { LevelStore } from './LevelStore'
 import { CameraStore } from './CameraStore'
 import { CampaignStore } from './CampaignStore'
 import { UIStore } from './UIStore'
+import { EditorStore } from './EditorStore'
 import { levelLoaderService } from '../services/LevelLoaderService'
 import { CAMPAIGN_LEVELS, hasDoubleJumpUnlocked } from '../levels'
 import type { LevelDefinition } from '../levels/types'
@@ -24,6 +25,7 @@ export class RootStore {
   cameraStore: CameraStore
   campaignStore: CampaignStore
   uiStore: UIStore
+  editorStore: EditorStore
 
   constructor() {
     this.gameStore = new GameStore()
@@ -32,6 +34,7 @@ export class RootStore {
     this.cameraStore = new CameraStore()
     this.campaignStore = new CampaignStore()
     this.uiStore = new UIStore()
+    this.editorStore = new EditorStore()
   }
 
   /**
@@ -77,11 +80,14 @@ export class RootStore {
     
     if (!levelId) return
     
-    // Complete level in GameStore and get coins earned
-    const coinsEarned = this.gameStore.completeLevel()
+    // Get raw coins collected before completing (completeLevel doesn't reset this)
+    const coinsCollected = this.gameStore.coinsThisAttempt
     
-    // Record in campaign store
-    this.campaignStore.onLevelComplete(levelId, levelName || 'Unknown', coinsEarned)
+    // Complete level in GameStore (adds to wallet with replay multiplier)
+    this.gameStore.completeLevel()
+    
+    // Record in campaign store with raw count
+    this.campaignStore.onLevelComplete(levelId, levelName || 'Unknown', coinsCollected)
   }
 
   /**
@@ -302,4 +308,8 @@ export function useCampaignStore(): CampaignStore {
 
 export function useUIStore(): UIStore {
   return useRootStore().uiStore
+}
+
+export function useEditorStore(): EditorStore {
+  return useRootStore().editorStore
 }

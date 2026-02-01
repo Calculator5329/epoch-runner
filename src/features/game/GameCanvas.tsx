@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { observer } from 'mobx-react-lite'
-import { useRootStore } from '../../stores/RootStore'
+import { useRootStore, useEditorStore } from '../../stores/RootStore'
 import { gameLoopService } from '../../services/GameLoopService'
 import { inputService } from '../../services/InputService'
 import { physicsService } from '../../services/PhysicsService'
@@ -19,7 +19,7 @@ export const GameCanvas = observer(function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const rootStore = useRootStore()
-  const { gameStore, playerStore, levelStore, cameraStore, campaignStore, uiStore } = rootStore
+  const { gameStore, playerStore, levelStore, cameraStore, campaignStore, uiStore, editorStore } = rootStore
 
   // Track if we need to respawn (set when player dies)
   const needsRespawnRef = useRef(false)
@@ -222,6 +222,13 @@ export const GameCanvas = observer(function GameCanvas() {
           e.preventDefault()
           gameStore.toggleNoclip()
         }
+        // E key: Open level editor with new level
+        if (e.code === 'KeyE') {
+          e.preventDefault()
+          // Start with a fresh new level
+          editorStore.initNewLevel(30, 15)
+          editorStore.setMode('editor')
+        }
       }
       
       // L key to list available levels
@@ -248,7 +255,7 @@ export const GameCanvas = observer(function GameCanvas() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [rootStore, gameStore, campaignStore, levelStore, uiStore])
+  }, [rootStore, gameStore, campaignStore, levelStore, uiStore, editorStore])
 
   // Handle canvas click (for admin menu, roadmap, and intro terminal)
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {

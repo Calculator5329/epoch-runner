@@ -4,6 +4,7 @@ export { canvasRenderer } from './CanvasRenderer'
 // Sub-renderers (exported for direct access if needed)
 export { GameplayRenderer } from './GameplayRenderer'
 export { DebugRenderer } from './DebugRenderer'
+export { EditorRenderer, editorRenderer } from './EditorRenderer'
 
 // Screen renderers
 export { IntroScreenRenderer } from './screens/IntroScreenRenderer'
