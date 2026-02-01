@@ -289,3 +289,83 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+.action-button.secondary {
+  background: #1a202c;
+  color: #a0aec0;
+}
+
+.action-button.secondary:hover:not(:disabled) {
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+/* Level Size Controls */
+
+.level-size-info {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.level-size-inputs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.size-input-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.size-input-group label {
+  font-size: 0.7rem;
+  color: #a0aec0;
+}
+
+.size-input {
+  width: 55px;
+  padding: 4px 6px;
+  font-size: 0.75rem;
+  background: #1a202c;
+  color: #e2e8f0;
+  border: 1px solid #4a5568;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.size-input:focus {
+  outline: none;
+  border-color: #48bb78;
+}
+
+.size-input::-webkit-inner-spin-button,
+.size-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.size-input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+.size-separator {
+  font-size: 0.75rem;
+  color: #718096;
+}
+
+.level-size-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.level-size-buttons .action-button {
+  flex: 1;
+  font-size: 0.65rem;
+  padding: 5px 6px;
+}

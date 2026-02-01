@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { observer } from 'mobx-react-lite'
 import { useEditorStore } from '../../stores/RootStore'
 import { TileTypeId, TILE_TYPES, getTileType } from '../../core/types/shapes'
@@ -89,9 +90,131 @@ const TOOLS: ToolDef[] = [
  */
 export const TilePalette = observer(function TilePalette() {
   const editorStore = useEditorStore()
+  
+  // Local state for level size inputs
+  const [inputWidth, setInputWidth] = useState(editorStore.gridWidth.toString())
+  const [inputHeight, setInputHeight] = useState(editorStore.gridHeight.toString())
+
+  /**
+   * Handle resize button click
+   */
+  const handleResize = () => {
+    const newWidth = parseInt(inputWidth, 10)
+    const newHeight = parseInt(inputHeight, 10)
+    
+    if (isNaN(newWidth) || isNaN(newHeight) || newWidth < 1 || newHeight < 1) {
+      alert('Please enter valid dimensions (minimum 1x1)')
+      return
+    }
+    
+    if (newWidth > 500 || newHeight > 500) {
+      if (!confirm(`Large level (${newWidth}x${newHeight}) may affect performance. Continue?`)) {
+        return
+      }
+    }
+    
+    editorStore.resizeLevel(newWidth, newHeight)
+  }
+
+  /**
+   * Handle new level button click
+   */
+  const handleNewLevel = () => {
+    const newWidth = parseInt(inputWidth, 10)
+    const newHeight = parseInt(inputHeight, 10)
+    
+    if (isNaN(newWidth) || isNaN(newHeight) || newWidth < 1 || newHeight < 1) {
+      alert('Please enter valid dimensions (minimum 1x1)')
+      return
+    }
+    
+    if (confirm('Create new level? Current changes will be lost.')) {
+      editorStore.initNewLevel(newWidth, newHeight)
+    }
+  }
+
+  /**
+   * Sync input fields with store when level changes externally
+   */
+  const syncInputsWithStore = () => {
+    setInputWidth(editorStore.gridWidth.toString())
+    setInputHeight(editorStore.gridHeight.toString())
+  }
 
   return (
     <div className="tile-palette">
+      {/* Level Size Settings */}
+      <div className="palette-section">
+        <h3>Level Size</h3>
+        <div className="level-size-info">
+          Current: {editorStore.gridWidth} x {editorStore.gridHeight} tiles
+        </div>
+        <div className="level-size-inputs">
+          <div className="size-input-group">
+            <label htmlFor="level-width">W:</label>
+            <input
+              id="level-width"
+              type="number"
+              min="1"
+              max="1000"
+              value={inputWidth}
+              onChange={(e) => setInputWidth(e.target.value)}
+              onBlur={() => {
+                // Reset to current value if invalid
+                const val = parseInt(inputWidth, 10)
+                if (isNaN(val) || val < 1) {
+                  setInputWidth(editorStore.gridWidth.toString())
+                }
+              }}
+              className="size-input"
+            />
+          </div>
+          <span className="size-separator">x</span>
+          <div className="size-input-group">
+            <label htmlFor="level-height">H:</label>
+            <input
+              id="level-height"
+              type="number"
+              min="1"
+              max="1000"
+              value={inputHeight}
+              onChange={(e) => setInputHeight(e.target.value)}
+              onBlur={() => {
+                // Reset to current value if invalid
+                const val = parseInt(inputHeight, 10)
+                if (isNaN(val) || val < 1) {
+                  setInputHeight(editorStore.gridHeight.toString())
+                }
+              }}
+              className="size-input"
+            />
+          </div>
+        </div>
+        <div className="level-size-buttons">
+          <button
+            className="action-button"
+            onClick={handleResize}
+            title="Resize current level (preserves existing tiles)"
+          >
+            Resize
+          </button>
+          <button
+            className="action-button"
+            onClick={handleNewLevel}
+            title="Create new empty level"
+          >
+            New
+          </button>
+          <button
+            className="action-button secondary"
+            onClick={syncInputsWithStore}
+            title="Reset inputs to current level size"
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+
       {/* Tool Selection */}
       <div className="palette-section">
         <h3>Tools</h3>

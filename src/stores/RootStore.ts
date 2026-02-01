@@ -80,11 +80,14 @@ export class RootStore {
     
     if (!levelId) return
     
-    // Complete level in GameStore and get coins earned
-    const coinsEarned = this.gameStore.completeLevel()
+    // Get raw coins collected before completing (completeLevel doesn't reset this)
+    const coinsCollected = this.gameStore.coinsThisAttempt
     
-    // Record in campaign store
-    this.campaignStore.onLevelComplete(levelId, levelName || 'Unknown', coinsEarned)
+    // Complete level in GameStore (adds to wallet with replay multiplier)
+    this.gameStore.completeLevel()
+    
+    // Record in campaign store with raw count
+    this.campaignStore.onLevelComplete(levelId, levelName || 'Unknown', coinsCollected)
   }
 
   /**

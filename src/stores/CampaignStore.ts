@@ -149,8 +149,9 @@ export class CampaignStore {
 
   /**
    * Called when player completes current level
+   * @param coinsCollected - Raw number of coins collected in this level
    */
-  onLevelComplete(levelId: string, levelName: string, coinsEarned: number): void {
+  onLevelComplete(levelId: string, levelName: string, coinsCollected: number): void {
     // Record level stats
     const elapsed = Date.now() - this.currentLevelStartTime
     const existing = this.levelStats.get(levelId)
@@ -159,14 +160,14 @@ export class CampaignStore {
       levelId,
       levelName,
       deaths: this.currentLevelDeaths,
-      coinsCollected: this.currentLevelCoins,
+      coinsCollected: coinsCollected,  // Use raw count passed from GameStore
       bestTime: existing?.bestTime ? Math.min(existing.bestTime, elapsed) : elapsed,
       completed: true,
     })
     
-    // Update session stats
+    // Update session stats with raw count
     this.sessionStats.levelsCompleted += 1
-    this.sessionStats.totalCoinsCollected += coinsEarned
+    this.sessionStats.totalCoinsCollected += coinsCollected
     this.sessionStats.totalPlayTime = Date.now() - this.sessionStats.startTime
     
     this.screenState = 'level_complete'
