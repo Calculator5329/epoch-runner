@@ -2,6 +2,236 @@
 
 ## [Unreleased]
 
+### Session: 2026-02-01 - Simplify Hitbox System
+
+#### Changes: Reverted Complex Hitbox System
+
+Reverted the compound/polygon hitbox system due to collision detection issues (rubber banding).
+Custom hitboxes will be implemented in a future update with a more robust approach.
+
+**Simplified Files:**
+- `src/services/PhysicsService.ts` - Removed custom hitbox support
+  - Uses full sprite bounds for collision detection
+  - Removed AssetStore dependency
+  - Clean, simple AABB collision
+- `src/services/CollisionUtils.ts` - Removed compound collision functions
+  - Kept core AABB and shape-based collision
+  - Removed `checkCompoundSolidCollision`, `checkCompoundHazardCollision`, etc.
+- `src/features/editor/AssetUploadPanel.tsx` - Simplified UI
+  - Removed hitbox generation controls
+  - Added note that custom hitboxes coming in future update
+  - Kept tile sprites, player sprites, background, and audio sections
+- `src/features/game/GameCanvas.tsx` - Removed assetStore from physics call
+
+**What Still Works:**
+- Custom tile sprites
+- Custom player sprites (idle, run, jump)
+- Custom background with parallax scrolling
+- Custom music and sound effects
+- Level pack export/import (zip files)
+
+**Deferred to Future Update:**
+- Custom hitbox generation from sprite alpha
+- Compound/polygon hitboxes for tighter collision
+- Hitbox preview in editor
+
+---
+
+### Session: 2026-02-01 (Part 9) - Custom Level Pack System Planning
+
+#### Planned: Custom Level Pack System
+
+A comprehensive system for creating and sharing custom level packs with sprites, audio, and custom hitboxes.
+
+**Key Features Planned:**
+- **Zip-based level packs** - Bundle level JSON with custom assets
+- **Sprite rendering** - Replace procedural tiles/player with custom PNGs
+- **Auto-generated hitboxes** - Collision polygons from sprite alpha channel
+- **Custom polygon hitboxes** - Manual override for precise collision shapes
+- **Audio system** - Background music and sound effects per level pack
+- **Asset upload UI** - Drag-and-drop sprites/audio in level editor
+- **Level migration** - Convert existing TypeScript levels to pack format
+
+**Pack Structure:**
+```
+my-level-pack.zip
+├── manifest.json       # Pack metadata
+├── level.json          # Level definition
+├── sprites/            # Custom tile, player, UI sprites
+├── hitboxes/           # Custom collision polygons
+├── audio/              # Music and SFX
+└── config/             # Parameter overrides (future)
+```
+
+**Implementation Phases:**
+1. Asset Infrastructure (JSZip, AssetStore, LevelPackService)
+2. Sprite Rendering (GameplayRenderer modifications)
+3. Hitbox System (auto-generation + polygon collision)
+4. Audio System (AudioService with music/SFX)
+5. Editor Asset UI (AssetUploadPanel, HitboxEditor)
+6. Zip Export/Import (full round-trip)
+7. Level Migration (convert built-in levels)
+
+**New Dependencies:** jszip, @types/jszip
+
+**Technical Documentation:** See `docs/tech_spec.md` for schemas and interfaces.
+
+#### Implemented: Phase 1 - Asset Infrastructure
+
+**New Files:**
+- `src/stores/AssetStore.ts` - MobX store for managing loaded custom assets
+  - Stores tile sprites, player sprites, background, UI elements
+  - Stores audio blob URLs (music, SFX)
+  - Stores hitbox definitions
+  - Methods for loading/clearing assets
+  - Proper memory management (blob URL revocation)
+- `src/services/LevelPackService.ts` - Service for zip file handling
+  - `createPack()` - Package level + assets into zip blob
+  - `extractPack()` - Extract and load pack from zip file
+  - `validatePack()` - Validate pack structure without full load
+  - `downloadPack()` - Trigger browser download
+  - Helper methods for image loading, tile type mapping
+
+**Updated Files:**
+- `src/stores/RootStore.ts` - Added `assetStore` instance and `useAssetStore()` hook
+- `src/stores/index.ts` - Export AssetStore and related types
+- `src/services/index.ts` - Export LevelPackService and related types
+- `package.json` - Added jszip dependency
+
+#### Implemented: Phase 2 - Sprite Rendering System
+
+**Modified Files:**
+- `src/services/renderers/GameplayRenderer.ts` - Added sprite rendering support
+  - New `drawBackground()` method for parallax backgrounds
+  - `drawTiles()` now checks for custom sprites, falls back to procedural
+  - `drawTileSprite()` renders sprite images scaled to TILE_SIZE
+  - `drawPlayer()` supports custom player sprites (idle, run, jump)
+  - `drawPlayerSprite()` handles sprite flipping for facing direction
+  - `drawPlayerProcedural()` extracted for fallback rendering
+  - `drawHUD()` supports custom UI sprites (hearts, coins)
+- `src/services/renderers/CanvasRenderer.ts` - Added AssetStore parameter
+  - `draw()` method now accepts optional AssetStore
+  - Passes assetStore to GameplayRenderer
+- `src/features/game/GameCanvas.tsx` - Pass assetStore to renderer
+  - Destructures assetStore from rootStore
+  - Passes to canvasRenderer.draw()
+
+**Sprite Rendering Features:**
+- Tile sprites: Each TileTypeId can have a custom sprite
+- Player sprites: idle, run, jump variants with automatic state selection
+- Player sprite flipping: Horizontally flips when facing left
+- Background: Parallax scrolling at 50% camera speed with tiling
+- UI sprites: Custom heart and coin icons in HUD
+- Graceful fallback: Uses procedural rendering when sprites missing
+
+#### Implemented: Phase 3 - Audio System
+
+**New Files:**
+- `src/services/AudioService.ts` - Audio playback service
+  - Background music with looping and volume control
+  - SFX pool for concurrent sound playback (3 audio elements per sound)
+  - Master mute toggle
+  - `loadMusic()` / `playMusic()` / `pauseMusic()` / `stopMusic()`
+  - `loadSfx()` / `playSfx()` with round-robin pool selection
+  - `loadFromAssetStore()` for batch loading from level packs
+  - Volume controls: music, SFX, and master
+
+**Modified Files:**
+- `src/stores/PlayerStore.ts` - Added audio triggers
+  - Jump: `audioService.playSfx('jump')` in `applyInput()`
+  - Death: `audioService.playSfx('death')` in `die()`
+- `src/stores/GameStore.ts` - Added audio triggers
+  - Coin: `audioService.playSfx('coin')` in `collectCoin()`
+  - Goal: `audioService.playSfx('goal')` in `completeLevel()`
+  - Checkpoint: `audioService.playSfx('checkpoint')` in `setCheckpoint()`
+- `src/stores/RootStore.ts` - Audio management methods
+  - `syncAudioFromAssets()` - Load audio from AssetStore to AudioService
+  - `clearCustomAssets()` - Clear custom assets and audio
+- `src/services/index.ts` - Export audioService
+
+**Audio Integration:**
+- SFX triggers: jump, coin, death, goal, checkpoint
+- Music: Auto-loops when loaded from level pack
+- Pool system: Allows overlapping sounds (e.g., rapid coin collection)
+- Silent fallback: No errors when sounds not loaded
+
+#### Implemented: Phase 4 - Editor Asset Upload UI
+
+**New Files:**
+- `src/features/editor/AssetUploadPanel.tsx` - Asset upload panel component
+  - Collapsible sections: Tiles, Player, Background, Audio
+  - Tile sprite uploads for 8 common tile types
+  - Player sprite uploads (idle, run, jump)
+  - Background image upload
+  - Music and SFX uploads with preview buttons
+  - Clear individual assets or all at once
+  - Asset count summary at bottom
+
+**Modified Files:**
+- `src/features/editor/EditorCanvas.tsx` - Integrated asset panel
+  - Added `showAssetPanel` state with A key toggle
+  - Conditional rendering of AssetUploadPanel
+  - Layout adjusts when panel is open (`with-asset-panel` class)
+- `src/features/editor/index.ts` - Export AssetUploadPanel
+- `src/App.css` - Added 200+ lines of asset panel styles
+  - Asset grid with preview thumbnails
+  - Audio controls with upload/preview/clear buttons
+  - Responsive collapsible sections
+  - Visual feedback for loaded assets
+
+**Editor Features:**
+- Press A to toggle asset panel
+- Click asset preview to upload new file
+- Click X on asset to remove it
+- Preview audio with play button
+- Asset summary shows loaded count
+
+#### Implemented: Phase 5 - Editor UI Improvements + Zip Export/Import
+
+**Modified Files:**
+- `src/features/editor/EditorCanvas.tsx` - Major UI improvements
+  - Added asset panel toggle button (visible on left side)
+  - Added file bar at top with export/import buttons
+  - "Open" - Load JSON level
+  - "Save JSON" - Export level as JSON
+  - "Import Pack" - Load .zip level pack
+  - "Export Pack" - Export level + assets as .zip
+  - "Test" - Test level in game
+  - Asset count badge shows number of loaded assets
+  - Added `imageToBlob()` helper for sprite export
+  - Integrated `levelPackService` for zip operations
+- `src/App.css` - Added new UI styles
+  - Asset panel toggle button with active state
+  - File bar with buttons and dividers
+  - Asset badge for showing loaded asset count
+  - Layout adjustments for panel open/closed states
+
+**New Editor UI Features:**
+- Toggle button on left side to show/hide asset panel
+- File bar at top for quick access to save/load operations
+- Export Pack button creates .zip with all custom assets
+- Import Pack button loads .zip and extracts level + assets
+- Asset count badge shows loaded assets at a glance
+
+---
+
+### Session: 2026-02-01 (Part 8) - Jump System Fixes
+
+#### Fixed
+- **Critical jump bug**: Player was getting +1 extra jump on every level
+  - Root cause: `updateGroundedState()` was calling `onLand()` immediately after a jump
+  - When player jumped, `isGrounded` was set to false, but ground was still detected below
+  - This triggered `onLand()` which reset `jumpsRemaining`, giving back the consumed jump
+  - Fix: Only call `onLand()` when player is falling (`vy >= 0`), not when jumping up
+
+#### Changed
+- **Double jump threshold**: Moved from level 4 to level 5
+  - Levels 0-4: Single jump only (power-ups grant temporary extra jumps)
+  - Levels 5+: Double jump available
+  - Updated `hasDoubleJumpUnlocked()` in `src/levels/index.ts`
+
+---
+
 ### Session: 2026-02-01 (Part 7) - Level Builder
 
 #### Added: In-Game Level Editor

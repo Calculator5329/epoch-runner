@@ -22,8 +22,8 @@ export const MAX_FALL_SPEED = 800     // Terminal velocity
 export const FRICTION = 0.85          // Ground deceleration multiplier
 
 // Player dimensions (smaller than tile for forgiving collision)
-export const PLAYER_WIDTH = 48
-export const PLAYER_HEIGHT = 56
+export const PLAYER_WIDTH = 60   // Slightly less than 1 tile wide
+export const PLAYER_HEIGHT = 90  // ~1.4 tiles tall
 
 // Colors (MVP - will be replaced with sprites)
 export const COLORS = {

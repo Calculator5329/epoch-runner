@@ -1,6 +1,7 @@
 import { makeAutoObservable } from 'mobx'
 import { DEFAULT_LIVES } from '../core/constants'
 import type { GridPosition } from '../levels/types'
+import { audioService } from '../services/AudioService'
 
 /**
  * GameStore - Top-level game state
@@ -154,6 +155,9 @@ export class GameStore {
     
     this.levelComplete = true
     
+    // Play goal/level complete sound effect
+    audioService.playSfx('goal')
+    
     // Calculate earnings with replay multiplier
     let earnings = this.coinsThisAttempt
     
@@ -232,6 +236,9 @@ export class GameStore {
         this.lastCheckpoint.col !== col || 
         this.lastCheckpoint.row !== row) {
       this.lastCheckpoint = { col, row }
+      
+      // Play checkpoint sound effect
+      audioService.playSfx('checkpoint')
     }
   }
 
@@ -244,6 +251,9 @@ export class GameStore {
    */
   collectCoin(_col: number, _row: number): void {
     this.coinsThisAttempt += 1
+    
+    // Play coin collection sound effect
+    audioService.playSfx('coin')
   }
 
   /**

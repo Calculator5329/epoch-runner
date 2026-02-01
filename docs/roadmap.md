@@ -149,20 +149,83 @@ Goal: Single hardcoded level with player movement, collision, and win state.
   - [ ] Level CRUD operations (save, load, list)
   - [ ] Asset metadata storage
 
-## Phase 3: Asset Pipeline
-*Priority: High*
+## Phase 3: Custom Level Pack System
+*Priority: High - Core Implemented*
 
-- [ ] **Spritesheet System**
-  - [ ] Define spritesheet format (power-of-two, 32x32 or 64x64 tiles)
-  - [ ] Metadata manifest (Tile ID → sprite coordinates)
-  - [ ] Theme injection system (swap spritesheets by themeID)
+Comprehensive system for creating shareable level packs with custom assets.
 
-- [ ] **Asset Management**
-  - [ ] Sprite loader service
-  - [ ] Animation frame sequencing
-  - [ ] Transparent PNG handling (prevent tile bleeding)
+- [x] **Phase 3.1: Asset Infrastructure**
+  - [x] Add JSZip dependency for zip file handling
+  - [x] Create `AssetStore` for managing loaded assets (blob URLs, metadata)
+  - [x] Create `LevelPackService` for zip creation/extraction
+  - [x] Define pack manifest format (level.json + asset references)
 
-## Phase 4: Campaign & Progression
+- [x] **Phase 3.2: Sprite Rendering System**
+  - [x] Modify `GameplayRenderer` for sprite-based tile rendering
+  - [x] Support fallback to procedural rendering when sprites missing
+  - [x] Pre-load sprites as HTMLImageElement for efficient canvas drawing
+  - [x] Handle sprite scaling to TILE_SIZE
+
+- [ ] **Phase 3.3: Custom Hitbox System** *(Deferred - needs refinement)*
+  - [x] Create `HitboxService` with marching squares algorithm
+  - [x] Auto-generate collision polygons from sprite alpha channel
+  - [x] Polygon simplification (Ramer-Douglas-Peucker)
+  - [ ] Custom polygon override support in hitboxes.json
+  - [ ] Integrate polygon collision with `PhysicsService` (reverted due to stability)
+  - [ ] Hitbox editor UI with vertex manipulation
+
+- [x] **Phase 3.4: Audio System**
+  - [x] Create `AudioService` for music and SFX playback
+  - [x] Background music with looping and volume control
+  - [x] SFX pool for concurrent sound effects
+  - [x] Integration points: jump, coin, death, goal triggers
+
+- [x] **Phase 3.5: Editor Asset UI**
+  - [x] Create `AssetUploadPanel` component
+  - [x] File picker for sprites/audio
+  - [x] Preview thumbnails and audio test buttons
+  - [ ] Hitbox editor overlay per sprite (deferred)
+
+- [x] **Phase 3.6: Zip Export/Import**
+  - [x] Export editor state + assets to .zip file
+  - [x] Import .zip and extract into AssetStore
+  - [x] Validation of pack contents
+  - [x] File bar with Export Pack/Import Pack buttons
+
+- [ ] **Phase 3.7: Migrate Existing Levels**
+  - [ ] Create default sprite set matching procedural style
+  - [ ] Build migration script for TypeScript levels
+  - [ ] Update level registry to load from zip files
+  - [ ] Store level packs in `public/levels/`
+
+**Zip Pack Format:**
+```
+my-level-pack.zip
+├── manifest.json       # Pack metadata
+├── level.json          # Level definition
+├── sprites/
+│   ├── tiles/          # Tile sprites (PNG with transparency)
+│   ├── player/         # Player sprites
+│   ├── background.png  # Level background
+│   └── ui/             # Hearts, coin icon, etc.
+├── hitboxes/
+│   └── hitboxes.json   # Custom collision polygons
+├── audio/
+│   ├── music.mp3       # Background music
+│   └── sfx/            # Sound effects
+└── config/
+    └── params.json     # Parameter overrides (future)
+```
+
+---
+
+## Phase 4: Asset Pipeline (Legacy - Merged into Phase 3)
+*Priority: Merged*
+
+- [x] **Spritesheet System** → Now part of Custom Level Pack System
+- [x] **Asset Management** → Now part of Custom Level Pack System
+
+## Phase 5: Campaign & Progression
 *Priority: Medium - In Progress*
 
 - [x] **Campaign Flow**
@@ -219,7 +282,7 @@ Goal: Single hardcoded level with player movement, collision, and win state.
   - [ ] Automated playability testing (pathfinding to verify levels are beatable)
   - [ ] Bundle analysis integration
 
-## Phase 5: In-Game GUI Level Builder
+## Phase 6: In-Game GUI Level Builder
 *Priority: Low (Post-MVP)*
 
 - [ ] **Player-Facing Editor**
@@ -227,6 +290,26 @@ Goal: Single hardcoded level with player movement, collision, and win state.
   - [ ] Basic entity placement (start, goal, enemies)
   - [ ] Level testing within editor
   - [ ] Save to player's custom level library
+
+---
+
+## Phase 7: Parameter Override System (Future)
+*Priority: Low*
+
+Allow level packs to customize game behavior without code changes.
+
+- [ ] **Parameter Config File**
+  - [ ] `config/params.json` in level packs
+  - [ ] Physics overrides (gravity, jump velocity, move speed)
+  - [ ] Player overrides (starting lives, max health)
+  - [ ] Hazard behavior (spike damage, etc.)
+- [ ] **Parameter Loader**
+  - [ ] Load params at level start
+  - [ ] Override constants in PhysicsService
+  - [ ] Reset to defaults on level exit
+- [ ] **Editor UI**
+  - [ ] Parameter editing panel
+  - [ ] Preset templates (floaty, speedy, hardcore)
 
 ---
 

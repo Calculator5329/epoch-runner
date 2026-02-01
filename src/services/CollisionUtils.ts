@@ -10,7 +10,7 @@ import { getTileType, isTileTypeSolid, isTileTypeHazard, isTileTypePickup, isTil
  */
 
 // Player AABB (axis-aligned bounding box)
-interface AABB {
+export interface AABB {
   x: number
   y: number
   width: number

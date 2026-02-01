@@ -7,7 +7,9 @@ import { CameraStore } from './CameraStore'
 import { CampaignStore } from './CampaignStore'
 import { UIStore } from './UIStore'
 import { EditorStore } from './EditorStore'
+import { AssetStore } from './AssetStore'
 import { levelLoaderService } from '../services/LevelLoaderService'
+import { audioService } from '../services/AudioService'
 import { CAMPAIGN_LEVELS, hasDoubleJumpUnlocked } from '../levels'
 import type { LevelDefinition } from '../levels/types'
 import type { LevelJSON } from '../levels/types'
@@ -26,6 +28,7 @@ export class RootStore {
   campaignStore: CampaignStore
   uiStore: UIStore
   editorStore: EditorStore
+  assetStore: AssetStore
 
   constructor() {
     this.gameStore = new GameStore()
@@ -35,6 +38,7 @@ export class RootStore {
     this.campaignStore = new CampaignStore()
     this.uiStore = new UIStore()
     this.editorStore = new EditorStore()
+    this.assetStore = new AssetStore()
   }
 
   /**
@@ -262,6 +266,37 @@ export class RootStore {
       playerCenter.y - this.cameraStore.viewportHeight / 2
     )
   }
+
+  /**
+   * Sync audio from AssetStore to AudioService
+   * Call this after loading a level pack with custom audio
+   */
+  syncAudioFromAssets(): void {
+    // Clear previous audio
+    audioService.clear()
+
+    // Load music if available
+    if (this.assetStore.music) {
+      audioService.loadMusic(this.assetStore.music)
+      audioService.playMusic()
+    }
+
+    // Load sound effects if available
+    if (this.assetStore.sfx.size > 0) {
+      for (const [name, url] of this.assetStore.sfx) {
+        audioService.loadSfx(name, url)
+      }
+    }
+  }
+
+  /**
+   * Clear custom assets and audio
+   * Call this when returning to built-in levels
+   */
+  clearCustomAssets(): void {
+    this.assetStore.clear()
+    audioService.clear()
+  }
 }
 
 // Create singleton instance
@@ -312,4 +347,8 @@ export function useUIStore(): UIStore {
 
 export function useEditorStore(): EditorStore {
   return useRootStore().editorStore
+}
+
+export function useAssetStore(): AssetStore {
+  return useRootStore().assetStore
 }

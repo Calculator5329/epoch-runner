@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { observer } from 'mobx-react-lite'
-import { useRootStore, useEditorStore } from '../../stores/RootStore'
+import { useRootStore } from '../../stores/RootStore'
 import { gameLoopService } from '../../services/GameLoopService'
 import { inputService } from '../../services/InputService'
 import { physicsService } from '../../services/PhysicsService'
@@ -19,7 +19,7 @@ export const GameCanvas = observer(function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const rootStore = useRootStore()
-  const { gameStore, playerStore, levelStore, cameraStore, campaignStore, uiStore, editorStore } = rootStore
+  const { gameStore, playerStore, levelStore, cameraStore, campaignStore, uiStore, editorStore, assetStore } = rootStore
 
   // Track if we need to respawn (set when player dies)
   const needsRespawnRef = useRef(false)
@@ -72,8 +72,8 @@ export const GameCanvas = observer(function GameCanvas() {
     }
 
     // 7. Render frame (always render for UI screens)
-    canvasRenderer.draw(levelStore, playerStore, gameStore, cameraStore, campaignStore, uiStore)
-  }, [rootStore, gameStore, playerStore, levelStore, cameraStore, campaignStore, uiStore])
+    canvasRenderer.draw(levelStore, playerStore, gameStore, cameraStore, campaignStore, uiStore, assetStore)
+  }, [rootStore, gameStore, playerStore, levelStore, cameraStore, campaignStore, uiStore, assetStore])
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -371,8 +371,11 @@ export const GameCanvas = observer(function GameCanvas() {
     }
     canvasRenderer.setContext(ctx)
 
-    // Initialize stores (loads default level, spawns player, sets up camera)
-    rootStore.init()
+    // Initialize stores UNLESS we're already playing (e.g., testing from editor)
+    // If already in 'playing' state with a valid level, skip init to preserve loaded level
+    if (campaignStore.screenState !== 'playing' || !levelStore.currentLevelId) {
+      rootStore.init()
+    }
 
     // Initialize input service
     inputService.init()

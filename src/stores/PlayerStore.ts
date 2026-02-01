@@ -1,6 +1,7 @@
 import { makeAutoObservable } from 'mobx'
 import { PLAYER_SPEED, JUMP_VELOCITY, PLAYER_WIDTH, PLAYER_HEIGHT, TRIPLE_JUMP_DURATION } from '../core/constants'
 import type { InputState, Vector2 } from '../core/types'
+import { audioService } from '../services/AudioService'
 
 /**
  * PlayerStore - Player state and input handling
@@ -69,6 +70,9 @@ export class PlayerStore {
       this.vy = JUMP_VELOCITY
       this.jumpsRemaining -= 1
       this.isGrounded = false
+      
+      // Play jump sound effect
+      audioService.playSfx('jump')
     }
   }
 
@@ -154,6 +158,9 @@ export class PlayerStore {
     this.isDead = true
     this.vx = 0
     this.vy = 0
+    
+    // Play death sound effect
+    audioService.playSfx('death')
   }
 
   /**

@@ -8,6 +8,7 @@ import {
   checkPickupCollision,
   checkPlatformCollision,
   checkTileCollisions,
+  type AABB,
 } from './CollisionUtils'
 import type { PlayerStore } from '../stores/PlayerStore'
 import type { LevelStore } from '../stores/LevelStore'
@@ -90,6 +91,18 @@ class PhysicsService {
   }
 
   /**
+   * Create player AABB at given position
+   */
+  private createPlayerAABB(player: PlayerStore, x: number, y: number): AABB {
+    return {
+      x,
+      y,
+      width: player.width,
+      height: player.height,
+    }
+  }
+
+  /**
    * Move player horizontally with shape-based collision detection
    */
   private moveHorizontal(
@@ -100,16 +113,10 @@ class PhysicsService {
     if (moveX === 0) return
 
     const newX = player.x + moveX
-    const aabb = {
-      x: newX,
-      y: player.y,
-      width: player.width,
-      height: player.height,
-    }
+    const aabb = this.createPlayerAABB(player, newX, player.y)
 
     const getTile = (col: number, row: number) => level.getTileAt(col, row)
 
-    // Check collision at new position
     if (checkSolidCollision(aabb, getTile, level.width, level.height)) {
       // Hit a wall - snap to tile edge
       if (moveX > 0) {
@@ -126,6 +133,7 @@ class PhysicsService {
               minX = Math.min(minX, col.tileX)
             }
           }
+          // Snap player so right edge touches the wall
           player.x = minX - player.width
         }
       } else {
@@ -142,6 +150,7 @@ class PhysicsService {
               maxX = Math.max(maxX, col.tileX + TILE_SIZE)
             }
           }
+          // Snap player so left edge touches the wall
           player.x = maxX
         }
       }
@@ -163,12 +172,7 @@ class PhysicsService {
     if (moveY === 0) return
 
     const newY = player.y + moveY
-    const aabb = {
-      x: player.x,
-      y: newY,
-      width: player.width,
-      height: player.height,
-    }
+    const aabb = this.createPlayerAABB(player, player.x, newY)
 
     const getTile = (col: number, row: number) => level.getTileAt(col, row)
 
@@ -176,9 +180,8 @@ class PhysicsService {
     const solidCollision = checkSolidCollision(aabb, getTile, level.width, level.height)
     
     // Check one-way platform collision (only when falling)
-    const platformAabb = { ...aabb, y: prevY + moveY }
     const platformCollision = checkPlatformCollision(
-      platformAabb, 
+      aabb, 
       prevY, 
       getTile, 
       level.width, 
@@ -221,9 +224,8 @@ class PhysicsService {
             }
           }
           if (minY !== Infinity) {
+            // Snap player so bottom touches the ground
             player.y = minY - player.height
-            // Don't set isGrounded here - let updateGroundedState handle it
-            // so that onLand() is called properly to reset jumpsRemaining
           }
         }
       } else {
@@ -240,6 +242,7 @@ class PhysicsService {
               maxY = Math.max(maxY, col.tileY + TILE_SIZE)
             }
           }
+          // Snap player so top touches the ceiling
           player.y = maxY
         }
       }
@@ -261,7 +264,7 @@ class PhysicsService {
    */
   private updateGroundedState(player: PlayerStore, level: LevelStore): void {
     // Check a small distance below the player's feet
-    const aabb = {
+    const aabb: AABB = {
       x: player.x,
       y: player.y + player.height + 1,
       width: player.width,
@@ -283,7 +286,8 @@ class PhysicsService {
     const isNowGrounded = belowCollision.length > 0
 
     // Call onLand() when transitioning from air to ground (resets jumpsRemaining)
-    if (!wasGrounded && isNowGrounded) {
+    // Only do this when falling (vy >= 0), not when jumping up
+    if (!wasGrounded && isNowGrounded && player.vy >= 0) {
       player.onLand()
     } else {
       player.isGrounded = isNowGrounded
@@ -301,13 +305,7 @@ class PhysicsService {
     // Skip hazard damage in god mode
     if (game.isGodMode) return
 
-    const aabb = {
-      x: player.x,
-      y: player.y,
-      width: player.width,
-      height: player.height,
-    }
-
+    const aabb = this.createPlayerAABB(player, player.x, player.y)
     const getTile = (col: number, row: number) => level.getTileAt(col, row)
     const hazard = checkHazardCollision(aabb, getTile, level.width, level.height)
 
@@ -318,7 +316,6 @@ class PhysicsService {
 
   /**
    * Check for falling off the map (below level bounds)
-   * Treats falling off as death to respawn player at checkpoint or start
    */
   private checkBoundaries(
     player: PlayerStore,
@@ -345,13 +342,7 @@ class PhysicsService {
     level: LevelStore,
     game: GameStore
   ): void {
-    const aabb = {
-      x: player.x,
-      y: player.y,
-      width: player.width,
-      height: player.height,
-    }
-
+    const aabb = this.createPlayerAABB(player, player.x, player.y)
     const getTile = (col: number, row: number) => level.getTileAt(col, row)
     const pickups = checkPickupCollision(aabb, getTile, level.width, level.height)
 
@@ -374,12 +365,7 @@ class PhysicsService {
     level: LevelStore,
     game: GameStore
   ): void {
-    const aabb = {
-      x: player.x,
-      y: player.y,
-      width: player.width,
-      height: player.height,
-    }
+    const aabb = this.createPlayerAABB(player, player.x, player.y)
 
     const getTile = (col: number, row: number) => level.getTileAt(col, row)
     
@@ -404,7 +390,6 @@ class PhysicsService {
 
 /**
  * Get the Y position on a slope surface at a given X position
- * Returns the Y in world coordinates where the player should land
  */
 function getSlopeSurfaceY(
   shape: CollisionShape,
@@ -421,42 +406,31 @@ function getSlopeSurfaceY(
   const playerCenterX = playerX + playerWidth / 2
   const relX = Math.max(0, Math.min(1, (playerCenterX - tileX) / TILE_SIZE))
   
-  // For slopes, find the surface Y at this X position
-  // We need to find which edge of the polygon forms the "top" surface
   const verts = shape.vertices
   
   // Check if this is a slope we recognize
   if (verts.length === 3) {
-    // SLOPE_UP_RIGHT: bottom-left (0,1), bottom-right (1,1), top-right (1,0)
-    // Surface goes from (0,1) to (1,0) - Y decreases as X increases
     if (isShapeMatch(verts, SHAPES.SLOPE_UP_RIGHT.vertices!)) {
-      const surfaceY = 1 - relX  // Y = 1 at x=0, Y = 0 at x=1
+      const surfaceY = 1 - relX
       return tileY + surfaceY * TILE_SIZE
     }
     
-    // SLOPE_UP_LEFT: top-left (0,0), bottom-left (0,1), bottom-right (1,1)
-    // Surface goes from (0,0) to (1,1) - Y increases as X increases
     if (isShapeMatch(verts, SHAPES.SLOPE_UP_LEFT.vertices!)) {
-      const surfaceY = relX  // Y = 0 at x=0, Y = 1 at x=1
+      const surfaceY = relX
       return tileY + surfaceY * TILE_SIZE
     }
     
-    // SLOPE_DOWN_RIGHT: top-left (0,0), top-right (1,0), bottom-right (1,1)
-    // Surface goes from (0,0) to (1,1) on the right side
     if (isShapeMatch(verts, SHAPES.SLOPE_DOWN_RIGHT.vertices!)) {
-      const surfaceY = relX  // Y = 0 at x=0, Y = 1 at x=1
+      const surfaceY = relX
       return tileY + surfaceY * TILE_SIZE
     }
     
-    // SLOPE_DOWN_LEFT: top-left (0,0), top-right (1,0), bottom-left (0,1)
-    // Surface goes from (1,0) to (0,1)
     if (isShapeMatch(verts, SHAPES.SLOPE_DOWN_LEFT.vertices!)) {
-      const surfaceY = 1 - relX  // Y = 1 at x=0, Y = 0 at x=1
+      const surfaceY = 1 - relX
       return tileY + surfaceY * TILE_SIZE
     }
   }
   
-  // Default fallback: use tile top
   return tileY
 }
 
@@ -466,7 +440,6 @@ function getSlopeSurfaceY(
 function isShapeMatch(a: NormalizedPoint[], b: NormalizedPoint[]): boolean {
   if (a.length !== b.length) return false
   
-  // Check if all vertices match (allowing for floating point tolerance)
   for (let i = 0; i < a.length; i++) {
     if (Math.abs(a[i].x - b[i].x) > 0.001 || Math.abs(a[i].y - b[i].y) > 0.001) {
       return false
