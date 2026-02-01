@@ -318,6 +318,8 @@ export const EditorCanvas = observer(function EditorCanvas() {
   const testLevel = useCallback(() => {
     const level = editorStore.toLevelDefinition()
     rootStore.loadLevelDefinition(level)
+    // Set campaign to playing state so GameCanvas doesn't reset to intro
+    rootStore.campaignStore.setScreenState('playing')
     editorStore.setMode('game')
   }, [editorStore, rootStore])
 

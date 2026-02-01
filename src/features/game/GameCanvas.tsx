@@ -371,8 +371,11 @@ export const GameCanvas = observer(function GameCanvas() {
     }
     canvasRenderer.setContext(ctx)
 
-    // Initialize stores (loads default level, spawns player, sets up camera)
-    rootStore.init()
+    // Initialize stores UNLESS we're already playing (e.g., testing from editor)
+    // If already in 'playing' state with a valid level, skip init to preserve loaded level
+    if (campaignStore.screenState !== 'playing' || !levelStore.currentLevelId) {
+      rootStore.init()
+    }
 
     // Initialize input service
     inputService.init()

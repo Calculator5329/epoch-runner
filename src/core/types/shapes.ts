@@ -196,6 +196,18 @@ export enum TileTypeId {
   SOLID_SLOPE_DOWN_RIGHT = 12,
   SOLID_SLOPE_DOWN_LEFT = 13,
   
+  // Custom solid blocks (14-29) - same collision, different sprites
+  SOLID_BRICK = 14,
+  SOLID_STONE = 15,
+  SOLID_METAL = 16,
+  SOLID_WOOD = 17,
+  SOLID_ICE = 18,
+  SOLID_GRASS = 19,
+  SOLID_SAND = 20,
+  SOLID_DIRT = 21,
+  SOLID_CRYSTAL = 22,
+  SOLID_LAVA_ROCK = 23,
+  
   // One-way platforms (50-59)
   PLATFORM_FULL = 50,
   PLATFORM_HALF_LEFT = 51,
@@ -227,6 +239,17 @@ export const TILE_COLORS = {
   powerup: '#48bb78',  // Green for triple jump power-up
   goal: '#48bb78',
   checkpoint: '#4299e1',
+  // Custom solid colors (for different sprite themes)
+  brick: '#8b4513',     // Saddle brown
+  stone: '#708090',     // Slate gray
+  metal: '#71797E',     // Steel gray
+  wood: '#deb887',      // Burlywood tan
+  ice: '#b0e0e6',       // Powder blue
+  grass: '#228b22',     // Forest green
+  sand: '#f4a460',      // Sandy brown
+  dirt: '#8b5a2b',      // Sienna brown
+  crystal: '#e066ff',   // Medium orchid
+  lavaRock: '#4a0404',  // Dark red/maroon
 } as const
 
 // Tile type definitions registry
@@ -330,6 +353,78 @@ export const TILE_TYPES: Record<TileTypeId, TileType> = {
     category: 'solid',
     collision: SHAPES.SLOPE_DOWN_LEFT,
     color: TILE_COLORS.solid,
+  },
+  
+  // Custom solid blocks (same collision, different sprites)
+  [TileTypeId.SOLID_BRICK]: {
+    id: TileTypeId.SOLID_BRICK,
+    name: 'Brick',
+    category: 'solid',
+    collision: SHAPES.FULL,
+    color: TILE_COLORS.brick,
+  },
+  [TileTypeId.SOLID_STONE]: {
+    id: TileTypeId.SOLID_STONE,
+    name: 'Stone',
+    category: 'solid',
+    collision: SHAPES.FULL,
+    color: TILE_COLORS.stone,
+  },
+  [TileTypeId.SOLID_METAL]: {
+    id: TileTypeId.SOLID_METAL,
+    name: 'Metal',
+    category: 'solid',
+    collision: SHAPES.FULL,
+    color: TILE_COLORS.metal,
+  },
+  [TileTypeId.SOLID_WOOD]: {
+    id: TileTypeId.SOLID_WOOD,
+    name: 'Wood',
+    category: 'solid',
+    collision: SHAPES.FULL,
+    color: TILE_COLORS.wood,
+  },
+  [TileTypeId.SOLID_ICE]: {
+    id: TileTypeId.SOLID_ICE,
+    name: 'Ice',
+    category: 'solid',
+    collision: SHAPES.FULL,
+    color: TILE_COLORS.ice,
+  },
+  [TileTypeId.SOLID_GRASS]: {
+    id: TileTypeId.SOLID_GRASS,
+    name: 'Grass',
+    category: 'solid',
+    collision: SHAPES.FULL,
+    color: TILE_COLORS.grass,
+  },
+  [TileTypeId.SOLID_SAND]: {
+    id: TileTypeId.SOLID_SAND,
+    name: 'Sand',
+    category: 'solid',
+    collision: SHAPES.FULL,
+    color: TILE_COLORS.sand,
+  },
+  [TileTypeId.SOLID_DIRT]: {
+    id: TileTypeId.SOLID_DIRT,
+    name: 'Dirt',
+    category: 'solid',
+    collision: SHAPES.FULL,
+    color: TILE_COLORS.dirt,
+  },
+  [TileTypeId.SOLID_CRYSTAL]: {
+    id: TileTypeId.SOLID_CRYSTAL,
+    name: 'Crystal',
+    category: 'solid',
+    collision: SHAPES.FULL,
+    color: TILE_COLORS.crystal,
+  },
+  [TileTypeId.SOLID_LAVA_ROCK]: {
+    id: TileTypeId.SOLID_LAVA_ROCK,
+    name: 'Lava Rock',
+    category: 'solid',
+    collision: SHAPES.FULL,
+    color: TILE_COLORS.lavaRock,
   },
   
   // One-way platforms

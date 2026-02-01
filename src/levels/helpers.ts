@@ -116,6 +116,190 @@ export function hollowRect(
 }
 
 // ============================================
+// Custom Solid Helpers
+// ============================================
+
+/**
+ * Place a brick block
+ */
+export function brick(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.SOLID_BRICK }]
+}
+
+/**
+ * Create a row of brick blocks
+ */
+export function brickPlatform(startCol: number, row: number, length: number): TilePlacement[] {
+  return Array.from({ length }, (_, i) => ({
+    col: startCol + i,
+    row,
+    type: TileTypeId.SOLID_BRICK,
+  }))
+}
+
+/**
+ * Place a stone block
+ */
+export function stone(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.SOLID_STONE }]
+}
+
+/**
+ * Create a row of stone blocks
+ */
+export function stonePlatform(startCol: number, row: number, length: number): TilePlacement[] {
+  return Array.from({ length }, (_, i) => ({
+    col: startCol + i,
+    row,
+    type: TileTypeId.SOLID_STONE,
+  }))
+}
+
+/**
+ * Place a metal block
+ */
+export function metal(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.SOLID_METAL }]
+}
+
+/**
+ * Create a row of metal blocks
+ */
+export function metalPlatform(startCol: number, row: number, length: number): TilePlacement[] {
+  return Array.from({ length }, (_, i) => ({
+    col: startCol + i,
+    row,
+    type: TileTypeId.SOLID_METAL,
+  }))
+}
+
+/**
+ * Place a wood block
+ */
+export function wood(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.SOLID_WOOD }]
+}
+
+/**
+ * Create a row of wood blocks
+ */
+export function woodPlatform(startCol: number, row: number, length: number): TilePlacement[] {
+  return Array.from({ length }, (_, i) => ({
+    col: startCol + i,
+    row,
+    type: TileTypeId.SOLID_WOOD,
+  }))
+}
+
+/**
+ * Place an ice block
+ */
+export function ice(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.SOLID_ICE }]
+}
+
+/**
+ * Create a row of ice blocks
+ */
+export function icePlatform(startCol: number, row: number, length: number): TilePlacement[] {
+  return Array.from({ length }, (_, i) => ({
+    col: startCol + i,
+    row,
+    type: TileTypeId.SOLID_ICE,
+  }))
+}
+
+/**
+ * Place a grass block
+ */
+export function grass(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.SOLID_GRASS }]
+}
+
+/**
+ * Create a row of grass blocks
+ */
+export function grassPlatform(startCol: number, row: number, length: number): TilePlacement[] {
+  return Array.from({ length }, (_, i) => ({
+    col: startCol + i,
+    row,
+    type: TileTypeId.SOLID_GRASS,
+  }))
+}
+
+/**
+ * Place a sand block
+ */
+export function sand(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.SOLID_SAND }]
+}
+
+/**
+ * Create a row of sand blocks
+ */
+export function sandPlatform(startCol: number, row: number, length: number): TilePlacement[] {
+  return Array.from({ length }, (_, i) => ({
+    col: startCol + i,
+    row,
+    type: TileTypeId.SOLID_SAND,
+  }))
+}
+
+/**
+ * Place a dirt block
+ */
+export function dirt(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.SOLID_DIRT }]
+}
+
+/**
+ * Create a row of dirt blocks
+ */
+export function dirtPlatform(startCol: number, row: number, length: number): TilePlacement[] {
+  return Array.from({ length }, (_, i) => ({
+    col: startCol + i,
+    row,
+    type: TileTypeId.SOLID_DIRT,
+  }))
+}
+
+/**
+ * Place a crystal block
+ */
+export function crystal(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.SOLID_CRYSTAL }]
+}
+
+/**
+ * Create a row of crystal blocks
+ */
+export function crystalPlatform(startCol: number, row: number, length: number): TilePlacement[] {
+  return Array.from({ length }, (_, i) => ({
+    col: startCol + i,
+    row,
+    type: TileTypeId.SOLID_CRYSTAL,
+  }))
+}
+
+/**
+ * Place a lava rock block
+ */
+export function lavaRock(col: number, row: number): TilePlacement[] {
+  return [{ col, row, type: TileTypeId.SOLID_LAVA_ROCK }]
+}
+
+/**
+ * Create a row of lava rock blocks
+ */
+export function lavaRockPlatform(startCol: number, row: number, length: number): TilePlacement[] {
+  return Array.from({ length }, (_, i) => ({
+    col: startCol + i,
+    row,
+    type: TileTypeId.SOLID_LAVA_ROCK,
+  }))
+}
+
+// ============================================
 // Partial Block Helpers
 // ============================================
 
