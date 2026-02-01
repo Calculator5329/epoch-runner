@@ -80,9 +80,10 @@ Goal: Single hardcoded level with player movement, collision, and win state.
   - [x] Replay multiplier (0.9^n for completed levels)
   - [x] HUD display for lives and coins
 
-- [x] **Power-ups**
-  - [x] Double jump power-up (10 second duration)
-  - [x] jumpsRemaining system (1 normal, 2 with powerup)
+- [x] **Power-ups & Jump Progression**
+  - [x] Progressive jump unlocks (single jump for levels 0-3, double jump for levels 4+)
+  - [x] Triple jump power-up (10 second duration, 3 jumps)
+  - [x] jumpsRemaining system with baseMaxJumps per level
   - [x] Visual indicator for active power-up
 
 - [x] **One-Way Platforms**
@@ -90,12 +91,12 @@ Goal: Single hardcoded level with player movement, collision, and win state.
   - [x] Pass-through from below, land from above
 
 - [x] **Core Test Levels (Progression)**
-  - [x] level_0_basic - Basic platforming (tutorial)
-  - [x] level_1_shapes - Half/quarter blocks (slopes disabled)
-  - [x] level_2_hazards - Spikes and hazard gauntlet
-  - [x] level_3_coins - Coin collection, checkpoints
-  - [x] level_4_powerup - Double jump challenges
-  - [x] level_5_gauntlet - All features combined (final test)
+  - [x] level_0_basic - Basic platforming, tutorial (single jump)
+  - [x] level_1_shapes - Half/quarter blocks, slopes disabled (single jump)
+  - [x] level_2_hazards - Spikes and hazard gauntlet (single jump)
+  - [x] level_3_coins - Coin collection, checkpoints (single jump)
+  - [x] level_4_powerup - Triple jump challenges (double jump unlocked!)
+  - [x] level_5_gauntlet - All features combined, final test (double jump)
 
 ---
 

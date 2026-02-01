@@ -27,7 +27,7 @@ import {
   // Platforms
   oneWayPlatform,
   // Power-ups
-  doubleJump,
+  tripleJump,
   // Checkpoints
   checkpoint,
 } from './helpers'
@@ -92,54 +92,48 @@ export const level_5_gauntlet = createLevel(
     checkpoint(36, 18),
     
     // ===== Section 4: Double Jump Required =====
+    // (Heights tuned for double jump ~272px; gap for horizontal double jump)
     
-    // Power-up for next section
-    doubleJump(38, 18),
+    // Small platform so player can reach double jump before spike pit
+    platform(36, 18, 4),
+    tripleJump(38, 18),
     
-    // High platforms
-    platform(40, 12, 3),
-    coinRow(40, 11, 3),
+    // High platform (reachable with double jump from ground)
+    platform(40, 14, 3),
+    coinRow(40, 13, 3),
     
-    // Spike gap with double jump
-    spikesUp(40, 19, 5),
-    platform(45, 18, 3),
+    // Spike gap (double jump to clear)
+    spikesUp(40, 19, 4),
+    platform(44, 18, 3),
     
     // ===== Section 5: Vertical Challenge =====
+    // (~2-tile steps so single jump between each)
     
-    // Third checkpoint
     checkpoint(48, 18),
+    tripleJump(49, 18),
     
-    // Power-up for tower
-    doubleJump(49, 18),
+    oneWayPlatform(50, 17, 4),
+    coin(52, 16),
     
-    // One-way platform tower (4-tile spacing, achievable with double jump)
-    oneWayPlatform(50, 16, 4),
-    coin(52, 15),
+    oneWayPlatform(50, 14, 4),
+    coin(52, 13),
+    spikesRight(49, 13, 1),
     
-    oneWayPlatform(50, 12, 4),
-    coin(52, 11),
-    spikesRight(49, 13, 1),  // Single wall spike as warning, not blocking
-    
-    oneWayPlatform(50, 8, 4),
-    coin(52, 7),
+    oneWayPlatform(50, 11, 4),
+    coin(52, 10),
     
     // ===== Section 6: Final Gauntlet =====
     
-    // Bridge from tower (connecting from row 8 platform)
-    platform(54, 7, 2),
-    coin(55, 6),
+    platform(54, 9, 2),
+    coin(55, 8),
     
-    // Final climb
-    platform(56, 5, 2),
+    platform(56, 6, 2),
     
-    // Hazard to avoid on the way
-    hazard(58, 5),
+    hazard(58, 6),
     
-    // Final coins
-    coin(56, 4),
-    coin(57, 4),
+    coin(56, 5),
+    coin(57, 5),
     
-    // Goal
     goal(56, 3),
     
     // Boundaries

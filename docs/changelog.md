@@ -2,6 +2,45 @@
 
 ## [Unreleased]
 
+### Session: 2026-02-01 (Part 6) - Jump System Overhaul
+
+#### Changed: Progressive Jump Unlocks
+
+The jump system has been redesigned to provide clearer progression and better power-up differentiation.
+
+**Double Jump → Level Unlock**
+- Double jump is now unlocked by completing levels, not from a power-up
+- Levels 0-3: Single jump only (teaches core platforming)
+- Levels 4-5: Double jump unlocked by default (enables advanced challenges)
+- Custom/imported levels: Double jump enabled by default
+
+**Triple Jump Power-up (formerly Double Jump)**
+- The power-up tile now grants **triple jump** (3 air jumps for 10 seconds)
+- Renamed across codebase:
+  - `POWERUP_DOUBLE_JUMP` → `POWERUP_TRIPLE_JUMP`
+  - `doubleJump()` helper → `tripleJump()` helper
+  - `hasDoubleJump` → `hasTripleJump`
+  - `DOUBLE_JUMP_DURATION` → `TRIPLE_JUMP_DURATION`
+
+#### Added
+- **`baseMaxJumps` property** in `PlayerStore` - Determines default jumps per level (1 or 2)
+- **`setBaseMaxJumps()`** method in `PlayerStore` - Called on level load
+- **`hasDoubleJumpUnlocked()`** function in level registry - Returns true for level 4+
+
+#### Changed
+- **RootStore** now sets `baseMaxJumps` when loading any level
+- **Level files** updated to use `tripleJump()` helper
+- **Power-up color** changed from teal (#38b2ac) to green (#48bb78) to match goal color
+- **GameplayRenderer** uses `TRIPLE_JUMP_DURATION` constant for timer display
+
+#### Level Progression Summary
+| Level | Jump Type | Power-up Effect |
+|-------|-----------|-----------------|
+| 0-3 | Single jump | Triple jump (3 total) |
+| 4-5 | Double jump | Triple jump (3 total) |
+
+---
+
 ### Session: 2026-02-01 (Part 5) - CanvasRenderer Refactor
 
 #### Architecture Refactor: CanvasRenderer Modularization
@@ -231,6 +270,7 @@ core/
   - `GameStore.isAdminMenuOpen`, `toggleAdminMenu()`, `closeAdminMenu()`
   - `CanvasRenderer.drawAdminMenu()`, `getLevelAtPosition()`, `updateHoverPosition()`
 - Cursor command: `/code-review` - Comprehensive code review with auto-fix for critical issues
+- Cursor command: `/review` - Quick TypeScript type check and ESLint validation
 
 #### Fixed
 - **Critical**: Half blocks, slopes showing as green GOAL tiles

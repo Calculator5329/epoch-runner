@@ -5,12 +5,12 @@
  * The LevelLoaderService uses this to find levels by ID.
  * 
  * Level Progression:
- * - Level 0: Basic platforming (tutorial)
- * - Level 1: Introduces shapes (half blocks, slopes)
- * - Level 2: Introduces hazards (spikes, checkpoints)
- * - Level 3: Introduces coins (currency, one-way platforms)
- * - Level 4: Introduces power-ups (double jump)
- * - Level 5: The Gauntlet (all features combined)
+ * - Level 0: Basic platforming (tutorial) - single jump
+ * - Level 1: Introduces shapes (half blocks, slopes) - single jump
+ * - Level 2: Introduces hazards (spikes, checkpoints) - single jump
+ * - Level 3: Introduces coins (currency, one-way platforms) - single jump
+ * - Level 4: Introduces power-ups (triple jump) - double jump unlocked!
+ * - Level 5: The Gauntlet (all features combined) - double jump
  */
 
 import type { LevelDefinition } from './types'
@@ -117,4 +117,15 @@ export function getNextLevelId(currentLevelId: string): string | null {
 export function isLastLevel(levelId: string): boolean {
   const index = getLevelIndex(levelId)
   return index === CAMPAIGN_LEVELS.length - 1
+}
+
+/**
+ * Check if a level has double jump unlocked by default
+ * Level 4+ have double jump, levels 0-3 have single jump
+ */
+export function hasDoubleJumpUnlocked(levelId: string): boolean {
+  const index = getLevelIndex(levelId)
+  // Level 4 (index 4) and above have double jump
+  // Also return true for non-campaign levels (custom levels get double jump)
+  return index === -1 || index >= 4
 }

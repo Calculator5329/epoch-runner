@@ -35,11 +35,13 @@ export const level_3_coins = createLevel(
     coinRow(5, 16, 5),
     
     // ===== Section 2: Platform Coins =====
+    // (Platform heights tuned for max jump ~136px / ~2 tiles)
     
     // Coins on platforms
-    platform(12, 14, 4),
-    coinRow(12, 13, 4),
+    platform(12, 15, 4),
+    coinRow(12, 14, 4),
     
+    platform(18, 14, 4),
     platform(18, 12, 4),
     coinRow(18, 11, 4),
     
@@ -52,19 +54,19 @@ export const level_3_coins = createLevel(
     checkpoint(31, 16),
     
     // ===== Section 4: One-Way Platform Tower =====
+    // (Each step ~1–2 tiles so single jump can reach)
     
-    // Vertical climb with one-way platforms
-    oneWayPlatform(33, 14, 4),
-    coin(35, 13),
+    oneWayPlatform(33, 15, 4),
+    coin(35, 14),
     
-    oneWayPlatform(35, 11, 4),
-    coin(37, 10),
+    oneWayPlatform(35, 13, 4),
+    coin(37, 12),
     
-    oneWayPlatform(33, 8, 4),
-    coin(35, 7),
+    oneWayPlatform(33, 11, 4),
+    coin(35, 10),
     
-    oneWayPlatform(35, 5, 4),
-    coin(37, 4),
+    oneWayPlatform(35, 9, 4),
+    coin(37, 8),
     
     // Can drop back down through platforms
     
@@ -76,25 +78,25 @@ export const level_3_coins = createLevel(
     // Dense coin collection
     coinRow(43, 16, 4),
     
-    platform(43, 14, 3),
-    coinRow(43, 13, 3),
+    platform(43, 15, 3),
+    coinRow(43, 14, 3),
     
-    oneWayPlatform(47, 12, 3),
-    coinRow(47, 11, 3),
+    oneWayPlatform(47, 13, 3),
+    coinRow(47, 12, 3),
     
-    platform(43, 10, 3),
-    coinRow(43, 9, 3),
+    platform(43, 11, 3),
+    coinRow(43, 10, 3),
     
     // Final climb to goal
-    oneWayPlatform(48, 8, 3),
-    coinRow(48, 7, 3),
+    oneWayPlatform(48, 9, 3),
+    coinRow(48, 8, 3),
     
-    platform(50, 5, 3),
-    coin(51, 4),
-    coin(52, 4),
+    platform(50, 7, 3),
+    coin(51, 6),
+    coin(52, 6),
     
     // Goal
-    goal(52, 4),
+    goal(52, 6),
     
     // Boundaries
     wall(0, 0, 17),
