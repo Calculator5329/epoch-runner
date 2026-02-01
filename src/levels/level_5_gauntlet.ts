@@ -8,14 +8,12 @@
 import { 
   createLevel, 
   tiles, 
-  ground, 
   platform, 
   goal,
   wall,
   // Shapes
   halfBlockLeft,
   halfBlockRight,
-  quarterBlock,
   // Hazards
   spikesUp,
   spikesDown,
@@ -36,7 +34,7 @@ import {
 
 export const level_5_gauntlet = createLevel(
   'level_5_gauntlet',
-  'Level 5: The Gauntlet',
+  'The Gauntlet',
   60,  // 60 tiles wide
   20,  // 20 tiles tall
   { col: 2, row: 18 },  // Player spawn

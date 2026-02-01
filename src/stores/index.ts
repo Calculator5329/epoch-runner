@@ -10,6 +10,8 @@ export { GameStore } from './GameStore'
 export { PlayerStore } from './PlayerStore'
 export { LevelStore } from './LevelStore'
 export { CameraStore } from './CameraStore'
+export { CampaignStore } from './CampaignStore'
+export type { ScreenState, SessionStats, LevelStats } from './CampaignStore'
 
 // Root store and hooks
 export { 
@@ -21,4 +23,5 @@ export {
   usePlayerStore,
   useLevelStore,
   useCameraStore,
+  useCampaignStore,
 } from './RootStore'

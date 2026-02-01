@@ -7,6 +7,7 @@ import { physicsService } from '../../services/PhysicsService'
 import { cameraService } from '../../services/CameraService'
 import { canvasRenderer } from '../../services/CanvasRenderer'
 import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '../../core/constants'
+import { CAMPAIGN_LEVELS } from '../../levels'
 import type { LevelJSON } from '../../levels/types'
 
 /**
@@ -18,50 +19,157 @@ export const GameCanvas = observer(function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const rootStore = useRootStore()
-  const { gameStore, playerStore, levelStore, cameraStore } = rootStore
+  const { gameStore, playerStore, levelStore, cameraStore, campaignStore } = rootStore
 
   // Track if we need to respawn (set when player dies)
   const needsRespawnRef = useRef(false)
   const prevLivesRef = useRef(gameStore.lives)
+  const wasLevelCompleteRef = useRef(false)
 
   // Main game tick function
   const tick = useCallback((deltaTime: number) => {
-    // Check if player died (lives decreased)
-    if (gameStore.lives < prevLivesRef.current && !gameStore.isGameOver) {
-      needsRespawnRef.current = true
+    const screenState = campaignStore.screenState
+
+    // Only run game logic when playing
+    if (screenState === 'playing') {
+      // Check if player died (lives decreased)
+      if (gameStore.lives < prevLivesRef.current && !gameStore.isGameOver) {
+        needsRespawnRef.current = true
+      }
+      prevLivesRef.current = gameStore.lives
+
+      // Handle respawn after death
+      if (needsRespawnRef.current && !gameStore.isGameOver) {
+        needsRespawnRef.current = false
+        rootStore.respawnPlayer()
+      }
+
+      // 1. Consume input
+      const input = inputService.consumeFrame()
+
+      // 2. Apply input to player
+      playerStore.applyInput(input)
+
+      // 3. Update power-up timers
+      playerStore.updatePowerUps(deltaTime)
+
+      // 4. Update physics (pass input for noclip vertical movement)
+      physicsService.update(deltaTime, playerStore, levelStore, gameStore, input)
+
+      // 5. Update camera to follow player
+      cameraService.update(deltaTime, cameraStore, playerStore, levelStore)
+
+      // 6. Check for level completion (transition to campaign screen)
+      if (gameStore.levelComplete && !wasLevelCompleteRef.current) {
+        wasLevelCompleteRef.current = true
+        rootStore.onLevelComplete()
+      }
     }
-    prevLivesRef.current = gameStore.lives
-
-    // Handle respawn after death
-    if (needsRespawnRef.current && !gameStore.isGameOver) {
-      needsRespawnRef.current = false
-      rootStore.respawnPlayer()
+    
+    // Reset level complete tracking when starting new level
+    if (!gameStore.levelComplete) {
+      wasLevelCompleteRef.current = false
     }
 
-    // 1. Consume input
-    const input = inputService.consumeFrame()
-
-    // 2. Apply input to player
-    playerStore.applyInput(input)
-
-    // 3. Update power-up timers
-    playerStore.updatePowerUps(deltaTime)
-
-    // 4. Update physics
-    physicsService.update(deltaTime, playerStore, levelStore, gameStore)
-
-    // 5. Update camera to follow player
-    cameraService.update(deltaTime, cameraStore, playerStore, levelStore)
-
-    // 6. Render frame
-    canvasRenderer.draw(levelStore, playerStore, gameStore, cameraStore)
-  }, [rootStore, gameStore, playerStore, levelStore, cameraStore])
+    // 7. Render frame (always render for UI screens)
+    canvasRenderer.draw(levelStore, playerStore, gameStore, cameraStore, campaignStore)
+  }, [rootStore, gameStore, playerStore, levelStore, cameraStore, campaignStore])
 
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Backtick toggles admin menu
-      if (e.code === 'Backquote') {
+      const screenState = campaignStore.screenState
+
+      // ============================================
+      // Intro Screen Controls
+      // ============================================
+      if (screenState === 'intro') {
+        if (e.code === 'Space' || e.code === 'Enter') {
+          e.preventDefault()
+          rootStore.startCampaign()
+        }
+        return
+      }
+
+      // ============================================
+      // Roadmap Screen Controls
+      // ============================================
+      if (screenState === 'roadmap') {
+        if (e.code === 'Escape') {
+          e.preventDefault()
+          // If viewing phase detail, go back to list; otherwise go to intro
+          if (canvasRenderer.selectedRoadmapPhase !== null) {
+            canvasRenderer.selectedRoadmapPhase = null
+          } else {
+            canvasRenderer.clearRoadmapSelection()
+            campaignStore.setScreenState('intro')
+          }
+        }
+        if (e.code === 'Tab') {
+          e.preventDefault()
+          canvasRenderer.clearRoadmapSelection()
+          campaignStore.setScreenState('intro')
+        }
+        return
+      }
+
+      // ============================================
+      // Level Complete Screen Controls
+      // ============================================
+      if (screenState === 'level_complete') {
+        if (e.code === 'Space' || e.code === 'Enter') {
+          e.preventDefault()
+          rootStore.continueToNextLevel()
+        }
+        if (e.code === 'KeyR') {
+          e.preventDefault()
+          // Replay current level
+          const currentLevelId = levelStore.currentLevelId
+          if (currentLevelId) {
+            campaignStore.setScreenState('playing')
+            rootStore.loadLevel(currentLevelId)
+          }
+        }
+        return
+      }
+
+      // ============================================
+      // Campaign Complete Screen Controls
+      // ============================================
+      if (screenState === 'campaign_complete') {
+        if (e.code === 'Space' || e.code === 'Enter') {
+          e.preventDefault()
+          // Play again - restart campaign
+          rootStore.restartCampaign()
+          rootStore.startCampaign()
+        }
+        if (e.code === 'Escape') {
+          e.preventDefault()
+          rootStore.restartCampaign()
+        }
+        // Number keys for level select (admin)
+        if (campaignStore.isAdminMode) {
+          const num = parseInt(e.key)
+          if (!isNaN(num) && num >= 1 && num <= CAMPAIGN_LEVELS.length) {
+            e.preventDefault()
+            rootStore.adminJumpToLevel(num - 1)
+          }
+          // Backtick for level select menu
+          if (e.code === 'Backquote') {
+            e.preventDefault()
+            campaignStore.setScreenState('playing')
+            gameStore.toggleAdminMenu()
+          }
+        }
+        return
+      }
+
+      // ============================================
+      // Playing State Controls
+      // ============================================
+      
+      // Backtick toggles admin menu (admin only)
+      if (e.code === 'Backquote' && campaignStore.isAdminMode) {
         e.preventDefault()
         gameStore.toggleAdminMenu()
         return
@@ -84,32 +192,66 @@ export const GameCanvas = observer(function GameCanvas() {
       if (e.code === 'KeyR') {
         rootStore.reset()
       }
-      // F3 reserved for debug mode (future)
+      
+      // ============================================
+      // Debug Keys (Admin Only) F1-F5
+      // ============================================
+      if (campaignStore.isAdminMode) {
+        // F1: Toggle grid overlay
+        if (e.code === 'F1') {
+          e.preventDefault()
+          gameStore.toggleGridOverlay()
+        }
+        // F2: Toggle collision shape outlines
+        if (e.code === 'F2') {
+          e.preventDefault()
+          gameStore.toggleCollisionShapes()
+        }
+        // F3: Toggle debug info panel
+        if (e.code === 'F3') {
+          e.preventDefault()
+          gameStore.toggleDebugInfo()
+        }
+        // F4: Toggle god mode (invincibility)
+        if (e.code === 'F4') {
+          e.preventDefault()
+          gameStore.toggleGodMode()
+        }
+        // F5: Toggle noclip (fly through walls)
+        if (e.code === 'F5') {
+          e.preventDefault()
+          gameStore.toggleNoclip()
+        }
+      }
+      
       // L key to list available levels
       if (e.code === 'KeyL' && e.ctrlKey) {
         e.preventDefault()
         console.log('Available levels:', rootStore.getAvailableLevels())
       }
-      // S key to save/download current level
-      if (e.code === 'KeyS' && e.ctrlKey) {
+      // S key to save/download current level (admin only)
+      if (e.code === 'KeyS' && e.ctrlKey && campaignStore.isAdminMode) {
         e.preventDefault()
         rootStore.downloadCurrentLevel()
       }
-      // O key to open/import level
-      if (e.code === 'KeyO' && e.ctrlKey) {
+      // O key to open/import level (admin only)
+      if (e.code === 'KeyO' && e.ctrlKey && campaignStore.isAdminMode) {
         e.preventDefault()
         fileInputRef.current?.click()
+      }
+      // TEMP: Semicolon to skip to campaign complete screen (admin only)
+      if (e.code === 'Semicolon' && campaignStore.isAdminMode) {
+        e.preventDefault()
+        campaignStore.setScreenState('campaign_complete')
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [rootStore, gameStore])
+  }, [rootStore, gameStore, campaignStore, levelStore])
 
-  // Handle canvas click (for admin menu level selection)
+  // Handle canvas click (for admin menu, roadmap, and intro terminal)
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!gameStore.isAdminMenuOpen) return
-    
     const canvas = canvasRef.current
     if (!canvas) return
     
@@ -119,23 +261,35 @@ export const GameCanvas = observer(function GameCanvas() {
     const scaleY = canvas.height / rect.height
     const clickX = (e.clientX - rect.left) * scaleX
     const clickY = (e.clientY - rect.top) * scaleY
-    
-    // Check if a level was clicked
-    const levelId = canvasRenderer.getLevelAtPosition(clickX, clickY)
-    if (levelId) {
-      canvasRenderer.clearHover()
-      rootStore.loadLevel(levelId)
-      gameStore.closeAdminMenu()
-    }
-  }, [rootStore, gameStore])
 
-  // Handle canvas mouse move (for admin menu hover effect)
-  const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!gameStore.isAdminMenuOpen) {
-      canvasRenderer.clearHover()
+    // Handle intro screen terminal click
+    if (campaignStore.screenState === 'intro') {
+      if (canvasRenderer.isTerminalClicked(clickX, clickY)) {
+        canvasRenderer.clearTerminalState()
+        campaignStore.setScreenState('roadmap')
+      }
+      return
+    }
+
+    // Handle roadmap screen clicks
+    if (campaignStore.screenState === 'roadmap') {
+      canvasRenderer.handleRoadmapClick(clickX, clickY)
       return
     }
     
+    // Handle admin menu clicks
+    if (gameStore.isAdminMenuOpen) {
+      const levelId = canvasRenderer.getLevelAtPosition(clickX, clickY)
+      if (levelId) {
+        canvasRenderer.clearHover()
+        rootStore.adminJumpToLevelById(levelId)
+        gameStore.closeAdminMenu()
+      }
+    }
+  }, [rootStore, gameStore, campaignStore])
+
+  // Handle canvas mouse move (for admin menu, roadmap, and intro terminal hover effects)
+  const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
     if (!canvas) return
     
@@ -145,9 +299,26 @@ export const GameCanvas = observer(function GameCanvas() {
     const scaleY = canvas.height / rect.height
     const mouseX = (e.clientX - rect.left) * scaleX
     const mouseY = (e.clientY - rect.top) * scaleY
+
+    // Handle intro screen terminal hover
+    if (campaignStore.screenState === 'intro') {
+      canvasRenderer.updateTerminalHover(mouseX, mouseY)
+      return
+    }
+
+    // Handle roadmap hover
+    if (campaignStore.screenState === 'roadmap') {
+      canvasRenderer.updateRoadmapHover(mouseX, mouseY)
+      return
+    }
     
-    canvasRenderer.updateHoverPosition(mouseX, mouseY)
-  }, [gameStore.isAdminMenuOpen])
+    // Handle admin menu hover
+    if (gameStore.isAdminMenuOpen) {
+      canvasRenderer.updateHoverPosition(mouseX, mouseY)
+    } else {
+      canvasRenderer.clearHover()
+    }
+  }, [gameStore.isAdminMenuOpen, campaignStore.screenState])
 
   // Handle file import
   const handleFileImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -212,6 +383,11 @@ export const GameCanvas = observer(function GameCanvas() {
     }
   }, [rootStore, gameStore, tick])
 
+  // Determine cursor style based on hover state
+  const isClickable = canvasRenderer.isTerminalHovered || 
+                      canvasRenderer.hoveredRoadmapPhase !== null ||
+                      (gameStore.isAdminMenuOpen && canvasRenderer.hoveredLevelIndex !== null)
+
   return (
     <div className="game-container">
       <canvas
@@ -220,21 +396,27 @@ export const GameCanvas = observer(function GameCanvas() {
         tabIndex={0}
         onClick={handleCanvasClick}
         onMouseMove={handleCanvasMouseMove}
+        style={{ cursor: isClickable ? 'pointer' : 'default' }}
       />
-      <div className="game-info">
-        <p className="level-name">
-          {levelStore.currentLevelName || 'Untitled Level'} 
-          <span className="level-size">({levelStore.width}×{levelStore.height})</span>
-        </p>
-      </div>
-      <div className="game-controls">
-        <p>
-          <strong>Movement:</strong> Arrow keys or WASD | <strong>Jump:</strong> Space/Up
-        </p>
-        <p>
-          <strong>R:</strong> Restart | <strong>Esc:</strong> Pause | <strong>`:</strong> Level Select | <strong>Ctrl+S:</strong> Save | <strong>Ctrl+O:</strong> Load
-        </p>
-      </div>
+      {campaignStore.screenState === 'playing' && (
+        <>
+          <div className="game-info">
+            <p className="level-name">
+              Level {campaignStore.currentLevelIndex + 1}/{CAMPAIGN_LEVELS.length}: {levelStore.currentLevelName || 'Untitled Level'} 
+              <span className="level-size">({levelStore.width}×{levelStore.height})</span>
+            </p>
+          </div>
+          <div className="game-controls">
+            <p>
+              <strong>Movement:</strong> Arrow keys or WASD | <strong>Jump:</strong> Space/Up
+            </p>
+            <p>
+              <strong>R:</strong> Restart | <strong>Esc:</strong> Pause
+              {campaignStore.isAdminMode && <> | <strong>`:</strong> Level Select | <strong>Ctrl+S:</strong> Save</>}
+            </p>
+          </div>
+        </>
+      )}
       <input
         ref={fileInputRef}
         type="file"

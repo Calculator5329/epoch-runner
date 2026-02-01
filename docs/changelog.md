@@ -2,6 +2,105 @@
 
 ## [Unreleased]
 
+### Session: 2026-02-01 (Part 4)
+
+#### Added
+- **Developer Debug Tools** - Comprehensive debugging interface for development
+  - `window.__EPOCH__` global debug object (dev mode only)
+    - Direct store access: `__EPOCH__.player`, `__EPOCH__.game`, `__EPOCH__.level`, etc.
+    - Commands: `loadLevel(id)`, `teleport(col, row)`
+    - Toggle properties: `god`, `noclip`, `grid`, `debug`
+    - Help command: `__EPOCH__.help()` prints available commands
+  - God mode (F4) - Invincibility, no hazard or boundary damage
+  - Noclip mode (F5) - Fly through walls, WASD for movement
+  - Grid overlay (F1) - Shows tile coordinates on every tile
+  - Collision shapes (F2) - Draws collision shape outlines with color-coded categories
+  - Debug info panel (F3) - Shows player position, velocity, grid coords, god/noclip status
+- **Enhanced Input System**
+  - Added `up` and `down` input states for noclip vertical movement
+  - Arrow keys and WASD now support full directional control in noclip mode
+- **Teleport Command**
+  - `RootStore.teleport(col, row)` - Instant player repositioning
+  - Camera auto-follows after teleport
+
+#### Changed
+- `PhysicsService.update()` now accepts optional `InputState` parameter for noclip controls
+- `GameStore` extended with debug mode flags:
+  - `isGodMode`, `isNoclip`, `showGridOverlay`, `showCollisionShapes`, `showDebugInfo`
+  - Toggle methods for each flag
+- `CanvasRenderer` extended with debug overlay methods:
+  - `drawGridOverlay()`, `drawCollisionShapes()`, `drawDebugInfo()`
+
+#### Documentation
+- Added "Developer Tools" section to roadmap with implemented and future tools
+- Documented future tool ideas: lint:levels, compare:levels, stats:levels, input recording
+
+---
+
+### Session: 2026-02-01 (Part 3)
+
+#### Fixed
+- **Level name redundancy**: Game info was showing "Level 3/6: Level 2: Danger Zone"
+  - Removed "Level X:" prefix from all level display names
+  - Now displays cleanly as "Level 3/6: Danger Zone"
+- **Coin tracking bug**: Coins collected was always showing 0 on campaign complete
+  - Root cause: `completeLevel()` was called twice (from PhysicsService and RootStore)
+  - Second call returned 0 because level was already marked complete
+  - Added `lastCompletionEarnings` field to cache earnings on first call
+  - Subsequent calls now return cached value instead of 0
+
+#### Changed
+- **Intro screen redesign**: More polished visual appearance
+  - Gradient background with subtle grid pattern overlay
+  - Corner accent decorations instead of full border
+  - Title with glow effect
+  - Controls section in a rounded card
+  - Admin mode section with highlighted warning box
+  - Pulsing glow effect on start prompt
+  - Added version number footer
+  - Removed roadmap section for cleaner look
+
+---
+
+### Session: 2026-02-01 (Part 2)
+
+#### Added
+- **Campaign Progression System** - Full game flow from intro to completion
+  - `CampaignStore` - Manages progression state, screen flow, session stats
+  - Intro screen with project documentation, roadmap, and controls
+  - Level complete screen with stats and continue/replay options
+  - Campaign complete screen with full session statistics
+  - Per-level breakdown showing deaths and coins collected
+  - Automatic level advancement on completion
+  - Admin mode flag for development (enables level select, skipping)
+- **Ordered Level Progression**
+  - `CAMPAIGN_LEVELS` array defines level order
+  - Player starts at level 0, progresses through all 6 levels
+  - Progress tracking with level unlock system
+  - Level index tracking for accurate progression display
+- **Session Statistics Tracking**
+  - Total deaths, coins collected, play time
+  - Per-level stats (deaths, coins, completion status)
+  - Formatted play time display
+
+#### Changed
+- **RootStore** - Added campaign integration methods:
+  - `startCampaign()` - Begin from intro screen
+  - `continueToNextLevel()` - Advance after completion
+  - `onLevelComplete()` - Trigger campaign flow on goal reach
+  - `restartCampaign()` - Return to intro
+  - `adminJumpToLevel/adminJumpToLevelById()` - Admin level selection
+- **GameCanvas** - Screen state aware controls and rendering
+  - Different key bindings per screen state (intro, playing, complete)
+  - Admin-only features gated behind `isAdminMode` flag
+  - Level progress indicator in game info
+- **CanvasRenderer** - New overlay screens:
+  - `drawIntroScreen()` - Welcome, documentation, roadmap
+  - `drawLevelCompleteScreen()` - Stats with continue prompt
+  - `drawCampaignComplete()` - Full stats breakdown with level select
+
+---
+
 ### Session: 2026-02-01
 
 #### Added

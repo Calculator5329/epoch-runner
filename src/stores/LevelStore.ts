@@ -1,7 +1,7 @@
 import { makeAutoObservable } from 'mobx'
 import { TILE_SIZE } from '../core/constants'
 import { CollisionType, type LevelData, type Vector2 } from '../core/types'
-import { TileTypeId, getTileType, isTileTypeSolid, isTileTypeHazard, isTileTypePlatform } from '../core/types/shapes'
+import { TileTypeId, isTileTypeSolid, isTileTypeHazard, isTileTypePlatform } from '../core/types/shapes'
 import type { LevelDefinition } from '../levels/types'
 
 /**

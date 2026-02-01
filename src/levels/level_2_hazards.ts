@@ -17,7 +17,7 @@ import {
 
 export const level_2_hazards = createLevel(
   'level_2_hazards',
-  'Level 2: Danger Zone',
+  'Danger Zone',
   50,  // 50 tiles wide
   15,  // 15 tiles tall
   { col: 2, row: 13 },  // Player spawn

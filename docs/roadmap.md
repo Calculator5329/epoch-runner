@@ -154,10 +154,18 @@ Goal: Single hardcoded level with player movement, collision, and win state.
   - [ ] Transparent PNG handling (prevent tile bleeding)
 
 ## Phase 4: Campaign & Progression
-*Priority: Medium*
+*Priority: Medium - In Progress*
+
+- [x] **Campaign Flow**
+  - [x] CampaignStore for progression state
+  - [x] Intro screen with documentation/roadmap
+  - [x] Level complete screen with continue option
+  - [x] Campaign complete screen with full stats
+  - [x] Ordered level progression (6 levels)
+  - [x] Admin mode for development/testing
 
 - [ ] **Overworld UI**
-  - [ ] Level selection screen
+  - [ ] Visual level selection screen
   - [ ] "Chronological Odyssey" epoch progression display
   - [ ] Level unlock system based on completion
 
@@ -165,6 +173,42 @@ Goal: Single hardcoded level with player movement, collision, and win state.
   - [ ] Firebase player profile storage
   - [ ] Level completion tracking
   - [ ] Collectible/achievement system (optional)
+
+## Developer Tools
+*Priority: Medium - Core Implemented*
+
+- [x] **Debug Console Interface**
+  - [x] `window.__EPOCH__` global debug object (dev mode only)
+  - [x] Store access (player, game, level, camera, campaign)
+  - [x] Helper commands (loadLevel, teleport)
+  - [x] Toggle shortcuts (god, noclip, grid, debug)
+
+- [x] **Debug Modes**
+  - [x] God mode - invincibility (F4 toggle)
+  - [x] Noclip mode - fly through walls (F5 toggle)
+  - [x] Grid overlay - show tile coordinates (F1 toggle)
+  - [x] Collision shapes - show hitbox outlines (F2 toggle)
+  - [x] Debug info panel - position, velocity, state (F3 toggle)
+
+- [x] **Admin Commands**
+  - [x] Teleport player to grid position
+  - [x] Load any level by ID
+
+- [ ] **Future Tools (NPM Scripts)**
+  - [ ] `lint:levels` - Check for level design mistakes (impossible jumps, unreachable goals)
+  - [ ] `compare:levels` - Side-by-side diff of two levels
+  - [ ] `stats:levels` - Summary of all levels (tile counts, coin count, difficulty)
+  - [ ] `playtest:level <id>` - Launch dev server with specific level pre-loaded
+
+- [ ] **Future Tools (In-Game)**
+  - [ ] Input recording/playback for testing and demos
+  - [ ] Performance profiling overlay (FPS, frame time, memory)
+  - [ ] Screenshot generation for level previews
+
+- [ ] **Build & CI Tools**
+  - [ ] Pre-commit hooks for level validation
+  - [ ] Automated playability testing (pathfinding to verify levels are beatable)
+  - [ ] Bundle analysis integration
 
 ## Phase 5: In-Game GUI Level Builder
 *Priority: Low (Post-MVP)*

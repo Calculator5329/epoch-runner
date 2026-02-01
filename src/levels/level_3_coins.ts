@@ -21,7 +21,7 @@ import {
 
 export const level_3_coins = createLevel(
   'level_3_coins',
-  'Level 3: Treasure Hunt',
+  'Treasure Hunt',
   55,  // 55 tiles wide
   18,  // 18 tiles tall (taller for vertical sections)
   { col: 2, row: 16 },  // Player spawn

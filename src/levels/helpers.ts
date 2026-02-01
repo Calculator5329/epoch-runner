@@ -1,4 +1,4 @@
-import { CollisionType, TileTypeId } from '../core/types'
+import { TileTypeId } from '../core/types'
 import type { TilePlacement, LevelDefinition, GridPosition } from './types'
 
 /**

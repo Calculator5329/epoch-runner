@@ -11,6 +11,8 @@ class InputService {
   private state = {
     left: false,
     right: false,
+    up: false,
+    down: false,
     jump: false,
   }
   
@@ -33,7 +35,7 @@ class InputService {
 
   private handleKeyDown = (e: KeyboardEvent): void => {
     // Prevent default for game keys to avoid scrolling
-    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'Space', 'KeyW', 'KeyA', 'KeyD'].includes(e.code)) {
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(e.code)) {
       e.preventDefault()
     }
 
@@ -47,12 +49,22 @@ class InputService {
         this.state.right = true
         break
       case 'ArrowUp':
-      case 'Space':
       case 'KeyW':
+        this.state.up = true
         if (!this.state.jump) {
           this.jumpPressedThisFrame = true
         }
         this.state.jump = true
+        break
+      case 'Space':
+        if (!this.state.jump) {
+          this.jumpPressedThisFrame = true
+        }
+        this.state.jump = true
+        break
+      case 'ArrowDown':
+      case 'KeyS':
+        this.state.down = true
         break
     }
   }
@@ -68,9 +80,16 @@ class InputService {
         this.state.right = false
         break
       case 'ArrowUp':
-      case 'Space':
       case 'KeyW':
+        this.state.up = false
         this.state.jump = false
+        break
+      case 'Space':
+        this.state.jump = false
+        break
+      case 'ArrowDown':
+      case 'KeyS':
+        this.state.down = false
         break
     }
   }
@@ -83,6 +102,8 @@ class InputService {
     const snapshot: InputState = {
       left: this.state.left,
       right: this.state.right,
+      up: this.state.up,
+      down: this.state.down,
       jump: this.state.jump,
       jumpJustPressed: this.jumpPressedThisFrame,
     }
@@ -99,6 +120,8 @@ class InputService {
   reset(): void {
     this.state.left = false
     this.state.right = false
+    this.state.up = false
+    this.state.down = false
     this.state.jump = false
     this.jumpPressedThisFrame = false
   }

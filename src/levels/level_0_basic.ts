@@ -9,7 +9,7 @@ import { createLevel, tiles, ground, platform, goal, stairsUpRight, wall } from 
 
 export const level_0_basic = createLevel(
   'level_0_basic',
-  'Age 0: Basic Platforming',
+  'Basic Platforming',
   40,  // 40 tiles wide
   15,  // 15 tiles tall
   { col: 2, row: 13 },  // Player spawn

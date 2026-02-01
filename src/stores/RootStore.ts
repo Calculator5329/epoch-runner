@@ -4,7 +4,9 @@ import { GameStore } from './GameStore'
 import { PlayerStore } from './PlayerStore'
 import { LevelStore } from './LevelStore'
 import { CameraStore } from './CameraStore'
+import { CampaignStore } from './CampaignStore'
 import { levelLoaderService } from '../services/LevelLoaderService'
+import { CAMPAIGN_LEVELS } from '../levels'
 import type { LevelDefinition } from '../levels/types'
 import type { LevelJSON } from '../levels/types'
 
@@ -19,32 +21,95 @@ export class RootStore {
   playerStore: PlayerStore
   levelStore: LevelStore
   cameraStore: CameraStore
+  campaignStore: CampaignStore
 
   constructor() {
     this.gameStore = new GameStore()
     this.playerStore = new PlayerStore()
     this.levelStore = new LevelStore()
     this.cameraStore = new CameraStore()
+    this.campaignStore = new CampaignStore()
   }
 
   /**
-   * Initialize game state - loads default level
+   * Initialize game state - loads first campaign level
    */
   init(): void {
-    // Load the default level from registry
-    levelLoaderService.loadDefault(
-      this.levelStore,
-      this.cameraStore,
-      this.playerStore,
-      this.gameStore
-    )
+    // Initialize campaign with available levels
+    this.campaignStore.initCampaign(CAMPAIGN_LEVELS)
     
-    // Initialize game store for the level
-    if (this.levelStore.currentLevelId) {
-      this.gameStore.initLevel(
-        this.levelStore.currentLevelId,
-        this.levelStore.startingLives
-      )
+    // Start at intro screen - don't load level yet
+    this.campaignStore.setScreenState('intro')
+  }
+
+  /**
+   * Start the campaign from intro screen
+   */
+  startCampaign(): void {
+    this.campaignStore.startCampaign()
+    
+    // Load first level
+    const firstLevelId = CAMPAIGN_LEVELS[0]
+    this.loadLevel(firstLevelId)
+  }
+
+  /**
+   * Continue to next level after completing current one
+   */
+  continueToNextLevel(): void {
+    const nextLevelId = this.campaignStore.advanceToNextLevel(CAMPAIGN_LEVELS)
+    
+    if (nextLevelId) {
+      this.loadLevel(nextLevelId)
+    }
+    // If null, campaign is complete - campaignStore handles screen state
+  }
+
+  /**
+   * Called when player reaches the goal
+   */
+  onLevelComplete(): void {
+    const levelId = this.levelStore.currentLevelId
+    const levelName = this.levelStore.currentLevelName
+    
+    if (!levelId) return
+    
+    // Complete level in GameStore and get coins earned
+    const coinsEarned = this.gameStore.completeLevel()
+    
+    // Record in campaign store
+    this.campaignStore.onLevelComplete(levelId, levelName || 'Unknown', coinsEarned)
+  }
+
+  /**
+   * Restart campaign from beginning
+   */
+  restartCampaign(): void {
+    this.campaignStore.returnToIntro()
+    this.gameStore.fullReset()
+  }
+
+  /**
+   * Jump to a specific level (admin mode)
+   */
+  adminJumpToLevel(levelIndex: number): void {
+    if (!this.campaignStore.isAdminMode) return
+    
+    const levelId = this.campaignStore.jumpToLevel(levelIndex, CAMPAIGN_LEVELS)
+    if (levelId) {
+      this.loadLevel(levelId)
+    }
+  }
+
+  /**
+   * Jump to a specific level by ID (admin mode)
+   */
+  adminJumpToLevelById(levelId: string): void {
+    if (!this.campaignStore.isAdminMode) return
+    
+    const levelIndex = CAMPAIGN_LEVELS.indexOf(levelId)
+    if (levelIndex !== -1) {
+      this.adminJumpToLevel(levelIndex)
     }
   }
 
@@ -123,6 +188,9 @@ export class RootStore {
    * Respawn player after death (at checkpoint or level start)
    */
   respawnPlayer(): void {
+    // Record death in campaign stats
+    this.campaignStore.recordDeath()
+    
     const checkpoint = this.gameStore.spawnPosition
     
     let spawnPos = this.levelStore.playerSpawn
@@ -156,6 +224,23 @@ export class RootStore {
     this.playerStore.reset(this.levelStore.playerSpawn)
     
     // Reset camera to player spawn
+    const playerCenter = this.playerStore.center
+    this.cameraStore.setPosition(
+      playerCenter.x - this.cameraStore.viewportWidth / 2,
+      playerCenter.y - this.cameraStore.viewportHeight / 2
+    )
+  }
+
+  /**
+   * Teleport player to grid position (debug/admin tool)
+   */
+  teleport(col: number, row: number): void {
+    this.playerStore.setPosition({
+      x: col * TILE_SIZE,
+      y: row * TILE_SIZE,
+    })
+    
+    // Update camera to follow
     const playerCenter = this.playerStore.center
     this.cameraStore.setPosition(
       playerCenter.x - this.cameraStore.viewportWidth / 2,
@@ -200,4 +285,8 @@ export function useLevelStore(): LevelStore {
 
 export function useCameraStore(): CameraStore {
   return useRootStore().cameraStore
+}
+
+export function useCampaignStore(): CampaignStore {
+  return useRootStore().campaignStore
 }

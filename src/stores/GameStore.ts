@@ -16,6 +16,25 @@ export class GameStore {
   isGameOver = false
   isAdminMenuOpen = false
 
+  // ============================================
+  // Debug Mode Flags (Admin/Dev Tools)
+  // ============================================
+  
+  /** God mode - invincibility (no hazard/boundary damage) */
+  isGodMode = false
+  
+  /** Noclip mode - fly through walls (no collision) */
+  isNoclip = false
+  
+  /** Show tile grid overlay with coordinates */
+  showGridOverlay = false
+  
+  /** Show collision shape outlines */
+  showCollisionShapes = false
+  
+  /** Show debug info panel (position, velocity, etc.) */
+  showDebugInfo = false
+
   // Lives system
   lives = DEFAULT_LIVES
   maxLives = DEFAULT_LIVES
@@ -28,6 +47,7 @@ export class GameStore {
   totalCoins = 0  // Persistent wallet (would be saved to localStorage/Firebase)
   levelEarnings: Record<string, number> = {}  // Best earnings per level
   levelCompletionCount: Record<string, number> = {}  // Times completed per level
+  lastCompletionEarnings = 0  // Earnings from last level completion (for subsequent calls)
   
   // Current level ID for tracking
   currentLevelId: string | null = null
@@ -76,6 +96,35 @@ export class GameStore {
   }
 
   // ============================================
+  // Debug Mode Toggles
+  // ============================================
+
+  /** Toggle god mode (invincibility) */
+  toggleGodMode(): void {
+    this.isGodMode = !this.isGodMode
+  }
+
+  /** Toggle noclip mode (fly through walls) */
+  toggleNoclip(): void {
+    this.isNoclip = !this.isNoclip
+  }
+
+  /** Toggle grid overlay */
+  toggleGridOverlay(): void {
+    this.showGridOverlay = !this.showGridOverlay
+  }
+
+  /** Toggle collision shape outlines */
+  toggleCollisionShapes(): void {
+    this.showCollisionShapes = !this.showCollisionShapes
+  }
+
+  /** Toggle debug info panel */
+  toggleDebugInfo(): void {
+    this.showDebugInfo = !this.showDebugInfo
+  }
+
+  // ============================================
   // Level Management
   // ============================================
 
@@ -91,13 +140,17 @@ export class GameStore {
     this.maxLives = startingLives
     this.lastCheckpoint = null
     this.coinsThisAttempt = 0
+    this.lastCompletionEarnings = 0
   }
 
   /**
    * Complete the current level
+   * Returns the coins earned for display
+   * Returns cached earnings if called multiple times (safe to call repeatedly)
    */
-  completeLevel(): void {
-    if (this.levelComplete) return
+  completeLevel(): number {
+    // Return cached earnings if already complete
+    if (this.levelComplete) return this.lastCompletionEarnings
     
     this.levelComplete = true
     
@@ -125,6 +178,11 @@ export class GameStore {
     
     // Add to total wallet
     this.totalCoins += earnings
+    
+    // Cache earnings for subsequent calls
+    this.lastCompletionEarnings = earnings
+    
+    return earnings
   }
 
   // ============================================
@@ -184,7 +242,7 @@ export class GameStore {
   /**
    * Collect a coin at position
    */
-  collectCoin(col: number, row: number): void {
+  collectCoin(_col: number, _row: number): void {
     this.coinsThisAttempt += 1
   }
 
@@ -212,6 +270,7 @@ export class GameStore {
     this.lives = this.maxLives
     this.lastCheckpoint = null
     this.coinsThisAttempt = 0
+    this.lastCompletionEarnings = 0
   }
 
   /**
