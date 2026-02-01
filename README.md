@@ -6,7 +6,7 @@ A modular 2D platformer engine where game logic is entirely decoupled from level
 
 ```bash
 # Clone and install
-git clone <repo-url>
+git clone https://github.com/Calculator5329/epoch-runner.git
 cd epoch-runner
 npm install
 
