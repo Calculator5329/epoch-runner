@@ -1,12 +1,21 @@
 import { makeAutoObservable } from 'mobx'
 import { TileTypeId } from '../core/types'
 import type { GridPosition, LevelDefinition } from '../levels/types'
+import type { EntitySpawn, EntityDirection } from '../core/types/entities'
 import { createEmptyGrid } from '../levels/helpers'
 
 /**
  * Tool types available in the editor
  */
-export type EditorTool = 'paint' | 'erase' | 'fill' | 'eyedropper' | 'spawn'
+export type EditorTool = 'paint' | 'erase' | 'fill' | 'eyedropper' | 'spawn' | 'entity'
+
+/**
+ * Editor entity spawn - extends EntitySpawn with editor-specific ID
+ */
+export interface EditorEntitySpawn extends EntitySpawn {
+  /** Unique ID for editor selection */
+  editorId: string
+}
 
 /**
  * Application mode - game or editor
@@ -19,6 +28,7 @@ export type AppMode = 'game' | 'editor'
 interface HistoryEntry {
   collision: number[][]
   playerSpawn: GridPosition
+  entitySpawns: EditorEntitySpawn[]
 }
 
 /**
@@ -75,6 +85,18 @@ export class EditorStore {
   // Camera offset for panning
   cameraX: number = 0
   cameraY: number = 0
+  
+  // Entity layer
+  entitySpawns: EditorEntitySpawn[] = []
+  
+  // Selected entity type for placing (definition ID)
+  selectedEntityType: string | null = null
+  
+  // Selected entity instance in editor (for editing/moving)
+  selectedEntityId: string | null = null
+  
+  // Counter for generating unique editor entity IDs
+  private entityIdCounter: number = 0
 
   constructor() {
     makeAutoObservable(this)
@@ -140,6 +162,9 @@ export class EditorStore {
     this.cameraX = 0
     this.cameraY = 0
     this.isTestingLevel = false
+    this.entitySpawns = []
+    this.selectedEntityId = null
+    this.entityIdCounter = 0
   }
 
   /**
@@ -157,12 +182,28 @@ export class EditorStore {
     this.redoStack = []
     this.cameraX = 0
     this.cameraY = 0
+    // Load entities with editor IDs
+    this.entityIdCounter = 0
+    this.entitySpawns = (level.entities || []).map(e => ({
+      ...e,
+      position: { ...e.position },
+      properties: e.properties ? { ...e.properties } : undefined,
+      editorId: this.generateEditorEntityId(),
+    }))
+    this.selectedEntityId = null
   }
 
   /**
    * Get current level as a LevelDefinition
    */
   toLevelDefinition(): LevelDefinition {
+    // Convert EditorEntitySpawn to EntitySpawn (strip editorId)
+    const entities: EntitySpawn[] = this.entitySpawns.map(e => ({
+      definitionId: e.definitionId,
+      position: { ...e.position },
+      properties: e.properties ? { ...e.properties } : undefined,
+    }))
+    
     return {
       id: this.levelId,
       name: this.levelName,
@@ -170,6 +211,7 @@ export class EditorStore {
       height: this.gridHeight,
       playerSpawn: { ...this.playerSpawn },
       collision: this.collision.map(row => [...row]),
+      entities: entities.length > 0 ? entities : undefined,
     }
   }
 
@@ -180,6 +222,11 @@ export class EditorStore {
     const entry: HistoryEntry = {
       collision: this.collision.map(row => [...row]),
       playerSpawn: { ...this.playerSpawn },
+      entitySpawns: this.entitySpawns.map(e => ({
+        ...e,
+        position: { ...e.position },
+        properties: e.properties ? { ...e.properties } : undefined,
+      })),
     }
     
     this.undoStack.push(entry)
@@ -299,6 +346,11 @@ export class EditorStore {
     const current: HistoryEntry = {
       collision: this.collision.map(row => [...row]),
       playerSpawn: { ...this.playerSpawn },
+      entitySpawns: this.entitySpawns.map(e => ({
+        ...e,
+        position: { ...e.position },
+        properties: e.properties ? { ...e.properties } : undefined,
+      })),
     }
     this.redoStack.push(current)
     
@@ -306,6 +358,8 @@ export class EditorStore {
     const previous = this.undoStack.pop()!
     this.collision = previous.collision
     this.playerSpawn = previous.playerSpawn
+    this.entitySpawns = previous.entitySpawns
+    this.selectedEntityId = null
   }
 
   /**
@@ -318,6 +372,11 @@ export class EditorStore {
     const current: HistoryEntry = {
       collision: this.collision.map(row => [...row]),
       playerSpawn: { ...this.playerSpawn },
+      entitySpawns: this.entitySpawns.map(e => ({
+        ...e,
+        position: { ...e.position },
+        properties: e.properties ? { ...e.properties } : undefined,
+      })),
     }
     this.undoStack.push(current)
     
@@ -325,6 +384,8 @@ export class EditorStore {
     const next = this.redoStack.pop()!
     this.collision = next.collision
     this.playerSpawn = next.playerSpawn
+    this.entitySpawns = next.entitySpawns
+    this.selectedEntityId = null
   }
 
   /**
@@ -422,5 +483,126 @@ export class EditorStore {
     if (this.playerSpawn.row >= newHeight) {
       this.playerSpawn.row = newHeight - 1
     }
+    
+    // Remove entities outside new bounds
+    this.entitySpawns = this.entitySpawns.filter(
+      e => e.position.col < newWidth && e.position.row < newHeight
+    )
+  }
+
+  // ============================================
+  // Entity Management
+  // ============================================
+
+  /**
+   * Generate unique editor entity ID
+   */
+  private generateEditorEntityId(): string {
+    return `editor_entity_${this.entityIdCounter++}`
+  }
+
+  /**
+   * Set selected entity type for placement
+   */
+  setSelectedEntityType(definitionId: string | null): void {
+    this.selectedEntityType = definitionId
+    if (definitionId) {
+      this.tool = 'entity'
+    }
+  }
+
+  /**
+   * Select an entity instance in the editor
+   */
+  selectEntity(editorId: string | null): void {
+    this.selectedEntityId = editorId
+  }
+
+  /**
+   * Add a new entity at grid position
+   */
+  addEntity(col: number, row: number, definitionId: string, direction: EntityDirection = 'right'): void {
+    if (!this.isValidPosition(col, row)) return
+    
+    this.pushHistory()
+    
+    const newEntity: EditorEntitySpawn = {
+      definitionId,
+      position: { col, row },
+      properties: { startDirection: direction },
+      editorId: this.generateEditorEntityId(),
+    }
+    
+    this.entitySpawns.push(newEntity)
+    this.selectedEntityId = newEntity.editorId
+  }
+
+  /**
+   * Remove an entity by editor ID
+   */
+  removeEntity(editorId: string): void {
+    const index = this.entitySpawns.findIndex(e => e.editorId === editorId)
+    if (index === -1) return
+    
+    this.pushHistory()
+    this.entitySpawns.splice(index, 1)
+    
+    if (this.selectedEntityId === editorId) {
+      this.selectedEntityId = null
+    }
+  }
+
+  /**
+   * Remove currently selected entity
+   */
+  removeSelectedEntity(): void {
+    if (this.selectedEntityId) {
+      this.removeEntity(this.selectedEntityId)
+    }
+  }
+
+  /**
+   * Move an entity to new grid position
+   */
+  moveEntity(editorId: string, col: number, row: number): void {
+    if (!this.isValidPosition(col, row)) return
+    
+    const entity = this.entitySpawns.find(e => e.editorId === editorId)
+    if (!entity) return
+    
+    // Skip if position unchanged
+    if (entity.position.col === col && entity.position.row === row) return
+    
+    this.pushHistory()
+    entity.position = { col, row }
+  }
+
+  /**
+   * Get entity at grid position (for clicking)
+   */
+  getEntityAt(col: number, row: number): EditorEntitySpawn | null {
+    // Return first entity found at position (entities are single-tile for now)
+    return this.entitySpawns.find(e => 
+      e.position.col === col && e.position.row === row
+    ) || null
+  }
+
+  /**
+   * Update entity properties
+   */
+  updateEntityProperties(editorId: string, properties: Partial<EntitySpawn['properties']>): void {
+    const entity = this.entitySpawns.find(e => e.editorId === editorId)
+    if (!entity) return
+    
+    this.pushHistory()
+    entity.properties = { ...entity.properties, ...properties }
+  }
+
+  /**
+   * Get selected entity
+   */
+  get selectedEntity(): EditorEntitySpawn | null {
+    if (!this.selectedEntityId) return null
+    return this.entitySpawns.find(e => e.editorId === this.selectedEntityId) || null
   }
 }

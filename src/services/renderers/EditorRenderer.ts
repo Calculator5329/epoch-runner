@@ -1,7 +1,9 @@
 import { TILE_SIZE, VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '../../core/constants'
 import { getTileType, TileTypeId, TILE_COLORS } from '../../core/types/shapes'
-import type { CollisionShape, NormalizedPoint } from '../../core/types/shapes'
-import type { EditorStore } from '../../stores/EditorStore'
+import type { EditorStore, EditorEntitySpawn } from '../../stores/EditorStore'
+import type { AssetStore } from '../../stores/AssetStore'
+import { getEntityDefinition, ENTITY_DEFINITIONS } from '../../core/types/entities'
+import { calculateVisibleTileRange, drawTileShape } from './DrawingUtils'
 
 /**
  * Editor colors
@@ -14,6 +16,8 @@ const EDITOR_COLORS = {
   cursorPreview: 'rgba(255, 255, 255, 0.5)',
   spawnMarker: '#00ff88',
   spawnMarkerBorder: '#00cc66',
+  entitySelected: '#f6ad55',
+  entityHover: '#fbd38d',
 } as const
 
 /**
@@ -28,14 +32,20 @@ export class EditorRenderer {
    */
   draw(
     ctx: CanvasRenderingContext2D,
-    editorStore: EditorStore
+    editorStore: EditorStore,
+    assetStore?: AssetStore
   ): void {
     // Clear canvas with editor background
     ctx.fillStyle = EDITOR_COLORS.background
     ctx.fillRect(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
 
+    // Draw custom background if available
+    if (assetStore?.background) {
+      this.drawBackground(ctx, editorStore, assetStore.background)
+    }
+
     // Draw tiles
-    this.drawTiles(ctx, editorStore)
+    this.drawTiles(ctx, editorStore, assetStore)
 
     // Draw grid lines
     this.drawGridLines(ctx, editorStore)
@@ -43,10 +53,13 @@ export class EditorRenderer {
     // Draw player spawn marker
     this.drawSpawnMarker(ctx, editorStore)
 
+    // Draw entity spawns
+    this.drawEntitySpawns(ctx, editorStore, assetStore)
+
     // Draw hover highlight and cursor preview
     if (editorStore.hoveredTile) {
       this.drawHoverHighlight(ctx, editorStore)
-      this.drawCursorPreview(ctx, editorStore)
+      this.drawCursorPreview(ctx, editorStore, assetStore)
     }
 
     // Draw toolbar/info bar
@@ -54,17 +67,49 @@ export class EditorRenderer {
   }
 
   /**
+   * Draw custom background with parallax effect
+   */
+  private drawBackground(
+    ctx: CanvasRenderingContext2D,
+    editor: EditorStore,
+    background: HTMLImageElement
+  ): void {
+    const parallaxFactor = 0.5
+    const offsetX = -editor.cameraX * parallaxFactor
+    const offsetY = -editor.cameraY * parallaxFactor
+
+    // Tile the background if smaller than viewport
+    const imgWidth = background.width
+    const imgHeight = background.height
+
+    // Calculate starting position with proper wrapping
+    const startX = Math.floor(offsetX / imgWidth) * imgWidth
+    const startY = Math.floor(offsetY / imgHeight) * imgHeight
+
+    // Draw tiled background
+    for (let y = startY; y < VIEWPORT_HEIGHT - offsetY + imgHeight; y += imgHeight) {
+      for (let x = startX; x < VIEWPORT_WIDTH - offsetX + imgWidth; x += imgWidth) {
+        ctx.drawImage(
+          background,
+          x + (offsetX % imgWidth),
+          y + (offsetY % imgHeight)
+        )
+      }
+    }
+  }
+
+  /**
    * Draw all tiles in the level
    */
   private drawTiles(
     ctx: CanvasRenderingContext2D,
-    editor: EditorStore
+    editor: EditorStore,
+    assetStore?: AssetStore
   ): void {
-    // Calculate visible tile range
-    const startCol = Math.max(0, Math.floor(editor.cameraX / TILE_SIZE) - 1)
-    const endCol = Math.min(editor.gridWidth, Math.ceil((editor.cameraX + VIEWPORT_WIDTH) / TILE_SIZE) + 1)
-    const startRow = Math.max(0, Math.floor(editor.cameraY / TILE_SIZE) - 1)
-    const endRow = Math.min(editor.gridHeight, Math.ceil((editor.cameraY + VIEWPORT_HEIGHT) / TILE_SIZE) + 1)
+    // Calculate visible tile range using shared utility
+    const { startCol, endCol, startRow, endRow } = calculateVisibleTileRange(
+      editor.cameraX, editor.cameraY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, editor.gridWidth, editor.gridHeight
+    )
 
     for (let row = startRow; row < endRow; row++) {
       for (let col = startCol; col < endCol; col++) {
@@ -79,69 +124,37 @@ export class EditorRenderer {
         const screenX = Math.round(worldX - editor.cameraX)
         const screenY = Math.round(worldY - editor.cameraY)
 
-        // Draw empty tile background
-        ctx.fillStyle = TILE_COLORS.empty
-        ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE)
+        // Draw empty tile background (only if no custom background)
+        if (!assetStore?.background) {
+          ctx.fillStyle = TILE_COLORS.empty
+          ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE)
+        }
 
         // Draw tile shape if not empty
         if (tileId !== TileTypeId.EMPTY) {
-          this.drawTileShape(ctx, tileType.collision, tileType.color, screenX, screenY)
+          // Check for custom sprite first
+          const customSprite = assetStore?.getTileSprite(tileId as TileTypeId)
+          if (customSprite) {
+            this.drawTileSprite(ctx, customSprite, screenX, screenY)
+          } else {
+            // Fall back to procedural rendering
+            drawTileShape(ctx, tileType.collision, tileType.color, screenX, screenY)
+          }
         }
       }
     }
   }
 
   /**
-   * Draw a tile's collision shape
+   * Draw a custom tile sprite
    */
-  private drawTileShape(
+  private drawTileSprite(
     ctx: CanvasRenderingContext2D,
-    shape: CollisionShape,
-    color: string,
+    sprite: HTMLImageElement,
     screenX: number,
     screenY: number
   ): void {
-    ctx.fillStyle = color
-
-    if (shape.type === 'none') {
-      return
-    }
-
-    if (shape.type === 'rect' && shape.rect) {
-      const x = screenX + shape.rect.x * TILE_SIZE
-      const y = screenY + shape.rect.y * TILE_SIZE
-      const w = shape.rect.w * TILE_SIZE
-      const h = shape.rect.h * TILE_SIZE
-      ctx.fillRect(x, y, w, h)
-    }
-
-    if (shape.type === 'polygon' && shape.vertices) {
-      this.drawPolygon(ctx, shape.vertices, screenX, screenY)
-    }
-  }
-
-  /**
-   * Draw a polygon shape
-   */
-  private drawPolygon(
-    ctx: CanvasRenderingContext2D,
-    vertices: NormalizedPoint[],
-    screenX: number,
-    screenY: number
-  ): void {
-    if (vertices.length < 3) return
-
-    ctx.beginPath()
-    const first = vertices[0]
-    ctx.moveTo(screenX + first.x * TILE_SIZE, screenY + first.y * TILE_SIZE)
-
-    for (let i = 1; i < vertices.length; i++) {
-      const v = vertices[i]
-      ctx.lineTo(screenX + v.x * TILE_SIZE, screenY + v.y * TILE_SIZE)
-    }
-
-    ctx.closePath()
-    ctx.fill()
+    ctx.drawImage(sprite, screenX, screenY, TILE_SIZE, TILE_SIZE)
   }
 
   /**
@@ -154,11 +167,11 @@ export class EditorRenderer {
     ctx.strokeStyle = EDITOR_COLORS.gridLine
     ctx.lineWidth = 1
 
-    // Calculate visible range
-    const startCol = Math.floor(editor.cameraX / TILE_SIZE)
-    const endCol = Math.ceil((editor.cameraX + VIEWPORT_WIDTH) / TILE_SIZE)
-    const startRow = Math.floor(editor.cameraY / TILE_SIZE)
-    const endRow = Math.ceil((editor.cameraY + VIEWPORT_HEIGHT) / TILE_SIZE)
+    // Calculate visible range using shared utility (buffer=0 for grid lines)
+    const { startCol, endCol, startRow, endRow } = calculateVisibleTileRange(
+      editor.cameraX, editor.cameraY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, 
+      editor.gridWidth + 10, editor.gridHeight + 10, 0  // Allow extra for grid lines beyond level bounds
+    )
 
     // Vertical lines
     for (let col = startCol; col <= endCol; col++) {
@@ -231,6 +244,93 @@ export class EditorRenderer {
   }
 
   /**
+   * Draw entity spawns on the level
+   */
+  private drawEntitySpawns(
+    ctx: CanvasRenderingContext2D,
+    editor: EditorStore,
+    assetStore?: AssetStore
+  ): void {
+    for (const entitySpawn of editor.entitySpawns) {
+      this.drawEntityMarker(ctx, editor, entitySpawn, assetStore)
+    }
+  }
+
+  /**
+   * Draw a single entity marker
+   */
+  private drawEntityMarker(
+    ctx: CanvasRenderingContext2D,
+    editor: EditorStore,
+    entitySpawn: EditorEntitySpawn,
+    assetStore?: AssetStore
+  ): void {
+    const { col, row } = entitySpawn.position
+    const definition = getEntityDefinition(entitySpawn.definitionId)
+    if (!definition) return
+
+    const screenX = Math.round(col * TILE_SIZE - editor.cameraX)
+    const screenY = Math.round(row * TILE_SIZE - editor.cameraY)
+    const isSelected = editor.selectedEntityId === entitySpawn.editorId
+
+    // Check for custom sprite
+    const customSprite = assetStore?.getEntitySprite(entitySpawn.definitionId)
+
+    // Draw entity background
+    if (customSprite) {
+      ctx.drawImage(customSprite, screenX, screenY, TILE_SIZE, TILE_SIZE)
+    } else {
+      // Procedural rendering - colored rectangle with simple face
+      ctx.fillStyle = definition.color
+      ctx.fillRect(screenX + 4, screenY + 4, TILE_SIZE - 8, TILE_SIZE - 8)
+      
+      // Draw simple "eyes" to indicate direction
+      ctx.fillStyle = '#ffffff'
+      const eyeY = screenY + TILE_SIZE / 2 - 4
+      const eyeSize = 6
+      const direction = entitySpawn.properties?.startDirection || 'right'
+      
+      if (direction === 'right') {
+        ctx.fillRect(screenX + TILE_SIZE - 18, eyeY, eyeSize, eyeSize)
+        ctx.fillRect(screenX + TILE_SIZE - 28, eyeY, eyeSize, eyeSize)
+      } else {
+        ctx.fillRect(screenX + 12, eyeY, eyeSize, eyeSize)
+        ctx.fillRect(screenX + 22, eyeY, eyeSize, eyeSize)
+      }
+    }
+
+    // Draw selection highlight
+    if (isSelected) {
+      ctx.strokeStyle = EDITOR_COLORS.entitySelected
+      ctx.lineWidth = 3
+      ctx.strokeRect(screenX + 2, screenY + 2, TILE_SIZE - 4, TILE_SIZE - 4)
+      
+      // Draw corner handles
+      const handleSize = 6
+      ctx.fillStyle = EDITOR_COLORS.entitySelected
+      // Top-left
+      ctx.fillRect(screenX - 2, screenY - 2, handleSize, handleSize)
+      // Top-right
+      ctx.fillRect(screenX + TILE_SIZE - 4, screenY - 2, handleSize, handleSize)
+      // Bottom-left
+      ctx.fillRect(screenX - 2, screenY + TILE_SIZE - 4, handleSize, handleSize)
+      // Bottom-right
+      ctx.fillRect(screenX + TILE_SIZE - 4, screenY + TILE_SIZE - 4, handleSize, handleSize)
+    }
+
+    // Draw entity type label
+    ctx.fillStyle = '#ffffff'
+    ctx.font = 'bold 10px Arial'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'bottom'
+    ctx.fillText(
+      definition.type === 'enemy_patrol' ? 'P' : 'S',
+      screenX + TILE_SIZE / 2,
+      screenY + TILE_SIZE - 2
+    )
+  }
+
+  /**
    * Draw hover highlight
    */
   private drawHoverHighlight(
@@ -253,7 +353,8 @@ export class EditorRenderer {
    */
   private drawCursorPreview(
     ctx: CanvasRenderingContext2D,
-    editor: EditorStore
+    editor: EditorStore,
+    assetStore?: AssetStore
   ): void {
     if (!editor.hoveredTile) return
     if (editor.tool === 'eyedropper') return
@@ -261,6 +362,35 @@ export class EditorRenderer {
     const { col, row } = editor.hoveredTile
     const screenX = Math.round(col * TILE_SIZE - editor.cameraX)
     const screenY = Math.round(row * TILE_SIZE - editor.cameraY)
+
+    // Handle entity tool preview
+    if (editor.tool === 'entity') {
+      // Check if there's already an entity at this position
+      const existingEntity = editor.getEntityAt(col, row)
+      if (existingEntity) {
+        // Show hover highlight on existing entity
+        ctx.strokeStyle = EDITOR_COLORS.entityHover
+        ctx.lineWidth = 2
+        ctx.strokeRect(screenX + 2, screenY + 2, TILE_SIZE - 4, TILE_SIZE - 4)
+      } else if (editor.selectedEntityType) {
+        // Show preview of entity to be placed
+        const definition = getEntityDefinition(editor.selectedEntityType)
+        if (definition) {
+          ctx.globalAlpha = 0.5
+          
+          const customSprite = assetStore?.getEntitySprite(definition.id)
+          if (customSprite) {
+            ctx.drawImage(customSprite, screenX, screenY, TILE_SIZE, TILE_SIZE)
+          } else {
+            ctx.fillStyle = definition.color
+            ctx.fillRect(screenX + 4, screenY + 4, TILE_SIZE - 8, TILE_SIZE - 8)
+          }
+          
+          ctx.globalAlpha = 1
+        }
+      }
+      return
+    }
 
     // Determine what tile would be placed
     let previewTileId: TileTypeId
@@ -278,9 +408,18 @@ export class EditorRenderer {
     }
 
     // Draw semi-transparent preview
-    const tileType = getTileType(previewTileId)
     ctx.globalAlpha = 0.5
-    this.drawTileShape(ctx, tileType.collision, tileType.color, screenX, screenY)
+    
+    // Check for custom sprite first
+    const customSprite = assetStore?.getTileSprite(previewTileId)
+    if (customSprite) {
+      this.drawTileSprite(ctx, customSprite, screenX, screenY)
+    } else {
+      // Fall back to procedural rendering
+      const tileType = getTileType(previewTileId)
+      drawTileShape(ctx, tileType.collision, tileType.color, screenX, screenY)
+    }
+    
     ctx.globalAlpha = 1
   }
 
@@ -316,6 +455,7 @@ export class EditorRenderer {
       fill: 'Fill',
       eyedropper: 'Eyedropper',
       spawn: 'Set Spawn',
+      entity: 'Entity',
     }
     ctx.textAlign = 'center'
     ctx.fillText(
@@ -324,13 +464,22 @@ export class EditorRenderer {
       barHeight / 2
     )
 
-    // Selected tile
-    const selectedTile = getTileType(editor.selectedTileType)
-    ctx.fillText(
-      `Tile: ${selectedTile.name}`,
-      VIEWPORT_WIDTH / 2 + 100,
-      barHeight / 2
-    )
+    // Selected tile or entity
+    if (editor.tool === 'entity' && editor.selectedEntityType) {
+      const entityDef = ENTITY_DEFINITIONS[editor.selectedEntityType]
+      ctx.fillText(
+        `Entity: ${entityDef?.displayName || editor.selectedEntityType}`,
+        VIEWPORT_WIDTH / 2 + 100,
+        barHeight / 2
+      )
+    } else {
+      const selectedTile = getTileType(editor.selectedTileType)
+      ctx.fillText(
+        `Tile: ${selectedTile.name}`,
+        VIEWPORT_WIDTH / 2 + 100,
+        barHeight / 2
+      )
+    }
 
     // Cursor position
     ctx.textAlign = 'right'

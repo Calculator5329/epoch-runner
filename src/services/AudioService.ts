@@ -16,7 +16,6 @@ class AudioService {
   // Music
   private musicElement: HTMLAudioElement | null = null
   private musicVolume = 0.5
-  private musicUrl: string | null = null
 
   // Sound effects - pool multiple elements per sound for overlapping playback
   private sfxPool: Map<string, HTMLAudioElement[]> = new Map()
@@ -51,7 +50,6 @@ class AudioService {
       this.musicElement = null
     }
 
-    this.musicUrl = url
     this.musicElement = new Audio(url)
     this.musicElement.loop = true
     this.musicElement.volume = this.isMuted ? 0 : this.musicVolume
@@ -269,8 +267,6 @@ class AudioService {
       this.musicElement.src = ''
       this.musicElement = null
     }
-    this.musicUrl = null
-
     // Clear all SFX pools
     for (const pool of this.sfxPool.values()) {
       for (const audio of pool) {

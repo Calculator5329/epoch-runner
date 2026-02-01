@@ -1,4 +1,4 @@
-import { HitboxDefinition } from '../stores/AssetStore'
+import type { HitboxDefinition } from '../stores/AssetStore'
 
 /**
  * Point interface for hitbox calculations

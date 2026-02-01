@@ -2,21 +2,68 @@ import { useRef, useCallback, useState } from 'react'
 import { observer } from 'mobx-react-lite'
 import { useAssetStore } from '../../stores/RootStore'
 import { TileTypeId, getTileType } from '../../core/types/shapes'
+import { ENTITY_DEFINITIONS, type EntityDefinition } from '../../core/types/entities'
 import { audioService } from '../../services/AudioService'
 
 /**
- * Common tile types that users are most likely to customize
+ * Tile groups for organized customization
  */
-const CUSTOMIZABLE_TILES: TileTypeId[] = [
-  TileTypeId.SOLID_FULL,
-  TileTypeId.PLATFORM_FULL,
-  TileTypeId.HAZARD_FULL,
-  TileTypeId.HAZARD_SPIKE_UP,
-  TileTypeId.COIN,
-  TileTypeId.POWERUP_TRIPLE_JUMP,
-  TileTypeId.GOAL,
-  TileTypeId.CHECKPOINT,
+interface TileGroup {
+  name: string
+  tiles: TileTypeId[]
+}
+
+/**
+ * Organized tile groups for sprite customization
+ */
+const TILE_GROUPS: TileGroup[] = [
+  {
+    name: 'Base Tiles',
+    tiles: [
+      TileTypeId.SOLID_FULL,
+      TileTypeId.PLATFORM_FULL,
+      TileTypeId.HAZARD_FULL,
+      TileTypeId.HAZARD_SPIKE_UP,
+      TileTypeId.COIN,
+    ],
+  },
+  {
+    name: 'Power-ups',
+    tiles: [
+      TileTypeId.POWERUP_TRIPLE_JUMP,
+      TileTypeId.POWERUP_SPEED,
+      TileTypeId.POWERUP_SUPER_JUMP,
+      TileTypeId.POWERUP_INVINCIBILITY,
+    ],
+  },
+  {
+    name: 'Triggers',
+    tiles: [
+      TileTypeId.GOAL,
+      TileTypeId.CHECKPOINT,
+    ],
+  },
+  {
+    name: 'Materials',
+    tiles: [
+      TileTypeId.SOLID_BRICK,
+      TileTypeId.SOLID_STONE,
+      TileTypeId.SOLID_METAL,
+      TileTypeId.SOLID_WOOD,
+      TileTypeId.SOLID_ICE,
+      TileTypeId.SOLID_GRASS,
+      TileTypeId.SOLID_SAND,
+      TileTypeId.SOLID_DIRT,
+      TileTypeId.SOLID_CRYSTAL,
+      TileTypeId.SOLID_LAVA_ROCK,
+    ],
+  },
 ]
+
+/**
+ * Entity definitions for sprite customization
+ */
+const ENTITY_LIST: EntityDefinition[] = Object.values(ENTITY_DEFINITIONS)
 
 /**
  * SFX names that can be customized
@@ -38,6 +85,7 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
   
   // File input refs
   const tileInputRefs = useRef<Map<TileTypeId, HTMLInputElement>>(new Map())
+  const entityInputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
   const playerIdleRef = useRef<HTMLInputElement>(null)
   const playerRunRef = useRef<HTMLInputElement>(null)
   const playerRun1Ref = useRef<HTMLInputElement>(null)
@@ -69,6 +117,27 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
       assetStore.addTileSprite(tileTypeId, image)
     } catch (error) {
       console.error('Failed to load tile sprite:', error)
+      alert('Failed to load image. Please use PNG or JPG format.')
+    }
+    
+    e.target.value = ''
+  }, [assetStore])
+
+  /**
+   * Handle entity sprite upload
+   */
+  const handleEntitySpriteUpload = useCallback(async (
+    definitionId: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      const image = await loadImageFromFile(file)
+      assetStore.addEntitySprite(definitionId, image)
+    } catch (error) {
+      console.error('Failed to load entity sprite:', error)
       alert('Failed to load image. Please use PNG or JPG format.')
     }
     
@@ -159,7 +228,14 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
    * Clear a tile sprite
    */
   const clearTileSprite = useCallback((tileTypeId: TileTypeId) => {
-    assetStore.tileSprites.delete(tileTypeId)
+    assetStore.removeTileSprite(tileTypeId)
+  }, [assetStore])
+
+  /**
+   * Clear an entity sprite
+   */
+  const clearEntitySprite = useCallback((definitionId: string) => {
+    assetStore.removeEntitySprite(definitionId)
   }, [assetStore])
 
   /**
@@ -226,46 +302,112 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
         {expandedSection === 'tiles' && (
           <div className="section-content">
             <p className="section-hint">Upload PNG images (32x32 or 64x64 recommended)</p>
-            <div className="asset-grid">
-              {CUSTOMIZABLE_TILES.map((tileTypeId) => {
-                const tileType = getTileType(tileTypeId)
-                const hasSprite = assetStore.hasTileSprite(tileTypeId)
-                const sprite = assetStore.getTileSprite(tileTypeId)
+            {TILE_GROUPS.map((group) => (
+              <div key={group.name} className="tile-group">
+                <h4 className="tile-group-header">{group.name}</h4>
+                <div className="asset-grid">
+                  {group.tiles.map((tileTypeId) => {
+                    const tileType = getTileType(tileTypeId)
+                    const hasSprite = assetStore.hasTileSprite(tileTypeId)
+                    const sprite = assetStore.getTileSprite(tileTypeId)
+                    
+                    return (
+                      <div key={tileTypeId} className="asset-item">
+                        <div
+                          className={`asset-preview ${hasSprite ? 'has-asset' : ''}`}
+                          style={{
+                            backgroundColor: hasSprite ? 'transparent' : tileType.color,
+                          }}
+                          onClick={() => {
+                            const ref = tileInputRefs.current.get(tileTypeId)
+                            ref?.click()
+                          }}
+                        >
+                          {sprite && (
+                            <img src={sprite.src} alt={tileType.name} className="sprite-preview" />
+                          )}
+                          {!hasSprite && <span className="upload-icon">+</span>}
+                        </div>
+                        <span className="asset-label">{tileType.name}</span>
+                        {hasSprite && (
+                          <button
+                            className="asset-clear"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              clearTileSprite(tileTypeId)
+                            }}
+                          >
+                            ✕
+                          </button>
+                        )}
+                        <input
+                          ref={(el) => { if (el) tileInputRefs.current.set(tileTypeId, el) }}
+                          type="file"
+                          accept="image/png,image/jpeg"
+                          onChange={(e) => handleTileSpriteUpload(tileTypeId, e)}
+                          style={{ display: 'none' }}
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Entity Sprites Section */}
+      <div className="asset-section">
+        <button
+          className="section-header"
+          onClick={() => toggleSection('entities')}
+        >
+          <span>Entity Sprites</span>
+          <span className="section-toggle">{expandedSection === 'entities' ? '▼' : '▶'}</span>
+        </button>
+        {expandedSection === 'entities' && (
+          <div className="section-content">
+            <p className="section-hint">Upload PNG images for enemies (48x48 recommended)</p>
+            <div className="asset-grid entity-asset-grid">
+              {ENTITY_LIST.map((entity) => {
+                const hasSprite = assetStore.hasEntitySprite(entity.id)
+                const sprite = assetStore.getEntitySprite(entity.id)
                 
                 return (
-                  <div key={tileTypeId} className="asset-item">
+                  <div key={entity.id} className="asset-item entity-asset-item">
                     <div
-                      className={`asset-preview ${hasSprite ? 'has-asset' : ''}`}
+                      className={`asset-preview entity-preview-box ${hasSprite ? 'has-asset' : ''}`}
                       style={{
-                        backgroundColor: hasSprite ? 'transparent' : tileType.color,
+                        backgroundColor: hasSprite ? 'transparent' : entity.color,
                       }}
                       onClick={() => {
-                        const ref = tileInputRefs.current.get(tileTypeId)
+                        const ref = entityInputRefs.current.get(entity.id)
                         ref?.click()
                       }}
                     >
                       {sprite && (
-                        <img src={sprite.src} alt={tileType.name} className="sprite-preview" />
+                        <img src={sprite.src} alt={entity.displayName} className="sprite-preview" />
                       )}
                       {!hasSprite && <span className="upload-icon">+</span>}
                     </div>
-                    <span className="asset-label">{tileType.name}</span>
+                    <span className="asset-label">{entity.displayName}</span>
                     {hasSprite && (
                       <button
                         className="asset-clear"
                         onClick={(e) => {
                           e.stopPropagation()
-                          clearTileSprite(tileTypeId)
+                          clearEntitySprite(entity.id)
                         }}
                       >
                         ✕
                       </button>
                     )}
                     <input
-                      ref={(el) => el && tileInputRefs.current.set(tileTypeId, el)}
+                      ref={(el) => { if (el) entityInputRefs.current.set(entity.id, el) }}
                       type="file"
                       accept="image/png,image/jpeg"
-                      onChange={(e) => handleTileSpriteUpload(tileTypeId, e)}
+                      onChange={(e) => handleEntitySpriteUpload(entity.id, e)}
                       style={{ display: 'none' }}
                     />
                   </div>
@@ -543,7 +685,7 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
                     )}
                   </div>
                   <input
-                    ref={(el) => el && sfxInputRefs.current.set(sfxName, el)}
+                    ref={(el) => { if (el) sfxInputRefs.current.set(sfxName, el) }}
                     type="file"
                     accept="audio/mp3,audio/wav,audio/ogg"
                     onChange={(e) => handleSfxUpload(sfxName, e)}
@@ -562,6 +704,7 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
           <span className="summary-label">Loaded:</span>
           <span className="summary-count">
             {assetStore.tileSprites.size} tiles,{' '}
+            {assetStore.entitySprites.size} entities,{' '}
             {Object.keys(assetStore.playerSprites).length} player,{' '}
             {assetStore.background ? '1 bg' : '0 bg'},{' '}
             {assetStore.sfx.size + (assetStore.music ? 1 : 0)} audio

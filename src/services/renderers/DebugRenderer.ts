@@ -4,6 +4,7 @@ import type { PlayerStore } from '../../stores/PlayerStore'
 import type { LevelStore } from '../../stores/LevelStore'
 import type { GameStore } from '../../stores/GameStore'
 import type { CameraStore } from '../../stores/CameraStore'
+import { calculateVisibleTileRange } from './DrawingUtils'
 
 /**
  * DebugRenderer - Renders debug overlays for development
@@ -49,11 +50,10 @@ export class DebugRenderer {
     const cameraX = Math.floor(camera.x)
     const cameraY = Math.floor(camera.y)
     
-    // Calculate visible tile range
-    const startCol = Math.max(0, Math.floor(cameraX / TILE_SIZE))
-    const endCol = Math.min(level.width, Math.ceil((cameraX + VIEWPORT_WIDTH) / TILE_SIZE))
-    const startRow = Math.max(0, Math.floor(cameraY / TILE_SIZE))
-    const endRow = Math.min(level.height, Math.ceil((cameraY + VIEWPORT_HEIGHT) / TILE_SIZE))
+    // Calculate visible tile range using shared utility
+    const { startCol, endCol, startRow, endRow } = calculateVisibleTileRange(
+      cameraX, cameraY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, level.width, level.height, 0
+    )
     
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'
     ctx.lineWidth = 1
@@ -87,11 +87,10 @@ export class DebugRenderer {
     const cameraX = Math.floor(camera.x)
     const cameraY = Math.floor(camera.y)
     
-    // Calculate visible tile range
-    const startCol = Math.max(0, Math.floor(cameraX / TILE_SIZE))
-    const endCol = Math.min(level.width, Math.ceil((cameraX + VIEWPORT_WIDTH) / TILE_SIZE))
-    const startRow = Math.max(0, Math.floor(cameraY / TILE_SIZE))
-    const endRow = Math.min(level.height, Math.ceil((cameraY + VIEWPORT_HEIGHT) / TILE_SIZE))
+    // Calculate visible tile range using shared utility
+    const { startCol, endCol, startRow, endRow } = calculateVisibleTileRange(
+      cameraX, cameraY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, level.width, level.height, 0
+    )
     
     ctx.lineWidth = 2
     

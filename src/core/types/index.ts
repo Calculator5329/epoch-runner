@@ -1,12 +1,13 @@
 // Legacy collision types (kept for backward compatibility)
 // New code should use TileTypeId from shapes.ts
-export enum CollisionType {
-  EMPTY = 0,
-  SOLID = 1,
-  GOAL = 2,
-  PLATFORM = 3,
-  HAZARD = 4,
-}
+export const CollisionType = {
+  EMPTY: 0,
+  SOLID: 1,
+  GOAL: 2,
+  PLATFORM: 3,
+  HAZARD: 4,
+} as const
+export type CollisionType = typeof CollisionType[keyof typeof CollisionType]
 
 // Re-export shape system
 export * from './shapes'

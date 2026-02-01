@@ -45,6 +45,7 @@ export interface PackManifest {
 
   sprites: {
     tiles: Record<string, string>  // TileTypeId name -> relative path in zip
+    entities?: Record<string, string>  // Entity definition ID -> relative path in zip
     player?: {
       idle?: string
       run?: string       // Legacy single run sprite
@@ -70,6 +71,7 @@ export interface PackManifest {
 export interface LoadedAssets {
   // Sprite images (HTMLImageElement for efficient canvas drawing)
   tileSprites: Map<TileTypeId, HTMLImageElement>
+  entitySprites: Map<string, HTMLImageElement>  // Entity definition ID -> sprite
   playerSprites: {
     idle?: HTMLImageElement
     run?: HTMLImageElement       // Legacy single run sprite
@@ -125,6 +127,12 @@ export class AssetStore {
   /** UI element sprites (hearts, coin icon, etc.) */
   uiSprites: Map<string, HTMLImageElement> = new Map()
 
+  /** Entity sprites by definition ID (enemies) */
+  entitySprites: Map<string, HTMLImageElement> = new Map()
+
+  /** Trigger/special tile sprites (checkpoint, goal, power-ups) */
+  triggerSprites: Map<TileTypeId, HTMLImageElement> = new Map()
+
   /** Background music blob URL */
   music?: string
 
@@ -153,6 +161,8 @@ export class AssetStore {
       Object.keys(this.playerSprites).length > 0 ||
       !!this.background ||
       this.uiSprites.size > 0 ||
+      this.entitySprites.size > 0 ||
+      this.triggerSprites.size > 0 ||
       !!this.music ||
       this.sfx.size > 0
   }
@@ -185,6 +195,34 @@ export class AssetStore {
     this.hitboxes.set(key, hitbox)
   }
 
+  /**
+   * Get entity sprite by definition ID
+   */
+  getEntitySprite(definitionId: string): HTMLImageElement | undefined {
+    return this.entitySprites.get(definitionId)
+  }
+
+  /**
+   * Check if entity has custom sprite
+   */
+  hasEntitySprite(definitionId: string): boolean {
+    return this.entitySprites.has(definitionId)
+  }
+
+  /**
+   * Get trigger/special tile sprite (checkpoint, goal, power-ups)
+   */
+  getTriggerSprite(tileTypeId: TileTypeId): HTMLImageElement | undefined {
+    return this.triggerSprites.get(tileTypeId)
+  }
+
+  /**
+   * Check if trigger tile has custom sprite
+   */
+  hasTriggerSprite(tileTypeId: TileTypeId): boolean {
+    return this.triggerSprites.has(tileTypeId)
+  }
+
   // ============================================
   // Actions
   // ============================================
@@ -204,6 +242,13 @@ export class AssetStore {
    */
   addTileSprite(tileTypeId: TileTypeId, image: HTMLImageElement): void {
     this.tileSprites.set(tileTypeId, image)
+  }
+
+  /**
+   * Remove a tile sprite
+   */
+  removeTileSprite(tileTypeId: TileTypeId): void {
+    this.tileSprites.delete(tileTypeId)
   }
 
   /**
@@ -231,6 +276,34 @@ export class AssetStore {
    */
   addUISprite(name: string, image: HTMLImageElement): void {
     this.uiSprites.set(name, image)
+  }
+
+  /**
+   * Add an entity sprite
+   */
+  addEntitySprite(definitionId: string, image: HTMLImageElement): void {
+    this.entitySprites.set(definitionId, image)
+  }
+
+  /**
+   * Remove an entity sprite
+   */
+  removeEntitySprite(definitionId: string): void {
+    this.entitySprites.delete(definitionId)
+  }
+
+  /**
+   * Add a trigger sprite (checkpoint, goal, power-ups)
+   */
+  addTriggerSprite(tileTypeId: TileTypeId, image: HTMLImageElement): void {
+    this.triggerSprites.set(tileTypeId, image)
+  }
+
+  /**
+   * Remove a trigger sprite
+   */
+  removeTriggerSprite(tileTypeId: TileTypeId): void {
+    this.triggerSprites.delete(tileTypeId)
   }
 
   /**
@@ -288,6 +361,8 @@ export class AssetStore {
       this.playerSprites = {}
       this.background = undefined
       this.uiSprites.clear()
+      this.entitySprites.clear()
+      this.triggerSprites.clear()
       this.music = undefined
       this.sfx.clear()
       this.hitboxes.clear()
@@ -310,6 +385,11 @@ export class AssetStore {
       // Copy tile sprites
       for (const [key, value] of assets.tileSprites) {
         this.tileSprites.set(key, value)
+      }
+
+      // Copy entity sprites
+      for (const [key, value] of assets.entitySprites) {
+        this.entitySprites.set(key, value)
       }
 
       // Copy player sprites

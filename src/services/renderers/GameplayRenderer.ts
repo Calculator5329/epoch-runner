@@ -10,7 +10,6 @@ import {
 } from '../../core/constants'
 import { TILE_COLORS } from '../../core/types/shapes'
 import { getTileType, TileTypeId } from '../../core/types/shapes'
-import type { CollisionShape, NormalizedPoint } from '../../core/types/shapes'
 import type { PlayerStore } from '../../stores/PlayerStore'
 import type { LevelStore } from '../../stores/LevelStore'
 import type { GameStore } from '../../stores/GameStore'
@@ -19,6 +18,7 @@ import type { AssetStore } from '../../stores/AssetStore'
 import type { EntityStore } from '../../stores/EntityStore'
 import type { Entity } from '../../core/types/entities'
 import { getEntityDefinition } from '../../core/types/entities'
+import { calculateVisibleTileRange, drawTileShape } from './DrawingUtils'
 
 /**
  * GameplayRenderer - Renders core gameplay elements
@@ -53,7 +53,7 @@ export class GameplayRenderer {
 
     // Draw entities (enemies, etc.)
     if (entityStore) {
-      this.drawEntities(ctx, entityStore, cameraStore)
+      this.drawEntities(ctx, entityStore, cameraStore, assetStore)
     }
 
     // Draw player (with camera offset)
@@ -102,10 +102,9 @@ export class GameplayRenderer {
     assetStore?: AssetStore
   ): void {
     // Calculate visible tile range (with 1-tile buffer for partial tiles)
-    const startCol = Math.max(0, Math.floor(camera.x / TILE_SIZE) - 1)
-    const endCol = Math.min(level.width, Math.ceil((camera.x + VIEWPORT_WIDTH) / TILE_SIZE) + 1)
-    const startRow = Math.max(0, Math.floor(camera.y / TILE_SIZE) - 1)
-    const endRow = Math.min(level.height, Math.ceil((camera.y + VIEWPORT_HEIGHT) / TILE_SIZE) + 1)
+    const { startCol, endCol, startRow, endRow } = calculateVisibleTileRange(
+      camera.x, camera.y, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, level.width, level.height
+    )
 
     for (let row = startRow; row < endRow; row++) {
       for (let col = startCol; col < endCol; col++) {
@@ -129,12 +128,12 @@ export class GameplayRenderer {
         // Draw tile if not empty
         if (tileId !== TileTypeId.EMPTY) {
           // Check for custom sprite first
-          const sprite = assetStore?.getTileSprite(tileId)
+          const sprite = assetStore?.getTileSprite(tileId as TileTypeId)
           if (sprite) {
             this.drawTileSprite(ctx, sprite, screenX, screenY)
           } else {
-            // Fall back to procedural rendering
-            this.drawTileShape(ctx, tileType.collision, tileType.color, screenX, screenY)
+            // Fall back to procedural rendering using shared utility
+            drawTileShape(ctx, tileType.collision, tileType.color, screenX, screenY)
           }
         }
       }
@@ -154,59 +153,6 @@ export class GameplayRenderer {
     ctx.drawImage(sprite, screenX, screenY, TILE_SIZE, TILE_SIZE)
   }
 
-  /**
-   * Draw a tile's collision shape
-   */
-  private drawTileShape(
-    ctx: CanvasRenderingContext2D,
-    shape: CollisionShape,
-    color: string,
-    screenX: number,
-    screenY: number
-  ): void {
-    ctx.fillStyle = color
-
-    if (shape.type === 'none') {
-      return
-    }
-
-    if (shape.type === 'rect' && shape.rect) {
-      const x = screenX + shape.rect.x * TILE_SIZE
-      const y = screenY + shape.rect.y * TILE_SIZE
-      const w = shape.rect.w * TILE_SIZE
-      const h = shape.rect.h * TILE_SIZE
-      ctx.fillRect(x, y, w, h)
-    }
-
-    if (shape.type === 'polygon' && shape.vertices) {
-      this.drawPolygon(ctx, shape.vertices, screenX, screenY)
-    }
-  }
-
-  /**
-   * Draw a polygon shape
-   */
-  private drawPolygon(
-    ctx: CanvasRenderingContext2D,
-    vertices: NormalizedPoint[],
-    screenX: number,
-    screenY: number
-  ): void {
-    if (vertices.length < 3) return
-
-    ctx.beginPath()
-    const first = vertices[0]
-    ctx.moveTo(screenX + first.x * TILE_SIZE, screenY + first.y * TILE_SIZE)
-
-    for (let i = 1; i < vertices.length; i++) {
-      const v = vertices[i]
-      ctx.lineTo(screenX + v.x * TILE_SIZE, screenY + v.y * TILE_SIZE)
-    }
-
-    ctx.closePath()
-    ctx.fill()
-  }
-
   // ============================================
   // Entity Rendering
   // ============================================
@@ -217,12 +163,13 @@ export class GameplayRenderer {
   private drawEntities(
     ctx: CanvasRenderingContext2D,
     entityStore: EntityStore,
-    camera: CameraStore
+    camera: CameraStore,
+    assetStore?: AssetStore
   ): void {
     const entities = entityStore.getActive()
     
     for (const entity of entities) {
-      this.drawEntity(ctx, entity, camera)
+      this.drawEntity(ctx, entity, camera, assetStore)
     }
   }
 
@@ -232,7 +179,8 @@ export class GameplayRenderer {
   private drawEntity(
     ctx: CanvasRenderingContext2D,
     entity: Entity,
-    camera: CameraStore
+    camera: CameraStore,
+    assetStore?: AssetStore
   ): void {
     // Convert world position to screen position
     const screenX = Math.round(entity.x - camera.x)
@@ -248,16 +196,33 @@ export class GameplayRenderer {
       return
     }
 
-    // Get entity definition for color
-    const definition = getEntityDefinition(entity.definitionId)
-    const color = definition?.color || '#e53e3e'
+    // Check for custom sprite
+    const customSprite = assetStore?.getEntitySprite(entity.definitionId)
+    
+    if (customSprite) {
+      // Draw custom sprite with horizontal flip if facing left
+      ctx.save()
+      if (entity.direction === 'left') {
+        ctx.translate(screenX + entity.width, screenY)
+        ctx.scale(-1, 1)
+        ctx.drawImage(customSprite, 0, 0, entity.width, entity.height)
+      } else {
+        ctx.drawImage(customSprite, screenX, screenY, entity.width, entity.height)
+      }
+      ctx.restore()
+    } else {
+      // Fall back to procedural rendering
+      // Get entity definition for color
+      const definition = getEntityDefinition(entity.definitionId)
+      const color = definition?.color || '#e53e3e'
 
-    // Draw entity as colored rectangle (MVP rendering)
-    ctx.fillStyle = color
-    ctx.fillRect(screenX, screenY, entity.width, entity.height)
+      // Draw entity as colored rectangle (MVP rendering)
+      ctx.fillStyle = color
+      ctx.fillRect(screenX, screenY, entity.width, entity.height)
 
-    // Draw eyes to indicate direction
-    this.drawEntityFace(ctx, entity, screenX, screenY)
+      // Draw eyes to indicate direction
+      this.drawEntityFace(ctx, entity, screenX, screenY)
+    }
   }
 
   /**

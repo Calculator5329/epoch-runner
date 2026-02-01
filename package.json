@@ -12,7 +12,9 @@
     "typecheck:watch": "tsc --noEmit --watch",
     "new:level": "node scripts/new-level.js",
     "validate:levels": "node scripts/validate-levels.js",
-    "viz:level": "npx tsx scripts/visualize-level.js"
+    "viz:level": "npx tsx scripts/visualize-level.js",
+    "deploy": "npm run build && firebase deploy --only hosting",
+    "deploy:preview": "npm run build && firebase hosting:channel:deploy preview"
   },
   "dependencies": {
     "firebase": "^12.8.0",
@@ -32,6 +34,7 @@
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
+    "firebase-tools": "^15.5.1",
     "globals": "^16.5.0",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3",

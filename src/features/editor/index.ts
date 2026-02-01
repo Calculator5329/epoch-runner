@@ -6,4 +6,5 @@
 
 export { EditorCanvas } from './EditorCanvas'
 export { TilePalette } from './TilePalette'
+export { EntityPalette } from './EntityPalette'
 export { AssetUploadPanel } from './AssetUploadPanel'

@@ -52,6 +52,17 @@ export interface LevelDefinition {
   
   // Optional: Theme ID for visual styling (future)
   themeId?: string
+  
+  // Optional: Background image URL (relative to public/)
+  backgroundUrl?: string
+  
+  // Optional: Player sprite URLs (relative to public/)
+  playerSprites?: {
+    idle?: string
+    run1?: string
+    run2?: string
+    jump?: string
+  }
 }
 
 /**
@@ -83,6 +94,13 @@ export interface LevelJSON {
   startingLives?: number
   parTime?: number
   themeId?: string
+  backgroundUrl?: string
+  playerSprites?: {
+    idle?: string
+    run1?: string
+    run2?: string
+    jump?: string
+  }
 }
 
 /**
@@ -106,6 +124,8 @@ export function levelToJSON(level: LevelDefinition): LevelJSON {
     startingLives: level.startingLives,
     parTime: level.parTime,
     themeId: level.themeId,
+    backgroundUrl: level.backgroundUrl,
+    playerSprites: level.playerSprites,
   }
 }
 
@@ -130,6 +150,8 @@ export function jsonToLevel(json: LevelJSON): LevelDefinition {
     startingLives: json.startingLives,
     parTime: json.parTime,
     themeId: json.themeId,
+    backgroundUrl: json.backgroundUrl,
+    playerSprites: json.playerSprites,
   }
 }
 
@@ -164,7 +186,7 @@ export function validateLevel(level: LevelDefinition): string[] {
   
   // Check player spawn is not inside a solid tile
   const spawnTile = level.collision[level.playerSpawn.row]?.[level.playerSpawn.col]
-  const solidTileIds = [
+  const solidTileIds: number[] = [
     CollisionType.SOLID,
     TileTypeId.SOLID_FULL,
     TileTypeId.SOLID_HALF_LEFT,
@@ -178,7 +200,7 @@ export function validateLevel(level: LevelDefinition): string[] {
   
   // Check there's at least one goal
   let hasGoal = false
-  const goalTileIds = [CollisionType.GOAL, TileTypeId.GOAL]
+  const goalTileIds: number[] = [CollisionType.GOAL, TileTypeId.GOAL]
   for (const row of level.collision) {
     for (const tile of row) {
       if (goalTileIds.includes(tile)) {

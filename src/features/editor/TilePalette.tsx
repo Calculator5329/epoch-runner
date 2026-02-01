@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { observer } from 'mobx-react-lite'
-import { useEditorStore } from '../../stores/RootStore'
+import { useEditorStore, useAssetStore } from '../../stores/RootStore'
 import { TileTypeId, TILE_TYPES, getTileType } from '../../core/types/shapes'
 import type { EditorTool } from '../../stores/EditorStore'
 
@@ -33,6 +33,21 @@ const TILE_CATEGORIES: TileCategory[] = [
     ],
   },
   {
+    name: 'Materials',
+    tiles: [
+      TileTypeId.SOLID_BRICK,
+      TileTypeId.SOLID_STONE,
+      TileTypeId.SOLID_METAL,
+      TileTypeId.SOLID_WOOD,
+      TileTypeId.SOLID_ICE,
+      TileTypeId.SOLID_GRASS,
+      TileTypeId.SOLID_SAND,
+      TileTypeId.SOLID_DIRT,
+      TileTypeId.SOLID_CRYSTAL,
+      TileTypeId.SOLID_LAVA_ROCK,
+    ],
+  },
+  {
     name: 'Platform',
     tiles: [
       TileTypeId.PLATFORM_FULL,
@@ -55,6 +70,9 @@ const TILE_CATEGORIES: TileCategory[] = [
     tiles: [
       TileTypeId.COIN,
       TileTypeId.POWERUP_TRIPLE_JUMP,
+      TileTypeId.POWERUP_SPEED,
+      TileTypeId.POWERUP_SUPER_JUMP,
+      TileTypeId.POWERUP_INVINCIBILITY,
     ],
   },
   {
@@ -81,6 +99,7 @@ const TOOLS: ToolDef[] = [
   { id: 'fill', name: 'Fill', shortcut: 'F' },
   { id: 'eyedropper', name: 'Pick', shortcut: 'I' },
   { id: 'spawn', name: 'Spawn', shortcut: 'S' },
+  { id: 'entity', name: 'Entity', shortcut: 'N' },
 ]
 
 /**
@@ -90,6 +109,7 @@ const TOOLS: ToolDef[] = [
  */
 export const TilePalette = observer(function TilePalette() {
   const editorStore = useEditorStore()
+  const assetStore = useAssetStore()
   
   // Local state for level size inputs
   const [inputWidth, setInputWidth] = useState(editorStore.gridWidth.toString())
@@ -240,6 +260,7 @@ export const TilePalette = observer(function TilePalette() {
             {category.tiles.map((tileId) => {
               const tileType = getTileType(tileId)
               const isSelected = editorStore.selectedTileType === tileId
+              const customSprite = assetStore.getTileSprite(tileId)
               
               return (
                 <button
@@ -253,7 +274,10 @@ export const TilePalette = observer(function TilePalette() {
                   }}
                   title={tileType.name}
                   style={{
-                    backgroundColor: tileType.color,
+                    backgroundColor: customSprite ? 'transparent' : tileType.color,
+                    backgroundImage: customSprite ? `url(${customSprite.src})` : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
                   }}
                 >
                   <span className="tile-preview" />
@@ -289,12 +313,20 @@ export const TilePalette = observer(function TilePalette() {
       <div className="palette-section selection-info">
         <h3>Selected</h3>
         <div className="selected-tile-info">
-          <div
-            className="selected-tile-preview"
-            style={{
-              backgroundColor: getTileType(editorStore.selectedTileType).color,
-            }}
-          />
+          {(() => {
+            const selectedSprite = assetStore.getTileSprite(editorStore.selectedTileType)
+            return (
+              <div
+                className="selected-tile-preview"
+                style={{
+                  backgroundColor: selectedSprite ? 'transparent' : getTileType(editorStore.selectedTileType).color,
+                  backgroundImage: selectedSprite ? `url(${selectedSprite.src})` : 'none',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              />
+            )
+          })()}
           <span className="selected-tile-name">
             {getTileType(editorStore.selectedTileType).name}
           </span>

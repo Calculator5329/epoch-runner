@@ -14,6 +14,7 @@
  * - Level 6: ET Custom 1 (custom user level) - double jump
  * - Level 7: Introduces enemies (patrol enemies, stomp mechanic) - double jump
  * - Level 8: Power Surge (speed boost, super jump, invincibility) - double jump
+ * - Level 9: ET Custom 2 (custom user level, vertical platforming) - double jump
  */
 
 import type { LevelDefinition } from './types'
@@ -29,6 +30,7 @@ import { level_5_gauntlet } from './level_5_gauntlet'
 import { level_6_et_custom_1 } from './level_6_et_custom_1'
 import { level_7_enemies } from './level_7_enemies'
 import { level_8_powerups } from './level_8_powerups'
+import { level_9_et_custom_2 } from './level_9_et_custom_2'
 
 // Re-export types and helpers for convenience
 export * from './types'
@@ -45,6 +47,7 @@ export { level_5_gauntlet }
 export { level_6_et_custom_1 }
 export { level_7_enemies }
 export { level_8_powerups }
+export { level_9_et_custom_2 }
 
 /**
  * Registry of all available levels
@@ -64,6 +67,7 @@ export const levelRegistry: Record<string, LevelDefinition> = {
   [level_6_et_custom_1.id]: level_6_et_custom_1,
   [level_7_enemies.id]: level_7_enemies,
   [level_8_powerups.id]: level_8_powerups,
+  [level_9_et_custom_2.id]: level_9_et_custom_2,
 }
 
 /**
@@ -106,6 +110,7 @@ export const CAMPAIGN_LEVELS: string[] = [
   'level_6_et_custom_1',
   'level_7_enemies',
   'level_8_powerups',
+  'level_9_et_custom_2',
 ]
 
 /**

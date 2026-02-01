@@ -4,6 +4,7 @@ import type { CameraStore } from '../stores/CameraStore'
 import type { PlayerStore } from '../stores/PlayerStore'
 import type { GameStore } from '../stores/GameStore'
 import type { EntityStore } from '../stores/EntityStore'
+import type { AssetStore } from '../stores/AssetStore'
 import { 
   getLevel, 
   getLevelIds, 
@@ -30,7 +31,8 @@ class LevelLoaderService {
     cameraStore: CameraStore,
     playerStore: PlayerStore,
     gameStore: GameStore,
-    entityStore?: EntityStore
+    entityStore?: EntityStore,
+    assetStore?: AssetStore
   ): boolean {
     const level = getLevel(levelId)
     if (!level) {
@@ -38,7 +40,7 @@ class LevelLoaderService {
       return false
     }
 
-    return this.loadLevel(level, levelStore, cameraStore, playerStore, gameStore, entityStore)
+    return this.loadLevel(level, levelStore, cameraStore, playerStore, gameStore, entityStore, assetStore)
   }
 
   /**
@@ -49,9 +51,10 @@ class LevelLoaderService {
     cameraStore: CameraStore,
     playerStore: PlayerStore,
     gameStore: GameStore,
-    entityStore?: EntityStore
+    entityStore?: EntityStore,
+    assetStore?: AssetStore
   ): boolean {
-    return this.loadFromRegistry(DEFAULT_LEVEL_ID, levelStore, cameraStore, playerStore, gameStore, entityStore)
+    return this.loadFromRegistry(DEFAULT_LEVEL_ID, levelStore, cameraStore, playerStore, gameStore, entityStore, assetStore)
   }
 
   /**
@@ -63,7 +66,8 @@ class LevelLoaderService {
     cameraStore: CameraStore,
     playerStore: PlayerStore,
     gameStore: GameStore,
-    entityStore?: EntityStore
+    entityStore?: EntityStore,
+    assetStore?: AssetStore
   ): { success: boolean; errors: string[] } {
     try {
       const level = jsonToLevel(json)
@@ -73,7 +77,7 @@ class LevelLoaderService {
         return { success: false, errors }
       }
 
-      const success = this.loadLevel(level, levelStore, cameraStore, playerStore, gameStore, entityStore)
+      const success = this.loadLevel(level, levelStore, cameraStore, playerStore, gameStore, entityStore, assetStore)
       return { success, errors: [] }
     } catch (error) {
       return { 
@@ -85,6 +89,9 @@ class LevelLoaderService {
 
   /**
    * Load a LevelDefinition into the game state
+   * 
+   * @param preserveCustomAssets - If true, don't clear custom assets (backgrounds, sprites)
+   *   that were uploaded by the user. Used when testing editor levels.
    */
   loadLevel(
     level: LevelDefinition,
@@ -92,7 +99,9 @@ class LevelLoaderService {
     cameraStore: CameraStore,
     playerStore: PlayerStore,
     gameStore: GameStore,
-    entityStore?: EntityStore
+    entityStore?: EntityStore,
+    assetStore?: AssetStore,
+    preserveCustomAssets: boolean = false
   ): boolean {
     // Validate the level
     const errors = validateLevel(level)
@@ -124,6 +133,27 @@ class LevelLoaderService {
       }
     }
 
+    // Handle background image
+    if (assetStore && level.backgroundUrl) {
+      // Level specifies a background URL - load it
+      this.loadBackgroundImage(level.backgroundUrl, assetStore)
+    } else if (assetStore && !level.backgroundUrl && !preserveCustomAssets) {
+      // No background URL and not preserving custom assets - clear background
+      // This happens when loading campaign levels that don't have backgrounds
+      assetStore.setBackground(undefined as unknown as HTMLImageElement)
+    }
+    // When preserveCustomAssets is true and no backgroundUrl, keep existing background
+    // (e.g., user-uploaded background when testing editor level)
+
+    // Handle player sprites
+    if (assetStore && level.playerSprites) {
+      // Level specifies player sprites - load them
+      this.loadPlayerSprites(level.playerSprites, assetStore)
+    } else if (assetStore && !level.playerSprites && !preserveCustomAssets) {
+      // No player sprites and not preserving custom assets - clear them
+      assetStore.setPlayerSprites({})
+    }
+
     // Center camera on player
     const playerCenter = playerStore.center
     cameraStore.setPosition(
@@ -133,6 +163,99 @@ class LevelLoaderService {
 
     console.log(`Loaded level: ${level.name} (${level.width}x${level.height})`)
     return true
+  }
+
+  /**
+   * Load a background image from URL and set it in the asset store
+   */
+  private loadBackgroundImage(url: string, assetStore: AssetStore): void {
+    const img = new Image()
+    img.onload = () => {
+      assetStore.setBackground(img)
+      console.log(`Loaded background image: ${url}`)
+    }
+    img.onerror = () => {
+      console.error(`Failed to load background image: ${url}`)
+    }
+    img.src = url
+  }
+
+  /**
+   * Load player sprites from URLs and set them in the asset store
+   */
+  private loadPlayerSprites(
+    sprites: { idle?: string; run1?: string; run2?: string; jump?: string },
+    assetStore: AssetStore
+  ): void {
+    const loadedSprites: {
+      idle?: HTMLImageElement
+      run1?: HTMLImageElement
+      run2?: HTMLImageElement
+      jump?: HTMLImageElement
+    } = {}
+
+    let loadCount = 0
+    const totalToLoad = Object.values(sprites).filter(Boolean).length
+
+    const checkComplete = () => {
+      loadCount++
+      if (loadCount >= totalToLoad) {
+        assetStore.setPlayerSprites(loadedSprites)
+        console.log(`Loaded ${totalToLoad} player sprites`)
+      }
+    }
+
+    if (sprites.idle) {
+      const img = new Image()
+      img.onload = () => {
+        loadedSprites.idle = img
+        checkComplete()
+      }
+      img.onerror = () => {
+        console.error(`Failed to load idle sprite: ${sprites.idle}`)
+        checkComplete()
+      }
+      img.src = sprites.idle
+    }
+
+    if (sprites.run1) {
+      const img = new Image()
+      img.onload = () => {
+        loadedSprites.run1 = img
+        checkComplete()
+      }
+      img.onerror = () => {
+        console.error(`Failed to load run1 sprite: ${sprites.run1}`)
+        checkComplete()
+      }
+      img.src = sprites.run1
+    }
+
+    if (sprites.run2) {
+      const img = new Image()
+      img.onload = () => {
+        loadedSprites.run2 = img
+        checkComplete()
+      }
+      img.onerror = () => {
+        console.error(`Failed to load run2 sprite: ${sprites.run2}`)
+        checkComplete()
+      }
+      img.src = sprites.run2
+    }
+
+    if (sprites.jump) {
+      const img = new Image()
+      img.onload = () => {
+        loadedSprites.jump = img
+        checkComplete()
+      }
+      img.onerror = () => {
+        console.error(`Failed to load jump sprite: ${sprites.jump}`)
+        checkComplete()
+      }
+      img.src = sprites.jump
+    }
   }
 
   /**
