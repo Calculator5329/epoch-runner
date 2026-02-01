@@ -313,15 +313,59 @@ export const EditorCanvas = observer(function EditorCanvas() {
   }, [editorStore])
 
   /**
+   * Validate level has required elements before testing
+   */
+  const validateLevel = useCallback((): { valid: boolean; errors: string[] } => {
+    const errors: string[] = []
+    
+    // Check spawn point is within bounds
+    const spawn = editorStore.playerSpawn
+    if (spawn.col < 0 || spawn.col >= editorStore.gridWidth ||
+        spawn.row < 0 || spawn.row >= editorStore.gridHeight) {
+      errors.push('Player spawn point is outside level bounds')
+    }
+    
+    // Check spawn point is not inside a solid tile
+    const spawnTile = editorStore.collision[spawn.row]?.[spawn.col]
+    if (spawnTile !== undefined && spawnTile >= TileTypeId.SOLID_FULL && spawnTile <= TileTypeId.SOLID_LAVA_ROCK) {
+      errors.push('Player spawn point is inside a solid tile')
+    }
+    
+    // Check for at least one goal tile
+    let hasGoal = false
+    for (let row = 0; row < editorStore.gridHeight; row++) {
+      for (let col = 0; col < editorStore.gridWidth; col++) {
+        if (editorStore.collision[row][col] === TileTypeId.GOAL) {
+          hasGoal = true
+          break
+        }
+      }
+      if (hasGoal) break
+    }
+    
+    if (!hasGoal) {
+      errors.push('Level must have at least one goal (green flag)')
+    }
+    
+    return { valid: errors.length === 0, errors }
+  }, [editorStore])
+
+  /**
    * Test the current level in game mode
    */
   const testLevel = useCallback(() => {
+    // Validate before testing
+    const { valid, errors } = validateLevel()
+    if (!valid) {
+      alert('Cannot test level:\n\n' + errors.join('\n'))
+      return
+    }
+    
     const level = editorStore.toLevelDefinition()
-    rootStore.loadLevelDefinition(level)
-    // Set campaign to playing state so GameCanvas doesn't reset to intro
-    rootStore.campaignStore.setScreenState('playing')
+    editorStore.isTestingLevel = true
+    rootStore.testEditorLevel(level)
     editorStore.setMode('game')
-  }, [editorStore, rootStore])
+  }, [editorStore, rootStore, validateLevel])
 
   /**
    * Handle JSON file import

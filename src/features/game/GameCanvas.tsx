@@ -222,11 +222,14 @@ export const GameCanvas = observer(function GameCanvas() {
           e.preventDefault()
           gameStore.toggleNoclip()
         }
-        // E key: Open level editor with new level
+        // E key: Open level editor
         if (e.code === 'KeyE') {
           e.preventDefault()
-          // Start with a fresh new level
-          editorStore.initNewLevel(30, 15)
+          // If testing an editor level, return to editor with level intact
+          // Otherwise, start with a fresh new level
+          if (!editorStore.isTestingLevel) {
+            editorStore.initNewLevel(30, 15)
+          }
           editorStore.setMode('editor')
         }
       }
@@ -371,9 +374,9 @@ export const GameCanvas = observer(function GameCanvas() {
     }
     canvasRenderer.setContext(ctx)
 
-    // Initialize stores UNLESS we're already playing (e.g., testing from editor)
-    // If already in 'playing' state with a valid level, skip init to preserve loaded level
-    if (campaignStore.screenState !== 'playing' || !levelStore.currentLevelId) {
+    // Initialize stores UNLESS we're testing from the editor
+    // When testing, the level is already loaded and state is set up
+    if (!editorStore.isTestingLevel) {
       rootStore.init()
     }
 
