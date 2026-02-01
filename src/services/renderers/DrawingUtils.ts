@@ -1,4 +1,5 @@
-import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '../../core/constants'
+import { TILE_SIZE, VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '../../core/constants'
+import type { CollisionShape, NormalizedPoint } from '../../core/types/shapes'
 
 /**
  * DrawingUtils - Common drawing helper functions
@@ -6,6 +7,88 @@ import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '../../core/constants'
  * Stateless utility functions for canvas drawing operations.
  * Used by all screen renderers for consistent visual elements.
  */
+
+// ============================================
+// Tile Rendering Utilities
+// ============================================
+
+/**
+ * Calculate the visible tile range based on camera position
+ * Returns the column/row bounds for tiles that should be rendered
+ */
+export function calculateVisibleTileRange(
+  cameraX: number,
+  cameraY: number,
+  viewportWidth: number,
+  viewportHeight: number,
+  levelWidth: number,
+  levelHeight: number,
+  buffer: number = 1
+): { startCol: number; endCol: number; startRow: number; endRow: number } {
+  return {
+    startCol: Math.max(0, Math.floor(cameraX / TILE_SIZE) - buffer),
+    endCol: Math.min(levelWidth, Math.ceil((cameraX + viewportWidth) / TILE_SIZE) + buffer),
+    startRow: Math.max(0, Math.floor(cameraY / TILE_SIZE) - buffer),
+    endRow: Math.min(levelHeight, Math.ceil((cameraY + viewportHeight) / TILE_SIZE) + buffer),
+  }
+}
+
+/**
+ * Draw a tile's collision shape at screen coordinates
+ */
+export function drawTileShape(
+  ctx: CanvasRenderingContext2D,
+  shape: CollisionShape,
+  color: string,
+  screenX: number,
+  screenY: number
+): void {
+  ctx.fillStyle = color
+
+  if (shape.type === 'none') {
+    return
+  }
+
+  if (shape.type === 'rect' && shape.rect) {
+    const x = screenX + shape.rect.x * TILE_SIZE
+    const y = screenY + shape.rect.y * TILE_SIZE
+    const w = shape.rect.w * TILE_SIZE
+    const h = shape.rect.h * TILE_SIZE
+    ctx.fillRect(x, y, w, h)
+  }
+
+  if (shape.type === 'polygon' && shape.vertices) {
+    drawPolygonShape(ctx, shape.vertices, screenX, screenY)
+  }
+}
+
+/**
+ * Draw a polygon shape from normalized vertices at screen coordinates
+ */
+export function drawPolygonShape(
+  ctx: CanvasRenderingContext2D,
+  vertices: NormalizedPoint[],
+  screenX: number,
+  screenY: number
+): void {
+  if (vertices.length < 3) return
+
+  ctx.beginPath()
+  const first = vertices[0]
+  ctx.moveTo(screenX + first.x * TILE_SIZE, screenY + first.y * TILE_SIZE)
+
+  for (let i = 1; i < vertices.length; i++) {
+    const v = vertices[i]
+    ctx.lineTo(screenX + v.x * TILE_SIZE, screenY + v.y * TILE_SIZE)
+  }
+
+  ctx.closePath()
+  ctx.fill()
+}
+
+// ============================================
+// General Drawing Utilities
+// ============================================
 
 /**
  * Draw a rounded rectangle path (does not fill or stroke - call ctx.fill() or ctx.stroke() after)

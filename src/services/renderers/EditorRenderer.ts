@@ -1,7 +1,7 @@
 import { TILE_SIZE, VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '../../core/constants'
 import { getTileType, TileTypeId, TILE_COLORS } from '../../core/types/shapes'
-import type { CollisionShape, NormalizedPoint } from '../../core/types/shapes'
 import type { EditorStore } from '../../stores/EditorStore'
+import { calculateVisibleTileRange, drawTileShape } from './DrawingUtils'
 
 /**
  * Editor colors
@@ -60,11 +60,10 @@ export class EditorRenderer {
     ctx: CanvasRenderingContext2D,
     editor: EditorStore
   ): void {
-    // Calculate visible tile range
-    const startCol = Math.max(0, Math.floor(editor.cameraX / TILE_SIZE) - 1)
-    const endCol = Math.min(editor.gridWidth, Math.ceil((editor.cameraX + VIEWPORT_WIDTH) / TILE_SIZE) + 1)
-    const startRow = Math.max(0, Math.floor(editor.cameraY / TILE_SIZE) - 1)
-    const endRow = Math.min(editor.gridHeight, Math.ceil((editor.cameraY + VIEWPORT_HEIGHT) / TILE_SIZE) + 1)
+    // Calculate visible tile range using shared utility
+    const { startCol, endCol, startRow, endRow } = calculateVisibleTileRange(
+      editor.cameraX, editor.cameraY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, editor.gridWidth, editor.gridHeight
+    )
 
     for (let row = startRow; row < endRow; row++) {
       for (let col = startCol; col < endCol; col++) {
@@ -83,65 +82,12 @@ export class EditorRenderer {
         ctx.fillStyle = TILE_COLORS.empty
         ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE)
 
-        // Draw tile shape if not empty
+        // Draw tile shape if not empty using shared utility
         if (tileId !== TileTypeId.EMPTY) {
-          this.drawTileShape(ctx, tileType.collision, tileType.color, screenX, screenY)
+          drawTileShape(ctx, tileType.collision, tileType.color, screenX, screenY)
         }
       }
     }
-  }
-
-  /**
-   * Draw a tile's collision shape
-   */
-  private drawTileShape(
-    ctx: CanvasRenderingContext2D,
-    shape: CollisionShape,
-    color: string,
-    screenX: number,
-    screenY: number
-  ): void {
-    ctx.fillStyle = color
-
-    if (shape.type === 'none') {
-      return
-    }
-
-    if (shape.type === 'rect' && shape.rect) {
-      const x = screenX + shape.rect.x * TILE_SIZE
-      const y = screenY + shape.rect.y * TILE_SIZE
-      const w = shape.rect.w * TILE_SIZE
-      const h = shape.rect.h * TILE_SIZE
-      ctx.fillRect(x, y, w, h)
-    }
-
-    if (shape.type === 'polygon' && shape.vertices) {
-      this.drawPolygon(ctx, shape.vertices, screenX, screenY)
-    }
-  }
-
-  /**
-   * Draw a polygon shape
-   */
-  private drawPolygon(
-    ctx: CanvasRenderingContext2D,
-    vertices: NormalizedPoint[],
-    screenX: number,
-    screenY: number
-  ): void {
-    if (vertices.length < 3) return
-
-    ctx.beginPath()
-    const first = vertices[0]
-    ctx.moveTo(screenX + first.x * TILE_SIZE, screenY + first.y * TILE_SIZE)
-
-    for (let i = 1; i < vertices.length; i++) {
-      const v = vertices[i]
-      ctx.lineTo(screenX + v.x * TILE_SIZE, screenY + v.y * TILE_SIZE)
-    }
-
-    ctx.closePath()
-    ctx.fill()
   }
 
   /**
@@ -154,11 +100,11 @@ export class EditorRenderer {
     ctx.strokeStyle = EDITOR_COLORS.gridLine
     ctx.lineWidth = 1
 
-    // Calculate visible range
-    const startCol = Math.floor(editor.cameraX / TILE_SIZE)
-    const endCol = Math.ceil((editor.cameraX + VIEWPORT_WIDTH) / TILE_SIZE)
-    const startRow = Math.floor(editor.cameraY / TILE_SIZE)
-    const endRow = Math.ceil((editor.cameraY + VIEWPORT_HEIGHT) / TILE_SIZE)
+    // Calculate visible range using shared utility (buffer=0 for grid lines)
+    const { startCol, endCol, startRow, endRow } = calculateVisibleTileRange(
+      editor.cameraX, editor.cameraY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, 
+      editor.gridWidth + 10, editor.gridHeight + 10, 0  // Allow extra for grid lines beyond level bounds
+    )
 
     // Vertical lines
     for (let col = startCol; col <= endCol; col++) {
@@ -277,10 +223,10 @@ export class EditorRenderer {
       previewTileId = editor.selectedTileType
     }
 
-    // Draw semi-transparent preview
+    // Draw semi-transparent preview using shared utility
     const tileType = getTileType(previewTileId)
     ctx.globalAlpha = 0.5
-    this.drawTileShape(ctx, tileType.collision, tileType.color, screenX, screenY)
+    drawTileShape(ctx, tileType.collision, tileType.color, screenX, screenY)
     ctx.globalAlpha = 1
   }
 
