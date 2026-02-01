@@ -1,6 +1,7 @@
-import { TILE_SIZE, GRAVITY, MAX_FALL_SPEED } from '../core/constants'
+import { TILE_SIZE, GRAVITY, MAX_FALL_SPEED, PLAYER_SPEED } from '../core/constants'
 import { TileTypeId, getTileType, isTileTypeSolid, isTileTypeHazard, isTileTypePlatform, SHAPES } from '../core/types/shapes'
 import type { CollisionShape, NormalizedPoint } from '../core/types/shapes'
+import type { InputState } from '../core/types'
 import {
   checkSolidCollision,
   checkHazardCollision,
@@ -22,12 +23,14 @@ import type { GameStore } from '../stores/GameStore'
 class PhysicsService {
   /**
    * Main physics update - called once per frame
+   * @param input - Optional input state for noclip vertical movement
    */
   update(
     deltaTime: number,
     playerStore: PlayerStore,
     levelStore: LevelStore,
-    gameStore: GameStore
+    gameStore: GameStore,
+    input?: InputState
   ): void {
     // Don't update if game is paused, complete, or game over
     if (gameStore.isPaused || gameStore.levelComplete || gameStore.isGameOver) {
@@ -36,6 +39,25 @@ class PhysicsService {
 
     // Store previous position for platform collision
     const prevY = playerStore.y
+
+    // Noclip mode: free flight, no gravity
+    if (gameStore.isNoclip) {
+      // Calculate vertical velocity from input (up/down keys)
+      let flyVy = 0
+      if (input) {
+        if (input.up && !input.down) flyVy = -PLAYER_SPEED
+        else if (input.down && !input.up) flyVy = PLAYER_SPEED
+      }
+      
+      // Direct movement without collision
+      playerStore.x += playerStore.vx * deltaTime
+      playerStore.y += flyVy * deltaTime
+      
+      // Still check pickups and triggers in noclip
+      this.checkPickups(playerStore, levelStore, gameStore)
+      this.checkTriggers(playerStore, levelStore, gameStore)
+      return
+    }
 
     // Apply gravity
     playerStore.vy += GRAVITY * deltaTime
@@ -277,6 +299,9 @@ class PhysicsService {
     level: LevelStore,
     game: GameStore
   ): void {
+    // Skip hazard damage in god mode
+    if (game.isGodMode) return
+
     const aabb = {
       x: player.x,
       y: player.y,
@@ -301,6 +326,9 @@ class PhysicsService {
     level: LevelStore,
     game: GameStore
   ): void {
+    // Skip boundary death in god mode
+    if (game.isGodMode) return
+
     // Level height in pixels (bottom edge of level)
     const levelBottomY = level.height * TILE_SIZE
     

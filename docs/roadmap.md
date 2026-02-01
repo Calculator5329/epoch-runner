@@ -174,6 +174,42 @@ Goal: Single hardcoded level with player movement, collision, and win state.
   - [ ] Level completion tracking
   - [ ] Collectible/achievement system (optional)
 
+## Developer Tools
+*Priority: Medium - Core Implemented*
+
+- [x] **Debug Console Interface**
+  - [x] `window.__EPOCH__` global debug object (dev mode only)
+  - [x] Store access (player, game, level, camera, campaign)
+  - [x] Helper commands (loadLevel, teleport)
+  - [x] Toggle shortcuts (god, noclip, grid, debug)
+
+- [x] **Debug Modes**
+  - [x] God mode - invincibility (F4 toggle)
+  - [x] Noclip mode - fly through walls (F5 toggle)
+  - [x] Grid overlay - show tile coordinates (F1 toggle)
+  - [x] Collision shapes - show hitbox outlines (F2 toggle)
+  - [x] Debug info panel - position, velocity, state (F3 toggle)
+
+- [x] **Admin Commands**
+  - [x] Teleport player to grid position
+  - [x] Load any level by ID
+
+- [ ] **Future Tools (NPM Scripts)**
+  - [ ] `lint:levels` - Check for level design mistakes (impossible jumps, unreachable goals)
+  - [ ] `compare:levels` - Side-by-side diff of two levels
+  - [ ] `stats:levels` - Summary of all levels (tile counts, coin count, difficulty)
+  - [ ] `playtest:level <id>` - Launch dev server with specific level pre-loaded
+
+- [ ] **Future Tools (In-Game)**
+  - [ ] Input recording/playback for testing and demos
+  - [ ] Performance profiling overlay (FPS, frame time, memory)
+  - [ ] Screenshot generation for level previews
+
+- [ ] **Build & CI Tools**
+  - [ ] Pre-commit hooks for level validation
+  - [ ] Automated playability testing (pathfinding to verify levels are beatable)
+  - [ ] Bundle analysis integration
+
 ## Phase 5: In-Game GUI Level Builder
 *Priority: Low (Post-MVP)*
 

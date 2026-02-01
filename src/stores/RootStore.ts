@@ -230,6 +230,23 @@ export class RootStore {
       playerCenter.y - this.cameraStore.viewportHeight / 2
     )
   }
+
+  /**
+   * Teleport player to grid position (debug/admin tool)
+   */
+  teleport(col: number, row: number): void {
+    this.playerStore.setPosition({
+      x: col * TILE_SIZE,
+      y: row * TILE_SIZE,
+    })
+    
+    // Update camera to follow
+    const playerCenter = this.playerStore.center
+    this.cameraStore.setPosition(
+      playerCenter.x - this.cameraStore.viewportWidth / 2,
+      playerCenter.y - this.cameraStore.viewportHeight / 2
+    )
+  }
 }
 
 // Create singleton instance

@@ -16,6 +16,25 @@ export class GameStore {
   isGameOver = false
   isAdminMenuOpen = false
 
+  // ============================================
+  // Debug Mode Flags (Admin/Dev Tools)
+  // ============================================
+  
+  /** God mode - invincibility (no hazard/boundary damage) */
+  isGodMode = false
+  
+  /** Noclip mode - fly through walls (no collision) */
+  isNoclip = false
+  
+  /** Show tile grid overlay with coordinates */
+  showGridOverlay = false
+  
+  /** Show collision shape outlines */
+  showCollisionShapes = false
+  
+  /** Show debug info panel (position, velocity, etc.) */
+  showDebugInfo = false
+
   // Lives system
   lives = DEFAULT_LIVES
   maxLives = DEFAULT_LIVES
@@ -74,6 +93,35 @@ export class GameStore {
       this.isAdminMenuOpen = false
       this.isPaused = false
     }
+  }
+
+  // ============================================
+  // Debug Mode Toggles
+  // ============================================
+
+  /** Toggle god mode (invincibility) */
+  toggleGodMode(): void {
+    this.isGodMode = !this.isGodMode
+  }
+
+  /** Toggle noclip mode (fly through walls) */
+  toggleNoclip(): void {
+    this.isNoclip = !this.isNoclip
+  }
+
+  /** Toggle grid overlay */
+  toggleGridOverlay(): void {
+    this.showGridOverlay = !this.showGridOverlay
+  }
+
+  /** Toggle collision shape outlines */
+  toggleCollisionShapes(): void {
+    this.showCollisionShapes = !this.showCollisionShapes
+  }
+
+  /** Toggle debug info panel */
+  toggleDebugInfo(): void {
+    this.showDebugInfo = !this.showDebugInfo
   }
 
   // ============================================

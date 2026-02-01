@@ -15,6 +15,8 @@ export * from './shapes'
 export interface InputState {
   left: boolean
   right: boolean
+  up: boolean      // For noclip fly up
+  down: boolean    // For noclip fly down
   jump: boolean
   jumpJustPressed: boolean
 }

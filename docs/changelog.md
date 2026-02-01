@@ -2,6 +2,41 @@
 
 ## [Unreleased]
 
+### Session: 2026-02-01 (Part 4)
+
+#### Added
+- **Developer Debug Tools** - Comprehensive debugging interface for development
+  - `window.__EPOCH__` global debug object (dev mode only)
+    - Direct store access: `__EPOCH__.player`, `__EPOCH__.game`, `__EPOCH__.level`, etc.
+    - Commands: `loadLevel(id)`, `teleport(col, row)`
+    - Toggle properties: `god`, `noclip`, `grid`, `debug`
+    - Help command: `__EPOCH__.help()` prints available commands
+  - God mode (F4) - Invincibility, no hazard or boundary damage
+  - Noclip mode (F5) - Fly through walls, WASD for movement
+  - Grid overlay (F1) - Shows tile coordinates on every tile
+  - Collision shapes (F2) - Draws collision shape outlines with color-coded categories
+  - Debug info panel (F3) - Shows player position, velocity, grid coords, god/noclip status
+- **Enhanced Input System**
+  - Added `up` and `down` input states for noclip vertical movement
+  - Arrow keys and WASD now support full directional control in noclip mode
+- **Teleport Command**
+  - `RootStore.teleport(col, row)` - Instant player repositioning
+  - Camera auto-follows after teleport
+
+#### Changed
+- `PhysicsService.update()` now accepts optional `InputState` parameter for noclip controls
+- `GameStore` extended with debug mode flags:
+  - `isGodMode`, `isNoclip`, `showGridOverlay`, `showCollisionShapes`, `showDebugInfo`
+  - Toggle methods for each flag
+- `CanvasRenderer` extended with debug overlay methods:
+  - `drawGridOverlay()`, `drawCollisionShapes()`, `drawDebugInfo()`
+
+#### Documentation
+- Added "Developer Tools" section to roadmap with implemented and future tools
+- Documented future tool ideas: lint:levels, compare:levels, stats:levels, input recording
+
+---
+
 ### Session: 2026-02-01 (Part 3)
 
 #### Fixed

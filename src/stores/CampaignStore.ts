@@ -5,6 +5,7 @@ import { makeAutoObservable } from 'mobx'
  */
 export type ScreenState = 
   | 'intro'           // Welcome/documentation screen
+  | 'roadmap'         // Full development roadmap view
   | 'playing'         // Active gameplay
   | 'level_complete'  // Just beat a level, show stats
   | 'campaign_complete' // Beat all levels, show final stats + level select
