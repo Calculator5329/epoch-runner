@@ -19,7 +19,7 @@ export const GameCanvas = observer(function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const rootStore = useRootStore()
-  const { gameStore, playerStore, levelStore, cameraStore, campaignStore, uiStore, editorStore } = rootStore
+  const { gameStore, playerStore, levelStore, cameraStore, campaignStore, uiStore, editorStore, assetStore } = rootStore
 
   // Track if we need to respawn (set when player dies)
   const needsRespawnRef = useRef(false)
@@ -72,8 +72,8 @@ export const GameCanvas = observer(function GameCanvas() {
     }
 
     // 7. Render frame (always render for UI screens)
-    canvasRenderer.draw(levelStore, playerStore, gameStore, cameraStore, campaignStore, uiStore)
-  }, [rootStore, gameStore, playerStore, levelStore, cameraStore, campaignStore, uiStore])
+    canvasRenderer.draw(levelStore, playerStore, gameStore, cameraStore, campaignStore, uiStore, assetStore)
+  }, [rootStore, gameStore, playerStore, levelStore, cameraStore, campaignStore, uiStore, assetStore])
 
   // Handle keyboard shortcuts
   useEffect(() => {

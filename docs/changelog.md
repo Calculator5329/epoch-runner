@@ -2,6 +2,112 @@
 
 ## [Unreleased]
 
+### Session: 2026-02-01 (Part 9) - Custom Level Pack System Planning
+
+#### Planned: Custom Level Pack System
+
+A comprehensive system for creating and sharing custom level packs with sprites, audio, and custom hitboxes.
+
+**Key Features Planned:**
+- **Zip-based level packs** - Bundle level JSON with custom assets
+- **Sprite rendering** - Replace procedural tiles/player with custom PNGs
+- **Auto-generated hitboxes** - Collision polygons from sprite alpha channel
+- **Custom polygon hitboxes** - Manual override for precise collision shapes
+- **Audio system** - Background music and sound effects per level pack
+- **Asset upload UI** - Drag-and-drop sprites/audio in level editor
+- **Level migration** - Convert existing TypeScript levels to pack format
+
+**Pack Structure:**
+```
+my-level-pack.zip
+├── manifest.json       # Pack metadata
+├── level.json          # Level definition
+├── sprites/            # Custom tile, player, UI sprites
+├── hitboxes/           # Custom collision polygons
+├── audio/              # Music and SFX
+└── config/             # Parameter overrides (future)
+```
+
+**Implementation Phases:**
+1. Asset Infrastructure (JSZip, AssetStore, LevelPackService)
+2. Sprite Rendering (GameplayRenderer modifications)
+3. Hitbox System (auto-generation + polygon collision)
+4. Audio System (AudioService with music/SFX)
+5. Editor Asset UI (AssetUploadPanel, HitboxEditor)
+6. Zip Export/Import (full round-trip)
+7. Level Migration (convert built-in levels)
+
+**New Dependencies:** jszip, @types/jszip
+
+**Technical Documentation:** See `docs/tech_spec.md` for schemas and interfaces.
+
+#### Implemented: Phase 1 - Asset Infrastructure
+
+**New Files:**
+- `src/stores/AssetStore.ts` - MobX store for managing loaded custom assets
+  - Stores tile sprites, player sprites, background, UI elements
+  - Stores audio blob URLs (music, SFX)
+  - Stores hitbox definitions
+  - Methods for loading/clearing assets
+  - Proper memory management (blob URL revocation)
+- `src/services/LevelPackService.ts` - Service for zip file handling
+  - `createPack()` - Package level + assets into zip blob
+  - `extractPack()` - Extract and load pack from zip file
+  - `validatePack()` - Validate pack structure without full load
+  - `downloadPack()` - Trigger browser download
+  - Helper methods for image loading, tile type mapping
+
+**Updated Files:**
+- `src/stores/RootStore.ts` - Added `assetStore` instance and `useAssetStore()` hook
+- `src/stores/index.ts` - Export AssetStore and related types
+- `src/services/index.ts` - Export LevelPackService and related types
+- `package.json` - Added jszip dependency
+
+#### Implemented: Phase 2 - Sprite Rendering System
+
+**Modified Files:**
+- `src/services/renderers/GameplayRenderer.ts` - Added sprite rendering support
+  - New `drawBackground()` method for parallax backgrounds
+  - `drawTiles()` now checks for custom sprites, falls back to procedural
+  - `drawTileSprite()` renders sprite images scaled to TILE_SIZE
+  - `drawPlayer()` supports custom player sprites (idle, run, jump)
+  - `drawPlayerSprite()` handles sprite flipping for facing direction
+  - `drawPlayerProcedural()` extracted for fallback rendering
+  - `drawHUD()` supports custom UI sprites (hearts, coins)
+- `src/services/renderers/CanvasRenderer.ts` - Added AssetStore parameter
+  - `draw()` method now accepts optional AssetStore
+  - Passes assetStore to GameplayRenderer
+- `src/features/game/GameCanvas.tsx` - Pass assetStore to renderer
+  - Destructures assetStore from rootStore
+  - Passes to canvasRenderer.draw()
+
+**Sprite Rendering Features:**
+- Tile sprites: Each TileTypeId can have a custom sprite
+- Player sprites: idle, run, jump variants with automatic state selection
+- Player sprite flipping: Horizontally flips when facing left
+- Background: Parallax scrolling at 50% camera speed with tiling
+- UI sprites: Custom heart and coin icons in HUD
+- Graceful fallback: Uses procedural rendering when sprites missing
+
+---
+
+### Session: 2026-02-01 (Part 8) - Jump System Fixes
+
+#### Fixed
+- **Critical jump bug**: Player was getting +1 extra jump on every level
+  - Root cause: `updateGroundedState()` was calling `onLand()` immediately after a jump
+  - When player jumped, `isGrounded` was set to false, but ground was still detected below
+  - This triggered `onLand()` which reset `jumpsRemaining`, giving back the consumed jump
+  - Fix: Only call `onLand()` when player is falling (`vy >= 0`), not when jumping up
+
+#### Changed
+- **Double jump threshold**: Moved from level 4 to level 5
+  - Levels 0-4: Single jump only (power-ups grant temporary extra jumps)
+  - Levels 5+: Double jump available
+  - Updated `hasDoubleJumpUnlocked()` in `src/levels/index.ts`
+
+---
+
 ### Session: 2026-02-01 (Part 7) - Level Builder
 
 #### Added: In-Game Level Editor

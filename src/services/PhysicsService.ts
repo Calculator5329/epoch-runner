@@ -283,7 +283,9 @@ class PhysicsService {
     const isNowGrounded = belowCollision.length > 0
 
     // Call onLand() when transitioning from air to ground (resets jumpsRemaining)
-    if (!wasGrounded && isNowGrounded) {
+    // Only do this when falling (vy >= 0), not when jumping up - otherwise the
+    // ground detection right after a jump would immediately reset jumpsRemaining
+    if (!wasGrounded && isNowGrounded && player.vy >= 0) {
       player.onLand()
     } else {
       player.isGrounded = isNowGrounded

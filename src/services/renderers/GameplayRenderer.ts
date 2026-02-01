@@ -5,6 +5,7 @@ import type { PlayerStore } from '../../stores/PlayerStore'
 import type { LevelStore } from '../../stores/LevelStore'
 import type { GameStore } from '../../stores/GameStore'
 import type { CameraStore } from '../../stores/CameraStore'
+import type { AssetStore } from '../../stores/AssetStore'
 
 /**
  * GameplayRenderer - Renders core gameplay elements
@@ -21,20 +22,55 @@ export class GameplayRenderer {
     levelStore: LevelStore,
     playerStore: PlayerStore,
     gameStore: GameStore,
-    cameraStore: CameraStore
+    cameraStore: CameraStore,
+    assetStore?: AssetStore
   ): void {
     // Clear canvas with background color
     ctx.fillStyle = COLORS.background
     ctx.fillRect(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
 
+    // Draw background image if available
+    if (assetStore?.background) {
+      this.drawBackground(ctx, cameraStore, assetStore.background)
+    }
+
     // Draw tiles (with camera offset, only visible tiles)
-    this.drawTiles(ctx, levelStore, cameraStore)
+    this.drawTiles(ctx, levelStore, cameraStore, assetStore)
 
     // Draw player (with camera offset)
-    this.drawPlayer(ctx, playerStore, cameraStore)
+    this.drawPlayer(ctx, playerStore, cameraStore, assetStore)
 
     // Draw HUD (screen space)
-    this.drawHUD(ctx, gameStore, playerStore)
+    this.drawHUD(ctx, gameStore, playerStore, assetStore)
+  }
+
+  /**
+   * Draw parallax background image
+   */
+  private drawBackground(
+    ctx: CanvasRenderingContext2D,
+    camera: CameraStore,
+    background: HTMLImageElement
+  ): void {
+    // Simple parallax - background moves at 50% camera speed
+    const parallaxFactor = 0.5
+    const offsetX = -camera.x * parallaxFactor
+    const offsetY = -camera.y * parallaxFactor
+
+    // Tile the background if smaller than viewport
+    const imgWidth = background.width
+    const imgHeight = background.height
+
+    // Calculate starting position for tiling
+    const startX = Math.floor(offsetX / imgWidth) * imgWidth + (offsetX % imgWidth)
+    const startY = Math.floor(offsetY / imgHeight) * imgHeight + (offsetY % imgHeight)
+
+    // Draw tiled background
+    for (let y = startY; y < VIEWPORT_HEIGHT; y += imgHeight) {
+      for (let x = startX; x < VIEWPORT_WIDTH; x += imgWidth) {
+        ctx.drawImage(background, x, y)
+      }
+    }
   }
 
   /**
@@ -43,7 +79,8 @@ export class GameplayRenderer {
   drawTiles(
     ctx: CanvasRenderingContext2D, 
     level: LevelStore,
-    camera: CameraStore
+    camera: CameraStore,
+    assetStore?: AssetStore
   ): void {
     // Calculate visible tile range (with 1-tile buffer for partial tiles)
     const startCol = Math.max(0, Math.floor(camera.x / TILE_SIZE) - 1)
@@ -64,16 +101,38 @@ export class GameplayRenderer {
         const screenX = Math.round(worldX - camera.x)
         const screenY = Math.round(worldY - camera.y)
 
-        // Draw background for all tiles
-        ctx.fillStyle = COLORS.empty
-        ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE)
+        // Draw background for all tiles (only if no custom background)
+        if (!assetStore?.background) {
+          ctx.fillStyle = COLORS.empty
+          ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE)
+        }
 
-        // Draw tile shape if not empty
+        // Draw tile if not empty
         if (tileId !== TileTypeId.EMPTY) {
-          this.drawTileShape(ctx, tileType.collision, tileType.color, screenX, screenY)
+          // Check for custom sprite first
+          const sprite = assetStore?.getTileSprite(tileId)
+          if (sprite) {
+            this.drawTileSprite(ctx, sprite, screenX, screenY)
+          } else {
+            // Fall back to procedural rendering
+            this.drawTileShape(ctx, tileType.collision, tileType.color, screenX, screenY)
+          }
         }
       }
     }
+  }
+
+  /**
+   * Draw a tile using a custom sprite image
+   */
+  private drawTileSprite(
+    ctx: CanvasRenderingContext2D,
+    sprite: HTMLImageElement,
+    screenX: number,
+    screenY: number
+  ): void {
+    // Draw sprite scaled to TILE_SIZE
+    ctx.drawImage(sprite, screenX, screenY, TILE_SIZE, TILE_SIZE)
   }
 
   /**
@@ -135,12 +194,97 @@ export class GameplayRenderer {
   drawPlayer(
     ctx: CanvasRenderingContext2D, 
     player: PlayerStore,
-    camera: CameraStore
+    camera: CameraStore,
+    assetStore?: AssetStore
   ): void {
     // Convert world position to screen position - round to avoid sub-pixel artifacts
     const screenX = Math.round(player.x - camera.x)
     const screenY = Math.round(player.y - camera.y)
 
+    // Check for custom player sprites
+    const playerSprites = assetStore?.playerSprites
+    const hasCustomSprites = playerSprites && (playerSprites.idle || playerSprites.run || playerSprites.jump)
+
+    if (hasCustomSprites && !player.isDead) {
+      // Determine which sprite to use based on player state
+      let sprite: HTMLImageElement | undefined
+
+      if (!player.isGrounded && player.vy !== 0) {
+        // In air - use jump sprite if available
+        sprite = playerSprites.jump || playerSprites.idle
+      } else if (player.vx !== 0) {
+        // Moving - use run sprite if available
+        sprite = playerSprites.run || playerSprites.idle
+      } else {
+        // Idle
+        sprite = playerSprites.idle
+      }
+
+      if (sprite) {
+        this.drawPlayerSprite(ctx, sprite, player, screenX, screenY)
+      } else {
+        // Fall back to procedural
+        this.drawPlayerProcedural(ctx, player, screenX, screenY)
+      }
+    } else {
+      // No custom sprites or player is dead - use procedural rendering
+      this.drawPlayerProcedural(ctx, player, screenX, screenY)
+    }
+
+    // Triple jump indicator (always draw on top of sprite)
+    if (player.hasTripleJump) {
+      ctx.fillStyle = COLORS.powerup
+      ctx.beginPath()
+      ctx.arc(screenX + player.width / 2, screenY - 10, 6, 0, Math.PI * 2)
+      ctx.fill()
+      
+      // Timer bar
+      const timerWidth = 30
+      const timerHeight = 4
+      const timerX = screenX + player.width / 2 - timerWidth / 2
+      const timerY = screenY - 20
+      const fillRatio = player.tripleJumpTimer / TRIPLE_JUMP_DURATION
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
+      ctx.fillRect(timerX, timerY, timerWidth, timerHeight)
+      ctx.fillStyle = COLORS.powerup
+      ctx.fillRect(timerX, timerY, timerWidth * fillRatio, timerHeight)
+    }
+  }
+
+  /**
+   * Draw player using custom sprite
+   */
+  private drawPlayerSprite(
+    ctx: CanvasRenderingContext2D,
+    sprite: HTMLImageElement,
+    player: PlayerStore,
+    screenX: number,
+    screenY: number
+  ): void {
+    ctx.save()
+
+    // Flip sprite horizontally if facing left
+    if (!player.isFacingRight) {
+      ctx.translate(screenX + player.width, screenY)
+      ctx.scale(-1, 1)
+      ctx.drawImage(sprite, 0, 0, player.width, player.height)
+    } else {
+      ctx.drawImage(sprite, screenX, screenY, player.width, player.height)
+    }
+
+    ctx.restore()
+  }
+
+  /**
+   * Draw player using procedural rendering (rectangles)
+   */
+  private drawPlayerProcedural(
+    ctx: CanvasRenderingContext2D,
+    player: PlayerStore,
+    screenX: number,
+    screenY: number
+  ): void {
     // Player body
     ctx.fillStyle = player.isDead ? '#666' : COLORS.player
     ctx.fillRect(screenX, screenY, player.width, player.height)
@@ -171,26 +315,6 @@ export class GameplayRenderer {
       ctx.closePath()
       ctx.fill()
     }
-
-    // Triple jump indicator
-    if (player.hasTripleJump) {
-      ctx.fillStyle = COLORS.powerup
-      ctx.beginPath()
-      ctx.arc(screenX + player.width / 2, screenY - 10, 6, 0, Math.PI * 2)
-      ctx.fill()
-      
-      // Timer bar
-      const timerWidth = 30
-      const timerHeight = 4
-      const timerX = screenX + player.width / 2 - timerWidth / 2
-      const timerY = screenY - 20
-      const fillRatio = player.tripleJumpTimer / TRIPLE_JUMP_DURATION
-      
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
-      ctx.fillRect(timerX, timerY, timerWidth, timerHeight)
-      ctx.fillStyle = COLORS.powerup
-      ctx.fillRect(timerX, timerY, timerWidth * fillRatio, timerHeight)
-    }
   }
 
   /**
@@ -199,7 +323,8 @@ export class GameplayRenderer {
   drawHUD(
     ctx: CanvasRenderingContext2D,
     game: GameStore,
-    _player: PlayerStore
+    _player: PlayerStore,
+    assetStore?: AssetStore
   ): void {
     const padding = 20
     
@@ -210,33 +335,63 @@ export class GameplayRenderer {
     ctx.textBaseline = 'top'
     
     // Draw heart icons
+    const heartSprite = assetStore?.uiSprites.get('heart')
+    const heartEmptySprite = assetStore?.uiSprites.get('heart_empty')
+
     for (let i = 0; i < game.maxLives; i++) {
       const heartX = padding + i * 35
       const heartY = padding
+      const isAlive = i < game.lives
       
-      ctx.fillStyle = i < game.lives ? '#e53e3e' : '#4a5568'
-      ctx.beginPath()
-      // Simple heart shape
-      ctx.moveTo(heartX + 12, heartY + 6)
-      ctx.bezierCurveTo(heartX + 12, heartY + 2, heartX + 6, heartY, heartX + 6, heartY + 6)
-      ctx.bezierCurveTo(heartX + 6, heartY + 12, heartX + 12, heartY + 18, heartX + 12, heartY + 22)
-      ctx.bezierCurveTo(heartX + 12, heartY + 18, heartX + 18, heartY + 12, heartX + 18, heartY + 6)
-      ctx.bezierCurveTo(heartX + 18, heartY, heartX + 12, heartY + 2, heartX + 12, heartY + 6)
-      ctx.fill()
+      // Use custom heart sprites if available
+      if (isAlive && heartSprite) {
+        ctx.drawImage(heartSprite, heartX, heartY, 24, 24)
+      } else if (!isAlive && heartEmptySprite) {
+        ctx.drawImage(heartEmptySprite, heartX, heartY, 24, 24)
+      } else {
+        // Fall back to procedural heart
+        ctx.fillStyle = isAlive ? '#e53e3e' : '#4a5568'
+        ctx.beginPath()
+        ctx.moveTo(heartX + 12, heartY + 6)
+        ctx.bezierCurveTo(heartX + 12, heartY + 2, heartX + 6, heartY, heartX + 6, heartY + 6)
+        ctx.bezierCurveTo(heartX + 6, heartY + 12, heartX + 12, heartY + 18, heartX + 12, heartY + 22)
+        ctx.bezierCurveTo(heartX + 12, heartY + 18, heartX + 18, heartY + 12, heartX + 18, heartY + 6)
+        ctx.bezierCurveTo(heartX + 18, heartY, heartX + 12, heartY + 2, heartX + 12, heartY + 6)
+        ctx.fill()
+      }
     }
 
-    // Coins (top-right)
-    ctx.fillStyle = COLORS.coin
-    ctx.beginPath()
-    ctx.arc(VIEWPORT_WIDTH - padding, padding + 12, 12, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.strokeStyle = '#d69e2e'
-    ctx.lineWidth = 2
-    ctx.stroke()
+    // Coins (top-right) - Show wallet total + current level coins
+    // When level is complete, coins are already added to totalCoins, so don't double-count
+    const displayCoins = game.levelComplete 
+      ? game.totalCoins 
+      : game.totalCoins + game.coinsThisAttempt
+    
+    // Use custom coin sprite if available
+    const coinSprite = assetStore?.uiSprites.get('coin')
+    if (coinSprite) {
+      ctx.drawImage(coinSprite, VIEWPORT_WIDTH - padding - 12, padding, 24, 24)
+    } else {
+      // Procedural coin
+      ctx.fillStyle = COLORS.coin
+      ctx.beginPath()
+      ctx.arc(VIEWPORT_WIDTH - padding, padding + 12, 12, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = '#d69e2e'
+      ctx.lineWidth = 2
+      ctx.stroke()
+    }
     
     ctx.fillStyle = '#ffffff'
     ctx.textAlign = 'right'
-    ctx.fillText(`${game.coinsThisAttempt}`, VIEWPORT_WIDTH - padding - 20, padding)
+    ctx.fillText(`${displayCoins}`, VIEWPORT_WIDTH - padding - 20, padding)
+    
+    // Show current level coins if any collected (only during active play)
+    if (game.coinsThisAttempt > 0 && !game.levelComplete) {
+      ctx.font = '12px Arial'
+      ctx.fillStyle = '#48bb78'
+      ctx.fillText(`+${game.coinsThisAttempt} this level`, VIEWPORT_WIDTH - padding, padding + 32)
+    }
 
     // Replay multiplier if applicable
     if (game.replayMultiplier < 1) {

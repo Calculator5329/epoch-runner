@@ -16,6 +16,13 @@ export { UIStore } from './UIStore'
 export type { Bounds, AdminMenuBounds, RoadmapPhaseBounds } from './UIStore'
 export { EditorStore } from './EditorStore'
 export type { EditorTool, AppMode } from './EditorStore'
+export { AssetStore } from './AssetStore'
+export type { 
+  Polygon, 
+  HitboxDefinition, 
+  PackManifest, 
+  LoadedAssets 
+} from './AssetStore'
 
 // Root store and hooks
 export { 
@@ -30,4 +37,5 @@ export {
   useCampaignStore,
   useUIStore,
   useEditorStore,
+  useAssetStore,
 } from './RootStore'

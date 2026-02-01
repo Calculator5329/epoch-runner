@@ -9,7 +9,7 @@
  * - Level 1: Introduces shapes (half blocks, slopes) - single jump
  * - Level 2: Introduces hazards (spikes, checkpoints) - single jump
  * - Level 3: Introduces coins (currency, one-way platforms) - single jump
- * - Level 4: Introduces power-ups (triple jump) - double jump unlocked!
+ * - Level 4: Introduces power-ups (triple jump) - single jump
  * - Level 5: The Gauntlet (all features combined) - double jump
  * - Level 6: ET Custom 1 (custom user level) - double jump
  */
@@ -126,11 +126,11 @@ export function isLastLevel(levelId: string): boolean {
 
 /**
  * Check if a level has double jump unlocked by default
- * Level 4+ have double jump, levels 0-3 have single jump
+ * Level 5+ have double jump, levels 0-4 have single jump
  */
 export function hasDoubleJumpUnlocked(levelId: string): boolean {
   const index = getLevelIndex(levelId)
-  // Level 4 (index 4) and above have double jump
+  // Level 5 (index 5) and above have double jump
   // Also return true for non-campaign levels (custom levels get double jump)
-  return index === -1 || index >= 4
+  return index === -1 || index >= 5
 }

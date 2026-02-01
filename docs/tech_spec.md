@@ -286,10 +286,201 @@ interface InputState {
 }
 ```
 
-## Hitbox System (Future)
+## Hitbox System
 
-Player hitboxes will be polygon-based, auto-generated from PNG transparency scan.
-For MVP, using simple AABB (axis-aligned bounding box) smaller than sprite.
+### Current: AABB Collision
+Using simple AABB (axis-aligned bounding box) for MVP collision detection.
+
+### Planned: Auto-Generated Polygon Hitboxes
+
+**Generation Algorithm (Marching Squares):**
+1. Load sprite into offscreen canvas
+2. Extract alpha channel as binary mask (threshold ~10 to ignore anti-aliasing)
+3. Run marching squares to find contour points
+4. Simplify polygon using Ramer-Douglas-Peucker algorithm
+5. Normalize coordinates to 0-1 range relative to sprite bounds
+
+**HitboxService Interface:**
+```typescript
+interface Polygon {
+  points: Array<{ x: number, y: number }>  // Normalized 0-1 coordinates
+}
+
+class HitboxService {
+  generateFromSprite(image: HTMLImageElement, threshold?: number): Polygon
+  simplifyPolygon(polygon: Polygon, tolerance: number): Polygon
+  pointInPolygon(point: { x: number, y: number }, polygon: Polygon): boolean
+  getBoundingBox(polygon: Polygon): { x: number, y: number, w: number, h: number }
+}
+```
+
+**Hitbox Override Format** (`hitboxes/hitboxes.json`):
+```json
+{
+  "tiles": {
+    "solid": { "type": "auto" },
+    "spike_up": { 
+      "type": "polygon",
+      "points": [
+        { "x": 0.5, "y": 0 },
+        { "x": 1, "y": 1 },
+        { "x": 0, "y": 1 }
+      ]
+    }
+  },
+  "player": {
+    "type": "rect",
+    "x": 0.1, "y": 0, "w": 0.8, "h": 1
+  }
+}
+```
+
+---
+
+## Custom Level Pack System
+
+### Pack Structure
+
+Level packs are zip files containing all assets needed to play a custom level.
+
+```
+my-level-pack.zip
+├── manifest.json         # Pack metadata + asset mappings
+├── level.json            # Level definition (same format as existing)
+├── sprites/
+│   ├── tiles/            # Tile sprites (solid.png, hazard.png, etc.)
+│   ├── player/           # Player sprites (idle.png, run.png, jump.png)
+│   ├── background.png    # Level background
+│   └── ui/               # Hearts, coin icon, etc.
+├── hitboxes/
+│   └── hitboxes.json     # Custom collision polygons (optional)
+├── audio/
+│   ├── music.mp3         # Background music
+│   └── sfx/              # jump.mp3, coin.mp3, death.mp3, goal.mp3
+└── config/
+    └── params.json       # Parameter overrides (future)
+```
+
+### Manifest Schema
+
+```typescript
+interface PackManifest {
+  formatVersion: 1
+  name: string
+  author?: string
+  description?: string
+  
+  sprites: {
+    tiles: Record<string, string>    // TileTypeId name -> relative path
+    player?: {
+      idle?: string
+      run?: string
+      jump?: string
+    }
+    background?: string
+    ui?: Record<string, string>
+  }
+  
+  audio?: {
+    music?: string
+    sfx?: Record<string, string>     // 'jump' | 'coin' | 'death' | 'goal' -> path
+  }
+  
+  hitboxes?: string                  // Path to hitboxes.json (default: hitboxes/hitboxes.json)
+}
+```
+
+### Sprite Requirements
+
+| Asset Type | Recommended Size | Format |
+|------------|------------------|--------|
+| Tile sprites | 32x32 or 64x64 | PNG with alpha |
+| Player sprites | 32x48 or 64x96 | PNG with alpha |
+| Background | Level width x height px | PNG or JPG |
+| UI elements | Variable | PNG with alpha |
+
+**Guidelines:**
+- Use power-of-two dimensions for best rendering performance
+- Keep important details away from edges (hitbox may be smaller)
+- Transparent pixels = no collision (for auto-hitbox generation)
+
+### AssetStore Schema
+
+```typescript
+class AssetStore {
+  // Loaded sprite images
+  tileSprites: Map<TileTypeId, HTMLImageElement>
+  playerSprites: { idle?: HTMLImageElement, run?: HTMLImageElement, jump?: HTMLImageElement }
+  background?: HTMLImageElement
+  uiSprites: Map<string, HTMLImageElement>
+  
+  // Loaded audio
+  music?: string           // Blob URL
+  sfx: Map<string, string> // Blob URLs
+  
+  // Hitbox data
+  hitboxes: Map<string, Polygon>
+  
+  // Metadata
+  packName?: string
+  packAuthor?: string
+  
+  // Methods
+  loadFromZip(file: File): Promise<void>
+  clear(): void
+  hasCustomAssets(): boolean
+  getHitbox(key: string): Polygon | null
+}
+```
+
+### LevelPackService Interface
+
+```typescript
+class LevelPackService {
+  async createPack(level: LevelDefinition, assets: AssetStore): Promise<Blob>
+  async extractPack(file: File): Promise<{ level: LevelDefinition, manifest: PackManifest }>
+  validatePack(zip: JSZip): { valid: boolean, errors: string[] }
+}
+```
+
+---
+
+## Audio System
+
+### AudioService Interface
+
+```typescript
+class AudioService {
+  // Music control
+  private musicElement?: HTMLAudioElement
+  loadMusic(url: string): void
+  playMusic(loop?: boolean): void
+  pauseMusic(): void
+  stopMusic(): void
+  setMusicVolume(volume: number): void
+  
+  // SFX control
+  private sfxPool: Map<string, HTMLAudioElement[]>
+  loadSfx(name: string, url: string): void
+  playSfx(name: 'jump' | 'coin' | 'death' | 'goal'): void
+  setSfxVolume(volume: number): void
+  
+  // Global control
+  setMasterVolume(volume: number): void
+  mute(): void
+  unmute(): void
+}
+```
+
+### SFX Integration Points
+
+| Event | Trigger Location |
+|-------|------------------|
+| Jump | `PlayerStore.requestJump()` |
+| Coin collect | `LevelStore.collectCoin()` |
+| Death | `PlayerStore.die()` or `GameStore.onPlayerDeath()` |
+| Goal reached | `PhysicsService` or `RootStore.onLevelComplete()` |
+| Checkpoint | `PhysicsService` checkpoint detection |
 
 ---
 
