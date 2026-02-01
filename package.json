@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch",
     "new:level": "node scripts/new-level.js",
-    "validate:levels": "node scripts/validate-levels.js"
+    "validate:levels": "node scripts/validate-levels.js",
+    "viz:level": "npx tsx scripts/visualize-level.js"
   },
   "dependencies": {
     "firebase": "^12.8.0",

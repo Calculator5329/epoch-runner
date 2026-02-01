@@ -1,7 +1,6 @@
 import { TILE_SIZE } from '../core/constants'
 import type { CollisionShape, NormalizedPoint, NormalizedRect } from '../core/types/shapes'
 import { getTileType, isTileTypeSolid, isTileTypeHazard, isTileTypePickup, isTileTypePlatform } from '../core/types/shapes'
-import type { BoundingBox } from '../core/types'
 
 /**
  * CollisionUtils - Shape-based collision detection utilities

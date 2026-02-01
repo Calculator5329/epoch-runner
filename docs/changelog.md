@@ -2,6 +2,78 @@
 
 ## [Unreleased]
 
+### Session: 2026-02-01
+
+#### Added
+- **Level Visualizer script** (`npm run viz:level <level-id>`)
+  - Outputs ASCII grid representation of any level
+  - Shows all tile types with symbols (# solid, = platform, ^ spike, etc.)
+  - Marks player spawn with P
+  - Includes tile counts and vertical gap analysis
+  - Helps verify level layouts are physically possible
+- **Cursor rule: level-design-validation.mdc**
+  - Documents common level design mistakes and how to avoid them
+  - Physics constraints: single jump ~2 tiles, double jump ~4 tiles max
+  - Validation checklist for level changes
+  - Wall height math reference
+- **Cursor commands: /clean-logs, /document**
+  - `/clean-logs` - Find and remove debug console.log statements
+  - `/document` - Update all docs to reflect current codebase state
+
+#### Changed
+- **Level renaming**: Renumbered test levels for clearer progression
+  - `level_0_shapes` → `level_1_shapes` (Shape Shifter)
+  - `level_0_hazards` → `level_2_hazards` (Danger Zone)
+  - `level_0_coins` → `level_3_coins` (Coin Collector)
+  - `level_0_powerup` → `level_4_powerup` (Sky High)
+  - New `level_5_gauntlet` (The Gauntlet - all features combined)
+  - `level_0_basic` kept as tutorial level
+
+#### Fixed
+- **Critical**: Player could fall off the map and get stuck forever
+  - Added `checkBoundaries()` to PhysicsService
+  - Detects when player falls below level height (in pixels)
+  - Triggers `onPlayerDeath()` to respawn at checkpoint or start
+  - Follows same death flow as hazard collision
+- **Level 4 (Sky High)**: Tower section was impossible to complete
+  - Platform spacing was 5 tiles (320px), but max double-jump height is ~270px
+  - Reduced tower platform spacing to 4 tiles (256px), now achievable with good timing
+  - Added extra platform at row 16 for smoother climb
+  - Shortened left tower wall to allow ground-level entry (was blocking access)
+  - Shortened right tower wall to allow exit to goal (was trapping player at top)
+- **Level 5 (The Gauntlet)**: Multiple sections were impossible
+  - Hazard Corridor: Widened gap between walls (5→8 tiles), reduced spike coverage
+  - Hazard Corridor: Shortened walls to allow ground entry (was blocking row 18)
+  - Vertical Tower: Removed hazards blocking platform access, widened platforms
+  - Final Section: Adjusted to connect properly from tower exit
+
+### Session: 2026-01-31 (Part 2)
+
+#### Added
+- Admin level selector (press ` to toggle)
+  - Full-screen overlay showing all available levels
+  - Click to load, backtick or ESC to close
+  - Highlights current level
+  - Hover effect on menu items
+  - `GameStore.isAdminMenuOpen`, `toggleAdminMenu()`, `closeAdminMenu()`
+  - `CanvasRenderer.drawAdminMenu()`, `getLevelAtPosition()`, `updateHoverPosition()`
+- Cursor command: `/code-review` - Comprehensive code review with auto-fix for critical issues
+
+#### Fixed
+- **Critical**: Half blocks, slopes showing as green GOAL tiles
+  - `LevelStore.convertLegacyTile()` was incorrectly converting new TileTypeId values
+  - New levels (TileTypeId format) no longer go through legacy conversion
+  - Only legacy LevelData format levels are converted
+- **Physics**: Slope collision now properly calculates surface Y position
+  - Player no longer bounces oddly on triangular slopes
+  - Added `getSlopeSurfaceY()` helper for proper slope landing
+  - Supports SLOPE_UP_RIGHT, SLOPE_UP_LEFT, SLOPE_DOWN_RIGHT, SLOPE_DOWN_LEFT
+
+#### Changed
+- Level 1 (Shape Shifter): Replaced slopes/ramps with stairs (flat platforms)
+- Level 5 (Gauntlet): Replaced slope climb with stair steps
+- Triangle/slope shapes removed from gameplay until physics are refined
+
 ### Session: 2026-01-31
 
 #### Added

@@ -55,13 +55,20 @@ class GameLoopService {
     const deltaTime = Math.min((timestamp - this.lastTimestamp) / 1000, 0.1) // Cap at 100ms to prevent huge jumps
     this.lastTimestamp = timestamp
 
-    // Call the tick callback
+    // Call the tick callback with error handling to prevent loop crash
     if (this.tickCallback) {
-      this.tickCallback(deltaTime)
+      try {
+        this.tickCallback(deltaTime)
+      } catch (error) {
+        console.error('Error in game loop tick:', error)
+        // Continue running to allow recovery
+      }
     }
 
-    // Schedule next frame
-    this.animationFrameId = requestAnimationFrame(this.loop)
+    // Schedule next frame (only if still running)
+    if (this.isRunning) {
+      this.animationFrameId = requestAnimationFrame(this.loop)
+    }
   }
 }
 

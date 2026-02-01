@@ -27,7 +27,7 @@ export const PLAYER_HEIGHT = 56
 
 // Colors (MVP - will be replaced with sprites)
 export const COLORS = {
-  background: '#1a1a2e',
+  background: '#16213e',  // Same as empty to prevent seams
   empty: '#16213e',
   solid: '#4a5568',
   platform: '#9f7aea',

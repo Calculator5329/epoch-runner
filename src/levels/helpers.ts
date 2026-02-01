@@ -336,7 +336,8 @@ export function coinArc(startCol: number, peakRow: number, length: number, heigh
   
   for (let i = 0; i < length; i++) {
     const distFromMid = Math.abs(i - mid)
-    const rowOffset = Math.floor((distFromMid / mid) * height)
+    // Guard against division by zero when length <= 1
+    const rowOffset = mid > 0 ? Math.floor((distFromMid / mid) * height) : 0
     placements.push({
       col: startCol + i,
       row: peakRow + rowOffset,

@@ -60,11 +60,29 @@ export const GameCanvas = observer(function GameCanvas() {
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Backtick toggles admin menu
+      if (e.code === 'Backquote') {
+        e.preventDefault()
+        gameStore.toggleAdminMenu()
+        return
+      }
+      
+      // Escape closes admin menu or toggles pause
+      if (e.code === 'Escape') {
+        if (gameStore.isAdminMenuOpen) {
+          canvasRenderer.clearHover()
+          gameStore.closeAdminMenu()
+        } else {
+          gameStore.setPaused(!gameStore.isPaused)
+        }
+        return
+      }
+      
+      // Don't process other keys while admin menu is open
+      if (gameStore.isAdminMenuOpen) return
+      
       if (e.code === 'KeyR') {
         rootStore.reset()
-      }
-      if (e.code === 'Escape') {
-        gameStore.setPaused(!gameStore.isPaused)
       }
       // F3 reserved for debug mode (future)
       // L key to list available levels
@@ -87,6 +105,49 @@ export const GameCanvas = observer(function GameCanvas() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [rootStore, gameStore])
+
+  // Handle canvas click (for admin menu level selection)
+  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!gameStore.isAdminMenuOpen) return
+    
+    const canvas = canvasRef.current
+    if (!canvas) return
+    
+    // Get click position relative to canvas
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    const clickX = (e.clientX - rect.left) * scaleX
+    const clickY = (e.clientY - rect.top) * scaleY
+    
+    // Check if a level was clicked
+    const levelId = canvasRenderer.getLevelAtPosition(clickX, clickY)
+    if (levelId) {
+      canvasRenderer.clearHover()
+      rootStore.loadLevel(levelId)
+      gameStore.closeAdminMenu()
+    }
+  }, [rootStore, gameStore])
+
+  // Handle canvas mouse move (for admin menu hover effect)
+  const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!gameStore.isAdminMenuOpen) {
+      canvasRenderer.clearHover()
+      return
+    }
+    
+    const canvas = canvasRef.current
+    if (!canvas) return
+    
+    // Get mouse position relative to canvas
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    const mouseX = (e.clientX - rect.left) * scaleX
+    const mouseY = (e.clientY - rect.top) * scaleY
+    
+    canvasRenderer.updateHoverPosition(mouseX, mouseY)
+  }, [gameStore.isAdminMenuOpen])
 
   // Handle file import
   const handleFileImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,6 +218,8 @@ export const GameCanvas = observer(function GameCanvas() {
         ref={canvasRef}
         className="game-canvas"
         tabIndex={0}
+        onClick={handleCanvasClick}
+        onMouseMove={handleCanvasMouseMove}
       />
       <div className="game-info">
         <p className="level-name">
@@ -169,7 +232,7 @@ export const GameCanvas = observer(function GameCanvas() {
           <strong>Movement:</strong> Arrow keys or WASD | <strong>Jump:</strong> Space/Up
         </p>
         <p>
-          <strong>R:</strong> Restart | <strong>Esc:</strong> Pause | <strong>F3:</strong> Debug | <strong>Ctrl+S:</strong> Save | <strong>Ctrl+O:</strong> Load
+          <strong>R:</strong> Restart | <strong>Esc:</strong> Pause | <strong>`:</strong> Level Select | <strong>Ctrl+S:</strong> Save | <strong>Ctrl+O:</strong> Load
         </p>
       </div>
       <input

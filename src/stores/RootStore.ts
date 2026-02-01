@@ -134,6 +134,9 @@ export class RootStore {
       }
     }
     
+    // Reset level to restore collected coins/powerups
+    this.levelStore.resetToOriginal()
+    
     this.playerStore.respawn(spawnPos)
     
     // Center camera on spawn
