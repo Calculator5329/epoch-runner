@@ -139,7 +139,8 @@ export class RootStore {
       this.cameraStore,
       this.playerStore,
       this.gameStore,
-      this.entityStore
+      this.entityStore,
+      this.assetStore
     )
     
     if (success) {
@@ -161,7 +162,8 @@ export class RootStore {
       this.cameraStore,
       this.playerStore,
       this.gameStore,
-      this.entityStore
+      this.entityStore,
+      this.assetStore
     )
     
     if (success) {
@@ -175,15 +177,30 @@ export class RootStore {
 
   /**
    * Test a level from the editor - sets up all state for immediate play
+   * 
+   * Preserves custom assets (backgrounds, sprites) that were uploaded in the editor.
    */
   testEditorLevel(level: LevelDefinition): boolean {
     // Initialize campaign if not already done (needed for admin mode etc.)
     this.campaignStore.initCampaign(CAMPAIGN_LEVELS)
     
-    // Load the level
-    const success = this.loadLevelDefinition(level)
+    // Load the level with preserveCustomAssets=true to keep user-uploaded assets
+    const success = levelLoaderService.loadLevel(
+      level,
+      this.levelStore,
+      this.cameraStore,
+      this.playerStore,
+      this.gameStore,
+      this.entityStore,
+      this.assetStore,
+      true // preserveCustomAssets - keep uploaded backgrounds, sprites, etc.
+    )
     
     if (success) {
+      this.gameStore.initLevel(level.id, level.startingLives ?? 3)
+      // Custom editor levels get double jump by default
+      this.playerStore.setBaseMaxJumps(2)
+      
       // Set up for playing - this is the key: we're in playing state
       // with the editor level loaded, not the campaign's first level
       this.campaignStore.setScreenState('playing')
@@ -206,7 +223,8 @@ export class RootStore {
       this.cameraStore,
       this.playerStore,
       this.gameStore,
-      this.entityStore
+      this.entityStore,
+      this.assetStore
     )
     
     if (result.success) {

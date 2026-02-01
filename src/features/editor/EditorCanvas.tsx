@@ -519,10 +519,10 @@ export const EditorCanvas = observer(function EditorCanvas() {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    editorRenderer.draw(ctx, editorStore)
+    editorRenderer.draw(ctx, editorStore, assetStore)
 
     rafIdRef.current = requestAnimationFrame(render)
-  }, [editorStore])
+  }, [editorStore, assetStore])
 
   /**
    * Initialize canvas and start render loop

@@ -1,6 +1,7 @@
 import { TILE_SIZE, VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '../../core/constants'
 import { getTileType, TileTypeId, TILE_COLORS } from '../../core/types/shapes'
 import type { EditorStore } from '../../stores/EditorStore'
+import type { AssetStore } from '../../stores/AssetStore'
 import { calculateVisibleTileRange, drawTileShape } from './DrawingUtils'
 
 /**
@@ -28,14 +29,20 @@ export class EditorRenderer {
    */
   draw(
     ctx: CanvasRenderingContext2D,
-    editorStore: EditorStore
+    editorStore: EditorStore,
+    assetStore?: AssetStore
   ): void {
     // Clear canvas with editor background
     ctx.fillStyle = EDITOR_COLORS.background
     ctx.fillRect(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT)
 
+    // Draw custom background if available
+    if (assetStore?.background) {
+      this.drawBackground(ctx, editorStore, assetStore.background)
+    }
+
     // Draw tiles
-    this.drawTiles(ctx, editorStore)
+    this.drawTiles(ctx, editorStore, assetStore)
 
     // Draw grid lines
     this.drawGridLines(ctx, editorStore)
@@ -46,7 +53,7 @@ export class EditorRenderer {
     // Draw hover highlight and cursor preview
     if (editorStore.hoveredTile) {
       this.drawHoverHighlight(ctx, editorStore)
-      this.drawCursorPreview(ctx, editorStore)
+      this.drawCursorPreview(ctx, editorStore, assetStore)
     }
 
     // Draw toolbar/info bar
@@ -54,11 +61,44 @@ export class EditorRenderer {
   }
 
   /**
+   * Draw custom background with parallax effect
+   */
+  private drawBackground(
+    ctx: CanvasRenderingContext2D,
+    editor: EditorStore,
+    background: HTMLImageElement
+  ): void {
+    const parallaxFactor = 0.5
+    const offsetX = -editor.cameraX * parallaxFactor
+    const offsetY = -editor.cameraY * parallaxFactor
+
+    // Tile the background if smaller than viewport
+    const imgWidth = background.width
+    const imgHeight = background.height
+
+    // Calculate starting position with proper wrapping
+    const startX = Math.floor(offsetX / imgWidth) * imgWidth
+    const startY = Math.floor(offsetY / imgHeight) * imgHeight
+
+    // Draw tiled background
+    for (let y = startY; y < VIEWPORT_HEIGHT - offsetY + imgHeight; y += imgHeight) {
+      for (let x = startX; x < VIEWPORT_WIDTH - offsetX + imgWidth; x += imgWidth) {
+        ctx.drawImage(
+          background,
+          x + (offsetX % imgWidth),
+          y + (offsetY % imgHeight)
+        )
+      }
+    }
+  }
+
+  /**
    * Draw all tiles in the level
    */
   private drawTiles(
     ctx: CanvasRenderingContext2D,
-    editor: EditorStore
+    editor: EditorStore,
+    assetStore?: AssetStore
   ): void {
     // Calculate visible tile range using shared utility
     const { startCol, endCol, startRow, endRow } = calculateVisibleTileRange(
@@ -78,16 +118,37 @@ export class EditorRenderer {
         const screenX = Math.round(worldX - editor.cameraX)
         const screenY = Math.round(worldY - editor.cameraY)
 
-        // Draw empty tile background
-        ctx.fillStyle = TILE_COLORS.empty
-        ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE)
+        // Draw empty tile background (only if no custom background)
+        if (!assetStore?.background) {
+          ctx.fillStyle = TILE_COLORS.empty
+          ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE)
+        }
 
-        // Draw tile shape if not empty using shared utility
+        // Draw tile shape if not empty
         if (tileId !== TileTypeId.EMPTY) {
-          drawTileShape(ctx, tileType.collision, tileType.color, screenX, screenY)
+          // Check for custom sprite first
+          const customSprite = assetStore?.getTileSprite(tileId)
+          if (customSprite) {
+            this.drawTileSprite(ctx, customSprite, screenX, screenY)
+          } else {
+            // Fall back to procedural rendering
+            drawTileShape(ctx, tileType.collision, tileType.color, screenX, screenY)
+          }
         }
       }
     }
+  }
+
+  /**
+   * Draw a custom tile sprite
+   */
+  private drawTileSprite(
+    ctx: CanvasRenderingContext2D,
+    sprite: HTMLImageElement,
+    screenX: number,
+    screenY: number
+  ): void {
+    ctx.drawImage(sprite, screenX, screenY, TILE_SIZE, TILE_SIZE)
   }
 
   /**
@@ -199,7 +260,8 @@ export class EditorRenderer {
    */
   private drawCursorPreview(
     ctx: CanvasRenderingContext2D,
-    editor: EditorStore
+    editor: EditorStore,
+    assetStore?: AssetStore
   ): void {
     if (!editor.hoveredTile) return
     if (editor.tool === 'eyedropper') return
@@ -223,10 +285,19 @@ export class EditorRenderer {
       previewTileId = editor.selectedTileType
     }
 
-    // Draw semi-transparent preview using shared utility
-    const tileType = getTileType(previewTileId)
+    // Draw semi-transparent preview
     ctx.globalAlpha = 0.5
-    drawTileShape(ctx, tileType.collision, tileType.color, screenX, screenY)
+    
+    // Check for custom sprite first
+    const customSprite = assetStore?.getTileSprite(previewTileId)
+    if (customSprite) {
+      this.drawTileSprite(ctx, customSprite, screenX, screenY)
+    } else {
+      // Fall back to procedural rendering
+      const tileType = getTileType(previewTileId)
+      drawTileShape(ctx, tileType.collision, tileType.color, screenX, screenY)
+    }
+    
     ctx.globalAlpha = 1
   }
 

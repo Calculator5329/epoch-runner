@@ -5,17 +5,45 @@ import { TileTypeId, getTileType } from '../../core/types/shapes'
 import { audioService } from '../../services/AudioService'
 
 /**
- * Common tile types that users are most likely to customize
+ * Tile groups for organized customization
  */
-const CUSTOMIZABLE_TILES: TileTypeId[] = [
-  TileTypeId.SOLID_FULL,
-  TileTypeId.PLATFORM_FULL,
-  TileTypeId.HAZARD_FULL,
-  TileTypeId.HAZARD_SPIKE_UP,
-  TileTypeId.COIN,
-  TileTypeId.POWERUP_TRIPLE_JUMP,
-  TileTypeId.GOAL,
-  TileTypeId.CHECKPOINT,
+interface TileGroup {
+  name: string
+  tiles: TileTypeId[]
+}
+
+/**
+ * Organized tile groups for sprite customization
+ */
+const TILE_GROUPS: TileGroup[] = [
+  {
+    name: 'Base Tiles',
+    tiles: [
+      TileTypeId.SOLID_FULL,
+      TileTypeId.PLATFORM_FULL,
+      TileTypeId.HAZARD_FULL,
+      TileTypeId.HAZARD_SPIKE_UP,
+      TileTypeId.COIN,
+      TileTypeId.POWERUP_TRIPLE_JUMP,
+      TileTypeId.GOAL,
+      TileTypeId.CHECKPOINT,
+    ],
+  },
+  {
+    name: 'Materials',
+    tiles: [
+      TileTypeId.SOLID_BRICK,
+      TileTypeId.SOLID_STONE,
+      TileTypeId.SOLID_METAL,
+      TileTypeId.SOLID_WOOD,
+      TileTypeId.SOLID_ICE,
+      TileTypeId.SOLID_GRASS,
+      TileTypeId.SOLID_SAND,
+      TileTypeId.SOLID_DIRT,
+      TileTypeId.SOLID_CRYSTAL,
+      TileTypeId.SOLID_LAVA_ROCK,
+    ],
+  },
 ]
 
 /**
@@ -226,52 +254,57 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
         {expandedSection === 'tiles' && (
           <div className="section-content">
             <p className="section-hint">Upload PNG images (32x32 or 64x64 recommended)</p>
-            <div className="asset-grid">
-              {CUSTOMIZABLE_TILES.map((tileTypeId) => {
-                const tileType = getTileType(tileTypeId)
-                const hasSprite = assetStore.hasTileSprite(tileTypeId)
-                const sprite = assetStore.getTileSprite(tileTypeId)
-                
-                return (
-                  <div key={tileTypeId} className="asset-item">
-                    <div
-                      className={`asset-preview ${hasSprite ? 'has-asset' : ''}`}
-                      style={{
-                        backgroundColor: hasSprite ? 'transparent' : tileType.color,
-                      }}
-                      onClick={() => {
-                        const ref = tileInputRefs.current.get(tileTypeId)
-                        ref?.click()
-                      }}
-                    >
-                      {sprite && (
-                        <img src={sprite.src} alt={tileType.name} className="sprite-preview" />
-                      )}
-                      {!hasSprite && <span className="upload-icon">+</span>}
-                    </div>
-                    <span className="asset-label">{tileType.name}</span>
-                    {hasSprite && (
-                      <button
-                        className="asset-clear"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          clearTileSprite(tileTypeId)
-                        }}
-                      >
-                        ✕
-                      </button>
-                    )}
-                    <input
-                      ref={(el) => { if (el) tileInputRefs.current.set(tileTypeId, el) }}
-                      type="file"
-                      accept="image/png,image/jpeg"
-                      onChange={(e) => handleTileSpriteUpload(tileTypeId, e)}
-                      style={{ display: 'none' }}
-                    />
-                  </div>
-                )
-              })}
-            </div>
+            {TILE_GROUPS.map((group) => (
+              <div key={group.name} className="tile-group">
+                <h4 className="tile-group-header">{group.name}</h4>
+                <div className="asset-grid">
+                  {group.tiles.map((tileTypeId) => {
+                    const tileType = getTileType(tileTypeId)
+                    const hasSprite = assetStore.hasTileSprite(tileTypeId)
+                    const sprite = assetStore.getTileSprite(tileTypeId)
+                    
+                    return (
+                      <div key={tileTypeId} className="asset-item">
+                        <div
+                          className={`asset-preview ${hasSprite ? 'has-asset' : ''}`}
+                          style={{
+                            backgroundColor: hasSprite ? 'transparent' : tileType.color,
+                          }}
+                          onClick={() => {
+                            const ref = tileInputRefs.current.get(tileTypeId)
+                            ref?.click()
+                          }}
+                        >
+                          {sprite && (
+                            <img src={sprite.src} alt={tileType.name} className="sprite-preview" />
+                          )}
+                          {!hasSprite && <span className="upload-icon">+</span>}
+                        </div>
+                        <span className="asset-label">{tileType.name}</span>
+                        {hasSprite && (
+                          <button
+                            className="asset-clear"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              clearTileSprite(tileTypeId)
+                            }}
+                          >
+                            ✕
+                          </button>
+                        )}
+                        <input
+                          ref={(el) => { if (el) tileInputRefs.current.set(tileTypeId, el) }}
+                          type="file"
+                          accept="image/png,image/jpeg"
+                          onChange={(e) => handleTileSpriteUpload(tileTypeId, e)}
+                          style={{ display: 'none' }}
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

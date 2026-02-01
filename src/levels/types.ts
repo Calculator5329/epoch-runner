@@ -52,6 +52,17 @@ export interface LevelDefinition {
   
   // Optional: Theme ID for visual styling (future)
   themeId?: string
+  
+  // Optional: Background image URL (relative to public/)
+  backgroundUrl?: string
+  
+  // Optional: Player sprite URLs (relative to public/)
+  playerSprites?: {
+    idle?: string
+    run1?: string
+    run2?: string
+    jump?: string
+  }
 }
 
 /**
@@ -83,6 +94,13 @@ export interface LevelJSON {
   startingLives?: number
   parTime?: number
   themeId?: string
+  backgroundUrl?: string
+  playerSprites?: {
+    idle?: string
+    run1?: string
+    run2?: string
+    jump?: string
+  }
 }
 
 /**
@@ -106,6 +124,8 @@ export function levelToJSON(level: LevelDefinition): LevelJSON {
     startingLives: level.startingLives,
     parTime: level.parTime,
     themeId: level.themeId,
+    backgroundUrl: level.backgroundUrl,
+    playerSprites: level.playerSprites,
   }
 }
 
@@ -130,6 +150,8 @@ export function jsonToLevel(json: LevelJSON): LevelDefinition {
     startingLives: json.startingLives,
     parTime: json.parTime,
     themeId: json.themeId,
+    backgroundUrl: json.backgroundUrl,
+    playerSprites: json.playerSprites,
   }
 }
 

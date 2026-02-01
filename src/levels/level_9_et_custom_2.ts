@@ -17,6 +17,13 @@ export const level_9_et_custom_2: LevelDefinition = {
   playerSpawn: { col: 2, row: 2 },
   startingLives: 3,
   parTime: 180,
+  backgroundUrl: '/backgrounds/level_9_abyss.png',
+  playerSprites: {
+    idle: '/sprites/player/idle.png',
+    run1: '/sprites/player/run1.png',
+    run2: '/sprites/player/run2.png',
+    jump: '/sprites/player/jump.png',
+  },
   collision: [
     [0,0,0,0,0,0,1,60,60,60,60,60,60,60,60,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,60,60,60,60,60,60,60,60,60,60,60,60,60,1,0,0,0,0,0,0,0,0,0,0,0,0],
     [0,0,0,0,0,0,1,80,80,50,50,50,50,51,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,50,50,1,1,0,0,0,0,0,0,0,0,0,0,0,0],

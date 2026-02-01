@@ -467,6 +467,24 @@
   grid-template-columns: repeat(3, 1fr);
 }
 
+/* Tile Groups */
+.tile-group {
+  margin-bottom: 16px;
+}
+
+.tile-group:last-child {
+  margin-bottom: 0;
+}
+
+.tile-group-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: #a0aec0;
+  margin: 0 0 8px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #2d3748;
+}
+
 .asset-item {
   display: flex;
   flex-direction: column;
