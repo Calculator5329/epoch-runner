@@ -6,6 +6,7 @@ import { LevelStore } from './LevelStore'
 import { CameraStore } from './CameraStore'
 import { CampaignStore } from './CampaignStore'
 import { UIStore } from './UIStore'
+import { EditorStore } from './EditorStore'
 import { levelLoaderService } from '../services/LevelLoaderService'
 import { CAMPAIGN_LEVELS, hasDoubleJumpUnlocked } from '../levels'
 import type { LevelDefinition } from '../levels/types'
@@ -24,6 +25,7 @@ export class RootStore {
   cameraStore: CameraStore
   campaignStore: CampaignStore
   uiStore: UIStore
+  editorStore: EditorStore
 
   constructor() {
     this.gameStore = new GameStore()
@@ -32,6 +34,7 @@ export class RootStore {
     this.cameraStore = new CameraStore()
     this.campaignStore = new CampaignStore()
     this.uiStore = new UIStore()
+    this.editorStore = new EditorStore()
   }
 
   /**
@@ -302,4 +305,8 @@ export function useCampaignStore(): CampaignStore {
 
 export function useUIStore(): UIStore {
   return useRootStore().uiStore
+}
+
+export function useEditorStore(): EditorStore {
+  return useRootStore().editorStore
 }

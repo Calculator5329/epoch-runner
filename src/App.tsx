@@ -1,10 +1,14 @@
 import { observer } from 'mobx-react-lite'
 import { GameCanvas } from './features/game/GameCanvas'
-import { RootStoreProvider, rootStore } from './stores/RootStore'
+import { EditorCanvas } from './features/editor'
+import { RootStoreProvider, rootStore, useEditorStore } from './stores/RootStore'
 import './App.css'
 
 const AppContent = observer(function AppContent() {
   const showHeader = false
+  const editorStore = useEditorStore()
+  const isEditorMode = editorStore.mode === 'editor'
+
   return (
     <div className="app">
       {showHeader && (
@@ -14,7 +18,7 @@ const AppContent = observer(function AppContent() {
         </header>
       )}
       <main className="app-main">
-        <GameCanvas />
+        {isEditorMode ? <EditorCanvas /> : <GameCanvas />}
       </main>
     </div>
   )

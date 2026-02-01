@@ -14,6 +14,8 @@ export { CampaignStore } from './CampaignStore'
 export type { ScreenState, SessionStats, LevelStats } from './CampaignStore'
 export { UIStore } from './UIStore'
 export type { Bounds, AdminMenuBounds, RoadmapPhaseBounds } from './UIStore'
+export { EditorStore } from './EditorStore'
+export type { EditorTool, AppMode } from './EditorStore'
 
 // Root store and hooks
 export { 
@@ -27,4 +29,5 @@ export {
   useCameraStore,
   useCampaignStore,
   useUIStore,
+  useEditorStore,
 } from './RootStore'

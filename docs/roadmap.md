@@ -122,7 +122,7 @@ Goal: Single hardcoded level with player movement, collision, and win state.
   - [x] Basic player movement (left, right, jump)
 
 ## Phase 2: Level Builder (Admin/Code)
-*Priority: High*
+*Priority: High - Core Implemented*
 
 - [ ] **JSON Schema Definition**
   - [ ] Level manifest schema (metadata, layers, entities)
@@ -130,11 +130,19 @@ Goal: Single hardcoded level with player movement, collision, and win state.
   - [ ] Entity schema (spawn points, enemies, collectibles)
   - [ ] Theme schema (spritesheet mapping, color palettes)
 
-- [ ] **Builder React UI**
-  - [ ] Grid canvas with tile painting
-  - [ ] Layer toggle (collision, background, entity)
-  - [ ] Tile palette from loaded spritesheet
-  - [ ] JSON export/import functionality
+- [x] **Builder React UI**
+  - [x] EditorStore with mode, tool, grid state, undo/redo
+  - [x] Grid canvas with tile painting (click and drag)
+  - [x] Tile palette organized by category (Solid, Platform, Hazard, Pickup, Trigger)
+  - [x] Tool modes: Paint, Erase, Fill, Eyedropper, Spawn placement
+  - [x] JSON export/import functionality (Ctrl+S/Ctrl+O)
+  - [x] Camera panning for large levels
+  - [x] Grid overlay with level bounds
+  - [x] Keyboard shortcuts for tools (P/X/F/I/S)
+  - [x] Undo/Redo system (Ctrl+Z/Ctrl+Y)
+  - [x] Test level in-game (T key)
+  - [x] Mode toggle from game (E key, admin only)
+  - [ ] Layer toggle (collision, background, entity) - future
 
 - [ ] **Firebase Integration**
   - [ ] Set up Firebase project and Realtime DB

@@ -92,3 +92,200 @@
 .game-controls strong {
   color: #e2e8f0;
 }
+
+/* ============================================
+   Editor Styles
+   ============================================ */
+
+.editor-container {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.editor-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.editor-canvas {
+  border: 3px solid #4a5568;
+  border-radius: 8px;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  cursor: crosshair;
+}
+
+.editor-canvas:focus {
+  outline: none;
+  border-color: #48bb78;
+  box-shadow: 0 0 40px rgba(72, 187, 120, 0.3);
+}
+
+.editor-controls {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  color: #a0aec0;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+.editor-controls p {
+  margin: 2px 0;
+}
+
+.editor-controls strong {
+  color: #e2e8f0;
+}
+
+/* Tile Palette */
+
+.tile-palette {
+  background: rgba(26, 26, 46, 0.95);
+  border: 2px solid #4a5568;
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 180px;
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+}
+
+.palette-section {
+  margin-bottom: 16px;
+}
+
+.palette-section:last-child {
+  margin-bottom: 0;
+}
+
+.palette-section h3 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #a0aec0;
+  margin: 0 0 8px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tool-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tool-button {
+  padding: 6px 10px;
+  font-size: 0.7rem;
+  background: #2d3748;
+  color: #e2e8f0;
+  border: 1px solid #4a5568;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tool-button:hover {
+  background: #4a5568;
+  border-color: #718096;
+}
+
+.tool-button.active {
+  background: #48bb78;
+  border-color: #38a169;
+  color: #1a1a2e;
+  font-weight: 600;
+}
+
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.tile-button {
+  width: 36px;
+  height: 36px;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.tile-button:hover {
+  border-color: #718096;
+  transform: scale(1.1);
+}
+
+.tile-button.selected {
+  border-color: #48bb78;
+  box-shadow: 0 0 8px rgba(72, 187, 120, 0.5);
+}
+
+.tile-preview {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.selection-info {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.selected-tile-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.selected-tile-preview {
+  width: 32px;
+  height: 32px;
+  border: 2px solid #48bb78;
+  border-radius: 4px;
+}
+
+.selected-tile-name {
+  font-size: 0.8rem;
+  color: #e2e8f0;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.action-button {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 0.7rem;
+  background: #2d3748;
+  color: #e2e8f0;
+  border: 1px solid #4a5568;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.action-button:hover:not(:disabled) {
+  background: #4a5568;
+  border-color: #718096;
+}
+
+.action-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

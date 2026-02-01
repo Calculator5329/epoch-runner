@@ -2,6 +2,76 @@
 
 ## [Unreleased]
 
+### Session: 2026-02-01 (Part 7) - Level Builder
+
+#### Added: In-Game Level Editor
+
+A full-featured level editor accessible from game mode (press E key while in admin mode).
+
+**New Files Created:**
+- `src/stores/EditorStore.ts` - MobX store for editor state
+  - Mode switching (game/editor)
+  - Tool management (paint, erase, fill, eyedropper, spawn)
+  - Grid state with working collision array
+  - Full undo/redo system (50 entry limit)
+  - Level metadata (id, name, dimensions)
+  - Camera panning for large levels
+- `src/services/renderers/EditorRenderer.ts` - Canvas rendering for editor
+  - Grid lines with 5-tile markers
+  - Tile rendering with collision shapes
+  - Hover highlight and cursor preview
+  - Player spawn marker (green "P")
+  - Level bounds indicator (dashed red)
+  - Info bar with tool/tile/position display
+- `src/features/editor/EditorCanvas.tsx` - Main editor component
+  - Mouse handling (click, drag, hover)
+  - Screen-to-grid coordinate conversion
+  - Keyboard shortcuts for all tools
+  - JSON import/export (Ctrl+O/Ctrl+S)
+  - New level creation (Ctrl+N)
+  - Test level in-game (T key)
+- `src/features/editor/TilePalette.tsx` - Tile selection panel
+  - Organized by category: Solid, Platform, Hazard, Pickup, Trigger
+  - Visual tile preview with colors
+  - Tool buttons with keyboard hints
+  - Selected tile indicator
+  - Undo/redo buttons
+
+**Tools Available:**
+| Tool | Key | Function |
+|------|-----|----------|
+| Paint | P | Place selected tile |
+| Erase | X | Remove tile (set to EMPTY) |
+| Fill | F | Flood fill from click point |
+| Eyedropper | I | Pick tile under cursor |
+| Spawn | S | Set player spawn position |
+
+**Keyboard Shortcuts:**
+| Key | Action |
+|-----|--------|
+| E / Esc | Exit editor, return to game |
+| 1-9 | Quick tile selection |
+| Ctrl+Z | Undo |
+| Ctrl+Y | Redo |
+| Ctrl+S | Export level as JSON |
+| Ctrl+O | Import level from JSON |
+| Ctrl+N | New level (prompts for dimensions) |
+| T | Test current level in game |
+| Arrow keys | Pan camera |
+
+**Integration:**
+- `App.tsx` conditionally renders EditorCanvas or GameCanvas based on `editorStore.mode`
+- `GameCanvas.tsx` has E key handler to enter editor (admin mode only)
+- `LevelStore.toLevelDefinition()` method exports current level for editor
+- `RootStore` includes EditorStore instance
+- `useEditorStore()` convenience hook added
+
+#### Changed
+- Updated `roadmap.md` with completed Builder React UI items
+- Added editor CSS styles to `App.css`
+
+---
+
 ### Session: 2026-02-01 (Part 6) - Jump System Overhaul
 
 #### Changed: Progressive Jump Unlocks
