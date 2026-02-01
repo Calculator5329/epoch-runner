@@ -2,6 +2,69 @@
 
 A modular 2D platformer engine where game logic is entirely decoupled from level design. Build once, design infinitely.
 
+## Quick Start
+
+```bash
+# Clone and install
+git clone <repo-url>
+cd epoch-runner
+npm install
+
+# Run the game
+npm run dev
+```
+
+Open http://localhost:5173 in your browser. You'll see the test level - use **Arrow Keys** or **WASD** to move and **Space** to jump. Reach the green goal tile to complete the level.
+
+### Controls
+
+| Key | Action |
+|-----|--------|
+| Arrow Left / A | Move left |
+| Arrow Right / D | Move right |
+| Space / W / Arrow Up | Jump |
+| R | Restart level |
+| P | Pause |
+| Ctrl+S | Export level to JSON |
+| Ctrl+O | Import level from JSON |
+
+---
+
+## Developer Commands
+
+### NPM Scripts
+
+```bash
+npm run dev              # Start dev server
+npm run build            # Production build
+npm run typecheck        # Type check without building
+npm run typecheck:watch  # Watch mode for type errors
+
+# Level tools
+npm run new:level <name>    # Generate new level file
+npm run validate:levels     # Validate all registered levels
+```
+
+**Example - create a new level:**
+```bash
+npm run new:level cave_escape
+```
+This creates `src/levels/cave_escape.ts` with boilerplate. Then register it in `src/levels/index.ts`.
+
+### Cursor Slash Commands
+
+Type `/` in Cursor chat to access these:
+
+| Command | What it does |
+|---------|--------------|
+| `/new-level` | Interactive level creation wizard |
+| `/level-helpers` | Quick reference for level building functions |
+| `/add-platform` | Guided platform/obstacle placement |
+| `/explain-physics` | Physics system documentation |
+| `/debug-collision` | Troubleshooting guide for collision bugs |
+
+---
+
 ## Vision
 
 Epoch Runner prioritizes **Level Builder architecture**, shifting development from "coding levels" to "designing levels." The narrative, **The Chronological Odyssey**, leverages this modularity to transition players from primitive eras to deep-space sci-fi through visual "Epoch-Hopping."
@@ -47,21 +110,9 @@ src/
 │   ├── game/             # Canvas game loop, player controller
 │   ├── editor/           # Level Builder UI
 │   └── campaign/         # Overworld, level selection
+├── levels/               # Level definitions and helpers
 ├── components/           # Shared React components
 └── assets/               # Spritesheets, audio, fonts
-```
-
-## Getting Started
-
-```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
 ```
 
 ## Documentation
