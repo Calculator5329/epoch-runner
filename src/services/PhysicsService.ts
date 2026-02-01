@@ -13,6 +13,12 @@ import {
 import type { PlayerStore } from '../stores/PlayerStore'
 import type { LevelStore } from '../stores/LevelStore'
 import type { GameStore } from '../stores/GameStore'
+import type { EntityStore } from '../stores/EntityStore'
+import type { Entity } from '../core/types/entities'
+import { getEntityDefinition } from '../core/types/entities'
+
+/** Bounce velocity when stomping an enemy */
+const STOMP_BOUNCE_VELOCITY = -300
 
 /**
  * PhysicsService - Stateless physics and collision logic
@@ -24,13 +30,15 @@ class PhysicsService {
   /**
    * Main physics update - called once per frame
    * @param input - Optional input state for noclip vertical movement
+   * @param entityStore - Optional entity store for enemy collisions
    */
   update(
     deltaTime: number,
     playerStore: PlayerStore,
     levelStore: LevelStore,
     gameStore: GameStore,
-    input?: InputState
+    input?: InputState,
+    entityStore?: EntityStore
   ): void {
     // Don't update if game is paused, complete, or game over
     if (gameStore.isPaused || gameStore.levelComplete || gameStore.isGameOver) {
@@ -79,6 +87,11 @@ class PhysicsService {
 
     // Check for hazard collision
     this.checkHazards(playerStore, levelStore, gameStore)
+
+    // Check for entity collision (enemies)
+    if (entityStore) {
+      this.checkEntityCollisions(playerStore, gameStore, entityStore)
+    }
 
     // Check for falling off the map
     this.checkBoundaries(playerStore, levelStore, gameStore)
@@ -384,6 +397,111 @@ class PhysicsService {
       } else if (trigger.tileId === TileTypeId.CHECKPOINT) {
         game.setCheckpoint(trigger.col, trigger.row)
       }
+    }
+  }
+
+  /**
+   * Check for collisions between player and entities (enemies)
+   * Handles stomp kills and damage to player
+   */
+  private checkEntityCollisions(
+    player: PlayerStore,
+    game: GameStore,
+    entityStore: EntityStore
+  ): void {
+    // Skip in god mode
+    if (game.isGodMode) return
+
+    const playerAABB = this.createPlayerAABB(player, player.x, player.y)
+    const enemies = entityStore.getActiveEnemies()
+
+    for (const enemy of enemies) {
+      // Check AABB overlap
+      if (!this.aabbOverlap(playerAABB, enemy)) continue
+
+      // Determine if this is a stomp (player landing on enemy from above)
+      const isStomping = this.isStompingEnemy(player, enemy)
+
+      if (isStomping) {
+        // Stomp the enemy - kill it and bounce player
+        this.stompEnemy(player, enemy, entityStore)
+      } else {
+        // Player takes damage
+        this.damageFromEnemy(player, enemy, game)
+      }
+    }
+  }
+
+  /**
+   * Check if two AABBs overlap
+   */
+  private aabbOverlap(a: AABB, b: { x: number; y: number; width: number; height: number }): boolean {
+    return (
+      a.x < b.x + b.width &&
+      a.x + a.width > b.x &&
+      a.y < b.y + b.height &&
+      a.y + a.height > b.y
+    )
+  }
+
+  /**
+   * Check if player is stomping an enemy (landing on it from above)
+   * Stomp conditions:
+   * - Player is falling (vy > 0)
+   * - Player's bottom is near the enemy's top (within threshold)
+   */
+  private isStompingEnemy(player: PlayerStore, enemy: Entity): boolean {
+    // Must be falling (or at least not rising)
+    if (player.vy < 0) return false
+
+    // Player's bottom edge
+    const playerBottom = player.y + player.height
+    // Enemy's top edge
+    const enemyTop = enemy.y
+    // How much overlap is allowed to count as a stomp
+    const stompThreshold = enemy.height * 0.4
+
+    // Player's bottom should be near the enemy's top
+    // (within the threshold from above)
+    return playerBottom <= enemyTop + stompThreshold && playerBottom > enemyTop - 10
+  }
+
+  /**
+   * Handle stomping an enemy
+   */
+  private stompEnemy(
+    player: PlayerStore,
+    enemy: Entity,
+    entityStore: EntityStore
+  ): void {
+    // Reduce enemy health
+    enemy.health -= 1
+
+    if (enemy.health <= 0) {
+      // Enemy dies
+      entityStore.despawn(enemy.id)
+    }
+
+    // Bounce the player up
+    player.vy = STOMP_BOUNCE_VELOCITY
+    player.isGrounded = false
+  }
+
+  /**
+   * Handle player taking damage from enemy
+   */
+  private damageFromEnemy(
+    player: PlayerStore,
+    enemy: Entity,
+    game: GameStore
+  ): void {
+    const definition = getEntityDefinition(enemy.definitionId)
+    const damage = definition?.damage ?? 1
+
+    // For now, any enemy contact kills the player (like spikes)
+    // In future, could implement knockback + invincibility frames
+    if (damage > 0) {
+      game.onPlayerDeath()
     }
   }
 }

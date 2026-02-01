@@ -71,29 +71,24 @@ export const level_4_powerup = createLevel(
     tripleJump(38, 18),
     
     // Tower walls (shortened for entry and exit)
-    wall(39, 2, 15),   // rows 2-16, leaves rows 17-18 open for entry
-    wall(47, 6, 13),   // rows 6-18, leaves rows 2-5 open for exit
+    // Note: Platform spacing needs 3+ tiles for player clearance (~1.4 tiles tall)
+    wall(39, 2, 13),   // rows 2-14, leaves rows 15-18 open for entry
+    wall(47, 6, 10),   // rows 6-15, leaves rows 2-5 open for exit
     
-    // Tower platforms (~2-tile steps = single jump between each)
+    // Tower platforms (3-tile gaps = safe clearance for 1.4-tile player)
     platform(40, 17, 5),
     coin(42, 16),
     
-    platform(40, 15, 5),
-    coin(42, 14),
+    platform(40, 14, 5),  // 3-tile gap from row 17
+    coin(42, 13),
     
-    platform(40, 13, 5),
-    coin(42, 12),
-    
-    platform(40, 11, 5),
+    platform(40, 11, 5),  // 3-tile gap from row 14
     coin(42, 10),
     
-    platform(40, 9, 5),
-    coin(42, 8),
+    platform(40, 8, 5),   // 3-tile gap from row 11
+    coin(42, 7),
     
-    platform(40, 7, 5),
-    coin(42, 6),
-    
-    platform(40, 5, 5),
+    platform(40, 5, 5),   // 3-tile gap from row 8
     coin(42, 4),
     
     // Exit from tower

@@ -8,6 +8,7 @@ import { CampaignStore } from './CampaignStore'
 import { UIStore } from './UIStore'
 import { EditorStore } from './EditorStore'
 import { AssetStore } from './AssetStore'
+import { EntityStore } from './EntityStore'
 import { levelLoaderService } from '../services/LevelLoaderService'
 import { audioService } from '../services/AudioService'
 import { CAMPAIGN_LEVELS, hasDoubleJumpUnlocked } from '../levels'
@@ -29,6 +30,7 @@ export class RootStore {
   uiStore: UIStore
   editorStore: EditorStore
   assetStore: AssetStore
+  entityStore: EntityStore
 
   constructor() {
     this.gameStore = new GameStore()
@@ -39,6 +41,7 @@ export class RootStore {
     this.uiStore = new UIStore()
     this.editorStore = new EditorStore()
     this.assetStore = new AssetStore()
+    this.entityStore = new EntityStore()
   }
 
   /**
@@ -135,7 +138,8 @@ export class RootStore {
       this.levelStore,
       this.cameraStore,
       this.playerStore,
-      this.gameStore
+      this.gameStore,
+      this.entityStore
     )
     
     if (success) {
@@ -156,7 +160,8 @@ export class RootStore {
       this.levelStore,
       this.cameraStore,
       this.playerStore,
-      this.gameStore
+      this.gameStore,
+      this.entityStore
     )
     
     if (success) {
@@ -200,7 +205,8 @@ export class RootStore {
       this.levelStore,
       this.cameraStore,
       this.playerStore,
-      this.gameStore
+      this.gameStore,
+      this.entityStore
     )
     
     if (result.success) {
@@ -247,6 +253,9 @@ export class RootStore {
     // Reset level to restore collected coins/powerups
     this.levelStore.resetToOriginal()
     
+    // Reset entities to original positions
+    this.entityStore.reset()
+    
     this.playerStore.respawn(spawnPos)
     
     // Center camera on spawn
@@ -263,6 +272,7 @@ export class RootStore {
   reset(): void {
     this.gameStore.reset()
     this.levelStore.resetToOriginal()
+    this.entityStore.reset()
     this.playerStore.reset(this.levelStore.playerSpawn)
     
     // Reset camera to player spawn
@@ -374,4 +384,8 @@ export function useEditorStore(): EditorStore {
 
 export function useAssetStore(): AssetStore {
   return useRootStore().assetStore
+}
+
+export function useEntityStore(): EntityStore {
+  return useRootStore().entityStore
 }

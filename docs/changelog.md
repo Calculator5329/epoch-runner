@@ -2,6 +2,103 @@
 
 ## [Unreleased]
 
+### Session: 2026-02-01 - Enemy System Implementation
+
+#### Added: Level 7 - Enemy Territory
+
+Created a dedicated level to introduce enemies instead of adding them to existing levels.
+
+**New Level:**
+- `src/levels/level_7_enemies.ts` - "Enemy Territory"
+- Teaches stomp mechanic progressively
+- Section 1: Single easy enemy to practice on
+- Section 2: Two enemies with opposite patrol directions
+- Section 3: Elevated enemy introduces multi-height combat
+- Section 4: Final gauntlet to the goal
+
+#### Fixed: Level Clearance Issues
+
+Player is ~1.4 tiles tall and needs 2+ tile gaps to pass through.
+
+**Level 4 (Sky High):**
+- Tower platforms were 2 rows apart (1-tile gap) - player couldn't fit
+- Fixed: Platforms now 3 rows apart (rows 17, 14, 11, 8, 5)
+- Adjusted walls to match new platform positions
+
+**Level 5 (The Gauntlet):**
+- Hazard corridor had tight 2-row gaps
+- Vertical challenge had insufficient spacing
+- Fixed: All platforms now have 3-tile vertical gaps
+
+#### Added: Entity System for Enemies
+
+Implemented a complete enemy system with patrol enemies that walk back and forth, stomp-to-kill mechanic, and player damage on contact.
+
+**New Files:**
+- `src/core/types/entities.ts` - Entity interfaces and definitions
+  - `Entity` interface for runtime instances
+  - `EntityDefinition` for static templates
+  - `EntitySpawn` for level placement
+  - `ENEMY_PATROL` and `ENEMY_STATIC` definitions
+- `src/stores/EntityStore.ts` - MobX store for entity management
+  - Spawn/despawn entities
+  - Load entities from level definition
+  - Reset for respawn/restart
+- `src/services/EntityService.ts` - Entity update logic
+  - Patrol AI (walk until wall/ledge, then turn)
+  - Gravity for ground enemies
+  - Direction-based movement
+
+**Modified Files:**
+- `src/stores/RootStore.ts` - Added EntityStore instance
+- `src/features/game/GameCanvas.tsx` - Added entity update in game loop
+- `src/services/PhysicsService.ts` - Added player-enemy collision
+  - Stomp detection (player falling + landing on top)
+  - Damage on side/bottom contact
+  - Bounce after stomp
+- `src/services/renderers/GameplayRenderer.ts` - Draw entities
+  - Colored rectangle rendering (MVP)
+  - Face with eyes showing direction
+- `src/services/renderers/CanvasRenderer.ts` - Pass entityStore to renderer
+- `src/levels/types.ts` - Added entities to LevelDefinition/LevelJSON
+- `src/services/LevelLoaderService.ts` - Load entities from level data
+- `src/levels/helpers.ts` - Added entity helper functions
+  - `patrolEnemy()`, `staticEnemy()`, `entities()`
+- `src/levels/level_2_hazards.ts` - Added patrol enemies for testing
+- `src/docs/roadmap.md` - Added Phase 8: Advanced Gameplay Features
+
+**Enemy Behavior:**
+- Patrol enemies walk back and forth on platforms
+- Turn around when hitting walls or reaching ledges
+- Can be stomped from above (player gets bounce)
+- Damage player on side or bottom contact
+- Respawn on level restart or player death
+
+**Future Enemy Types (documented in roadmap):**
+- Flying enemies (aerial patrol)
+- Jumping enemies (periodic hops)
+- Shooting enemies (projectiles)
+- Boss enemies (multi-hit)
+
+---
+
+### Session: 2026-02-01 - Level Editor Improvements
+
+#### Fixed: Editor Level Testing Flow
+
+- Editor now properly tests the level being built, not level 1
+- Added `isTestingLevel` flag to track editor test mode
+- Level is preserved when returning from test (E key)
+- Added validation before testing (requires spawn + goal)
+
+#### Added: Running Animation Support
+
+- Added `run1` and `run2` sprite slots for animated running
+- Animation frames alternate at 10 FPS when player runs
+- Falls back to single `run` sprite if animation not provided
+
+---
+
 ### Session: 2026-02-01 - Simplify Hitbox System
 
 #### Changes: Reverted Complex Hitbox System

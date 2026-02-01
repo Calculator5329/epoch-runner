@@ -313,15 +313,55 @@ Allow level packs to customize game behavior without code changes.
 
 ---
 
+## Phase 8: Advanced Gameplay Features (Future)
+*Priority: Medium*
+
+Additional gameplay mechanics to enhance level variety.
+
+- [ ] **Enemy System** *(Core Implemented)*
+  - [x] EntityStore and EntityService for managing entities
+  - [x] Patrol enemy - walks back and forth on platforms
+  - [x] Stomp-to-kill mechanic (land on enemy from above)
+  - [x] Player damage on side/bottom contact
+  - [x] Entity spawns in level definitions
+  - [ ] Flying enemy - aerial patrol patterns
+  - [ ] Jumping enemy - hops periodically
+  - [ ] Shooting enemy - fires projectiles
+  - [ ] Boss enemy - multi-hit health bar
+
+- [ ] **Moving Platforms**
+  - [ ] Horizontal mover - slides left/right between points
+  - [ ] Vertical mover - rises/falls between points
+  - [ ] Circular path - follows curved trajectory
+  - [ ] Player sticks to platform while riding
+  - [ ] Platform spawn definitions in level
+
+- [ ] **Switches & Doors**
+  - [ ] Pressure plate - activates when stood on
+  - [ ] Toggle switch - clicked to change state
+  - [ ] Timed switch - activates for limited duration
+  - [ ] Door/gate - blocks path until triggered
+  - [ ] Linked objects - switch controls multiple doors
+  - [ ] Visual feedback for active/inactive states
+
+- [ ] **Additional Powerups**
+  - [ ] Speed boost - temporary movement speed increase
+  - [ ] Invincibility - temporary immunity to damage
+  - [ ] Shield - blocks one hit then disappears
+  - [ ] Magnet - attracts nearby coins
+  - [ ] Slow fall - reduced gravity for easier platforming
+
+---
+
 ## Out of Scope (Phase 1)
 
 These features are architecturally supported but deferred:
 
 - Custom particle editors
-- Complex logic wiring (switches, gates)
-- Advanced enemy AI scripting
+- Advanced enemy AI scripting (pathfinding, player-seeking)
 - Multiplayer/co-op
 - Mobile touch controls
+- Procedural level generation
 
 ---
 

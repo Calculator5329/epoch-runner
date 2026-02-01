@@ -6,6 +6,9 @@ import type { LevelStore } from '../../stores/LevelStore'
 import type { GameStore } from '../../stores/GameStore'
 import type { CameraStore } from '../../stores/CameraStore'
 import type { AssetStore } from '../../stores/AssetStore'
+import type { EntityStore } from '../../stores/EntityStore'
+import type { Entity } from '../../core/types/entities'
+import { getEntityDefinition } from '../../core/types/entities'
 
 /**
  * GameplayRenderer - Renders core gameplay elements
@@ -23,7 +26,8 @@ export class GameplayRenderer {
     playerStore: PlayerStore,
     gameStore: GameStore,
     cameraStore: CameraStore,
-    assetStore?: AssetStore
+    assetStore?: AssetStore,
+    entityStore?: EntityStore
   ): void {
     // Clear canvas with background color
     ctx.fillStyle = COLORS.background
@@ -36,6 +40,11 @@ export class GameplayRenderer {
 
     // Draw tiles (with camera offset, only visible tiles)
     this.drawTiles(ctx, levelStore, cameraStore, assetStore)
+
+    // Draw entities (enemies, etc.)
+    if (entityStore) {
+      this.drawEntities(ctx, entityStore, cameraStore)
+    }
 
     // Draw player (with camera offset)
     this.drawPlayer(ctx, playerStore, cameraStore, assetStore)
@@ -185,6 +194,95 @@ export class GameplayRenderer {
     }
 
     ctx.closePath()
+    ctx.fill()
+  }
+
+  // ============================================
+  // Entity Rendering
+  // ============================================
+
+  /**
+   * Draw all active entities
+   */
+  private drawEntities(
+    ctx: CanvasRenderingContext2D,
+    entityStore: EntityStore,
+    camera: CameraStore
+  ): void {
+    const entities = entityStore.getActive()
+    
+    for (const entity of entities) {
+      this.drawEntity(ctx, entity, camera)
+    }
+  }
+
+  /**
+   * Draw a single entity
+   */
+  private drawEntity(
+    ctx: CanvasRenderingContext2D,
+    entity: Entity,
+    camera: CameraStore
+  ): void {
+    // Convert world position to screen position
+    const screenX = Math.round(entity.x - camera.x)
+    const screenY = Math.round(entity.y - camera.y)
+
+    // Skip if off-screen
+    if (
+      screenX + entity.width < 0 ||
+      screenX > VIEWPORT_WIDTH ||
+      screenY + entity.height < 0 ||
+      screenY > VIEWPORT_HEIGHT
+    ) {
+      return
+    }
+
+    // Get entity definition for color
+    const definition = getEntityDefinition(entity.definitionId)
+    const color = definition?.color || '#e53e3e'
+
+    // Draw entity as colored rectangle (MVP rendering)
+    ctx.fillStyle = color
+    ctx.fillRect(screenX, screenY, entity.width, entity.height)
+
+    // Draw eyes to indicate direction
+    this.drawEntityFace(ctx, entity, screenX, screenY)
+  }
+
+  /**
+   * Draw enemy face (eyes) to show direction
+   */
+  private drawEntityFace(
+    ctx: CanvasRenderingContext2D,
+    entity: Entity,
+    screenX: number,
+    screenY: number
+  ): void {
+    const eyeRadius = 4
+    const eyeOffsetY = entity.height * 0.3
+    const eyeSpacing = entity.width * 0.25
+
+    // Eye positions based on facing direction
+    const centerX = screenX + entity.width / 2
+    const eyeY = screenY + eyeOffsetY
+
+    // Shift eyes in the direction of movement
+    const directionOffset = entity.direction === 'right' ? 4 : -4
+    
+    // Draw eye whites
+    ctx.fillStyle = '#ffffff'
+    ctx.beginPath()
+    ctx.arc(centerX - eyeSpacing + directionOffset, eyeY, eyeRadius, 0, Math.PI * 2)
+    ctx.arc(centerX + eyeSpacing + directionOffset, eyeY, eyeRadius, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Draw pupils (offset in direction of movement)
+    const pupilOffset = entity.direction === 'right' ? 1.5 : -1.5
+    ctx.fillStyle = '#000000'
+    ctx.beginPath()
+    ctx.arc(centerX - eyeSpacing + directionOffset + pupilOffset, eyeY, eyeRadius * 0.5, 0, Math.PI * 2)
+    ctx.arc(centerX + eyeSpacing + directionOffset + pupilOffset, eyeY, eyeRadius * 0.5, 0, Math.PI * 2)
     ctx.fill()
   }
 
