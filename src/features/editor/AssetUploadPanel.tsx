@@ -2,6 +2,7 @@ import { useRef, useCallback, useState } from 'react'
 import { observer } from 'mobx-react-lite'
 import { useAssetStore } from '../../stores/RootStore'
 import { TileTypeId, getTileType } from '../../core/types/shapes'
+import { ENTITY_DEFINITIONS, type EntityDefinition } from '../../core/types/entities'
 import { audioService } from '../../services/AudioService'
 
 /**
@@ -24,7 +25,20 @@ const TILE_GROUPS: TileGroup[] = [
       TileTypeId.HAZARD_FULL,
       TileTypeId.HAZARD_SPIKE_UP,
       TileTypeId.COIN,
+    ],
+  },
+  {
+    name: 'Power-ups',
+    tiles: [
       TileTypeId.POWERUP_TRIPLE_JUMP,
+      TileTypeId.POWERUP_SPEED,
+      TileTypeId.POWERUP_SUPER_JUMP,
+      TileTypeId.POWERUP_INVINCIBILITY,
+    ],
+  },
+  {
+    name: 'Triggers',
+    tiles: [
       TileTypeId.GOAL,
       TileTypeId.CHECKPOINT,
     ],
@@ -47,6 +61,11 @@ const TILE_GROUPS: TileGroup[] = [
 ]
 
 /**
+ * Entity definitions for sprite customization
+ */
+const ENTITY_LIST: EntityDefinition[] = Object.values(ENTITY_DEFINITIONS)
+
+/**
  * SFX names that can be customized
  */
 const SFX_NAMES = ['jump', 'coin', 'death', 'goal', 'checkpoint'] as const
@@ -66,6 +85,7 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
   
   // File input refs
   const tileInputRefs = useRef<Map<TileTypeId, HTMLInputElement>>(new Map())
+  const entityInputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
   const playerIdleRef = useRef<HTMLInputElement>(null)
   const playerRunRef = useRef<HTMLInputElement>(null)
   const playerRun1Ref = useRef<HTMLInputElement>(null)
@@ -97,6 +117,27 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
       assetStore.addTileSprite(tileTypeId, image)
     } catch (error) {
       console.error('Failed to load tile sprite:', error)
+      alert('Failed to load image. Please use PNG or JPG format.')
+    }
+    
+    e.target.value = ''
+  }, [assetStore])
+
+  /**
+   * Handle entity sprite upload
+   */
+  const handleEntitySpriteUpload = useCallback(async (
+    definitionId: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      const image = await loadImageFromFile(file)
+      assetStore.addEntitySprite(definitionId, image)
+    } catch (error) {
+      console.error('Failed to load entity sprite:', error)
       alert('Failed to load image. Please use PNG or JPG format.')
     }
     
@@ -187,7 +228,14 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
    * Clear a tile sprite
    */
   const clearTileSprite = useCallback((tileTypeId: TileTypeId) => {
-    assetStore.tileSprites.delete(tileTypeId)
+    assetStore.removeTileSprite(tileTypeId)
+  }, [assetStore])
+
+  /**
+   * Clear an entity sprite
+   */
+  const clearEntitySprite = useCallback((definitionId: string) => {
+    assetStore.removeEntitySprite(definitionId)
   }, [assetStore])
 
   /**
@@ -305,6 +353,67 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Entity Sprites Section */}
+      <div className="asset-section">
+        <button
+          className="section-header"
+          onClick={() => toggleSection('entities')}
+        >
+          <span>Entity Sprites</span>
+          <span className="section-toggle">{expandedSection === 'entities' ? '▼' : '▶'}</span>
+        </button>
+        {expandedSection === 'entities' && (
+          <div className="section-content">
+            <p className="section-hint">Upload PNG images for enemies (48x48 recommended)</p>
+            <div className="asset-grid entity-asset-grid">
+              {ENTITY_LIST.map((entity) => {
+                const hasSprite = assetStore.hasEntitySprite(entity.id)
+                const sprite = assetStore.getEntitySprite(entity.id)
+                
+                return (
+                  <div key={entity.id} className="asset-item entity-asset-item">
+                    <div
+                      className={`asset-preview entity-preview-box ${hasSprite ? 'has-asset' : ''}`}
+                      style={{
+                        backgroundColor: hasSprite ? 'transparent' : entity.color,
+                      }}
+                      onClick={() => {
+                        const ref = entityInputRefs.current.get(entity.id)
+                        ref?.click()
+                      }}
+                    >
+                      {sprite && (
+                        <img src={sprite.src} alt={entity.displayName} className="sprite-preview" />
+                      )}
+                      {!hasSprite && <span className="upload-icon">+</span>}
+                    </div>
+                    <span className="asset-label">{entity.displayName}</span>
+                    {hasSprite && (
+                      <button
+                        className="asset-clear"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          clearEntitySprite(entity.id)
+                        }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                    <input
+                      ref={(el) => { if (el) entityInputRefs.current.set(entity.id, el) }}
+                      type="file"
+                      accept="image/png,image/jpeg"
+                      onChange={(e) => handleEntitySpriteUpload(entity.id, e)}
+                      style={{ display: 'none' }}
+                    />
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
       </div>
@@ -595,6 +704,7 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
           <span className="summary-label">Loaded:</span>
           <span className="summary-count">
             {assetStore.tileSprites.size} tiles,{' '}
+            {assetStore.entitySprites.size} entities,{' '}
             {Object.keys(assetStore.playerSprites).length} player,{' '}
             {assetStore.background ? '1 bg' : '0 bg'},{' '}
             {assetStore.sfx.size + (assetStore.music ? 1 : 0)} audio

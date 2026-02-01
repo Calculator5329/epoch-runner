@@ -1,7 +1,8 @@
 import { TILE_SIZE, VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '../../core/constants'
 import { getTileType, TileTypeId, TILE_COLORS } from '../../core/types/shapes'
-import type { EditorStore } from '../../stores/EditorStore'
+import type { EditorStore, EditorEntitySpawn } from '../../stores/EditorStore'
 import type { AssetStore } from '../../stores/AssetStore'
+import { getEntityDefinition, ENTITY_DEFINITIONS } from '../../core/types/entities'
 import { calculateVisibleTileRange, drawTileShape } from './DrawingUtils'
 
 /**
@@ -15,6 +16,8 @@ const EDITOR_COLORS = {
   cursorPreview: 'rgba(255, 255, 255, 0.5)',
   spawnMarker: '#00ff88',
   spawnMarkerBorder: '#00cc66',
+  entitySelected: '#f6ad55',
+  entityHover: '#fbd38d',
 } as const
 
 /**
@@ -49,6 +52,9 @@ export class EditorRenderer {
 
     // Draw player spawn marker
     this.drawSpawnMarker(ctx, editorStore)
+
+    // Draw entity spawns
+    this.drawEntitySpawns(ctx, editorStore, assetStore)
 
     // Draw hover highlight and cursor preview
     if (editorStore.hoveredTile) {
@@ -127,7 +133,7 @@ export class EditorRenderer {
         // Draw tile shape if not empty
         if (tileId !== TileTypeId.EMPTY) {
           // Check for custom sprite first
-          const customSprite = assetStore?.getTileSprite(tileId)
+          const customSprite = assetStore?.getTileSprite(tileId as TileTypeId)
           if (customSprite) {
             this.drawTileSprite(ctx, customSprite, screenX, screenY)
           } else {
@@ -238,6 +244,93 @@ export class EditorRenderer {
   }
 
   /**
+   * Draw entity spawns on the level
+   */
+  private drawEntitySpawns(
+    ctx: CanvasRenderingContext2D,
+    editor: EditorStore,
+    assetStore?: AssetStore
+  ): void {
+    for (const entitySpawn of editor.entitySpawns) {
+      this.drawEntityMarker(ctx, editor, entitySpawn, assetStore)
+    }
+  }
+
+  /**
+   * Draw a single entity marker
+   */
+  private drawEntityMarker(
+    ctx: CanvasRenderingContext2D,
+    editor: EditorStore,
+    entitySpawn: EditorEntitySpawn,
+    assetStore?: AssetStore
+  ): void {
+    const { col, row } = entitySpawn.position
+    const definition = getEntityDefinition(entitySpawn.definitionId)
+    if (!definition) return
+
+    const screenX = Math.round(col * TILE_SIZE - editor.cameraX)
+    const screenY = Math.round(row * TILE_SIZE - editor.cameraY)
+    const isSelected = editor.selectedEntityId === entitySpawn.editorId
+
+    // Check for custom sprite
+    const customSprite = assetStore?.getEntitySprite(entitySpawn.definitionId)
+
+    // Draw entity background
+    if (customSprite) {
+      ctx.drawImage(customSprite, screenX, screenY, TILE_SIZE, TILE_SIZE)
+    } else {
+      // Procedural rendering - colored rectangle with simple face
+      ctx.fillStyle = definition.color
+      ctx.fillRect(screenX + 4, screenY + 4, TILE_SIZE - 8, TILE_SIZE - 8)
+      
+      // Draw simple "eyes" to indicate direction
+      ctx.fillStyle = '#ffffff'
+      const eyeY = screenY + TILE_SIZE / 2 - 4
+      const eyeSize = 6
+      const direction = entitySpawn.properties?.startDirection || 'right'
+      
+      if (direction === 'right') {
+        ctx.fillRect(screenX + TILE_SIZE - 18, eyeY, eyeSize, eyeSize)
+        ctx.fillRect(screenX + TILE_SIZE - 28, eyeY, eyeSize, eyeSize)
+      } else {
+        ctx.fillRect(screenX + 12, eyeY, eyeSize, eyeSize)
+        ctx.fillRect(screenX + 22, eyeY, eyeSize, eyeSize)
+      }
+    }
+
+    // Draw selection highlight
+    if (isSelected) {
+      ctx.strokeStyle = EDITOR_COLORS.entitySelected
+      ctx.lineWidth = 3
+      ctx.strokeRect(screenX + 2, screenY + 2, TILE_SIZE - 4, TILE_SIZE - 4)
+      
+      // Draw corner handles
+      const handleSize = 6
+      ctx.fillStyle = EDITOR_COLORS.entitySelected
+      // Top-left
+      ctx.fillRect(screenX - 2, screenY - 2, handleSize, handleSize)
+      // Top-right
+      ctx.fillRect(screenX + TILE_SIZE - 4, screenY - 2, handleSize, handleSize)
+      // Bottom-left
+      ctx.fillRect(screenX - 2, screenY + TILE_SIZE - 4, handleSize, handleSize)
+      // Bottom-right
+      ctx.fillRect(screenX + TILE_SIZE - 4, screenY + TILE_SIZE - 4, handleSize, handleSize)
+    }
+
+    // Draw entity type label
+    ctx.fillStyle = '#ffffff'
+    ctx.font = 'bold 10px Arial'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'bottom'
+    ctx.fillText(
+      definition.type === 'enemy_patrol' ? 'P' : 'S',
+      screenX + TILE_SIZE / 2,
+      screenY + TILE_SIZE - 2
+    )
+  }
+
+  /**
    * Draw hover highlight
    */
   private drawHoverHighlight(
@@ -269,6 +362,35 @@ export class EditorRenderer {
     const { col, row } = editor.hoveredTile
     const screenX = Math.round(col * TILE_SIZE - editor.cameraX)
     const screenY = Math.round(row * TILE_SIZE - editor.cameraY)
+
+    // Handle entity tool preview
+    if (editor.tool === 'entity') {
+      // Check if there's already an entity at this position
+      const existingEntity = editor.getEntityAt(col, row)
+      if (existingEntity) {
+        // Show hover highlight on existing entity
+        ctx.strokeStyle = EDITOR_COLORS.entityHover
+        ctx.lineWidth = 2
+        ctx.strokeRect(screenX + 2, screenY + 2, TILE_SIZE - 4, TILE_SIZE - 4)
+      } else if (editor.selectedEntityType) {
+        // Show preview of entity to be placed
+        const definition = getEntityDefinition(editor.selectedEntityType)
+        if (definition) {
+          ctx.globalAlpha = 0.5
+          
+          const customSprite = assetStore?.getEntitySprite(definition.id)
+          if (customSprite) {
+            ctx.drawImage(customSprite, screenX, screenY, TILE_SIZE, TILE_SIZE)
+          } else {
+            ctx.fillStyle = definition.color
+            ctx.fillRect(screenX + 4, screenY + 4, TILE_SIZE - 8, TILE_SIZE - 8)
+          }
+          
+          ctx.globalAlpha = 1
+        }
+      }
+      return
+    }
 
     // Determine what tile would be placed
     let previewTileId: TileTypeId
@@ -333,6 +455,7 @@ export class EditorRenderer {
       fill: 'Fill',
       eyedropper: 'Eyedropper',
       spawn: 'Set Spawn',
+      entity: 'Entity',
     }
     ctx.textAlign = 'center'
     ctx.fillText(
@@ -341,13 +464,22 @@ export class EditorRenderer {
       barHeight / 2
     )
 
-    // Selected tile
-    const selectedTile = getTileType(editor.selectedTileType)
-    ctx.fillText(
-      `Tile: ${selectedTile.name}`,
-      VIEWPORT_WIDTH / 2 + 100,
-      barHeight / 2
-    )
+    // Selected tile or entity
+    if (editor.tool === 'entity' && editor.selectedEntityType) {
+      const entityDef = ENTITY_DEFINITIONS[editor.selectedEntityType]
+      ctx.fillText(
+        `Entity: ${entityDef?.displayName || editor.selectedEntityType}`,
+        VIEWPORT_WIDTH / 2 + 100,
+        barHeight / 2
+      )
+    } else {
+      const selectedTile = getTileType(editor.selectedTileType)
+      ctx.fillText(
+        `Tile: ${selectedTile.name}`,
+        VIEWPORT_WIDTH / 2 + 100,
+        barHeight / 2
+      )
+    }
 
     // Cursor position
     ctx.textAlign = 'right'

@@ -53,7 +53,7 @@ export class GameplayRenderer {
 
     // Draw entities (enemies, etc.)
     if (entityStore) {
-      this.drawEntities(ctx, entityStore, cameraStore)
+      this.drawEntities(ctx, entityStore, cameraStore, assetStore)
     }
 
     // Draw player (with camera offset)
@@ -163,12 +163,13 @@ export class GameplayRenderer {
   private drawEntities(
     ctx: CanvasRenderingContext2D,
     entityStore: EntityStore,
-    camera: CameraStore
+    camera: CameraStore,
+    assetStore?: AssetStore
   ): void {
     const entities = entityStore.getActive()
     
     for (const entity of entities) {
-      this.drawEntity(ctx, entity, camera)
+      this.drawEntity(ctx, entity, camera, assetStore)
     }
   }
 
@@ -178,7 +179,8 @@ export class GameplayRenderer {
   private drawEntity(
     ctx: CanvasRenderingContext2D,
     entity: Entity,
-    camera: CameraStore
+    camera: CameraStore,
+    assetStore?: AssetStore
   ): void {
     // Convert world position to screen position
     const screenX = Math.round(entity.x - camera.x)
@@ -194,16 +196,33 @@ export class GameplayRenderer {
       return
     }
 
-    // Get entity definition for color
-    const definition = getEntityDefinition(entity.definitionId)
-    const color = definition?.color || '#e53e3e'
+    // Check for custom sprite
+    const customSprite = assetStore?.getEntitySprite(entity.definitionId)
+    
+    if (customSprite) {
+      // Draw custom sprite with horizontal flip if facing left
+      ctx.save()
+      if (entity.direction === 'left') {
+        ctx.translate(screenX + entity.width, screenY)
+        ctx.scale(-1, 1)
+        ctx.drawImage(customSprite, 0, 0, entity.width, entity.height)
+      } else {
+        ctx.drawImage(customSprite, screenX, screenY, entity.width, entity.height)
+      }
+      ctx.restore()
+    } else {
+      // Fall back to procedural rendering
+      // Get entity definition for color
+      const definition = getEntityDefinition(entity.definitionId)
+      const color = definition?.color || '#e53e3e'
 
-    // Draw entity as colored rectangle (MVP rendering)
-    ctx.fillStyle = color
-    ctx.fillRect(screenX, screenY, entity.width, entity.height)
+      // Draw entity as colored rectangle (MVP rendering)
+      ctx.fillStyle = color
+      ctx.fillRect(screenX, screenY, entity.width, entity.height)
 
-    // Draw eyes to indicate direction
-    this.drawEntityFace(ctx, entity, screenX, screenY)
+      // Draw eyes to indicate direction
+      this.drawEntityFace(ctx, entity, screenX, screenY)
+    }
   }
 
   /**

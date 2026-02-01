@@ -70,6 +70,9 @@ const TILE_CATEGORIES: TileCategory[] = [
     tiles: [
       TileTypeId.COIN,
       TileTypeId.POWERUP_TRIPLE_JUMP,
+      TileTypeId.POWERUP_SPEED,
+      TileTypeId.POWERUP_SUPER_JUMP,
+      TileTypeId.POWERUP_INVINCIBILITY,
     ],
   },
   {
@@ -96,6 +99,7 @@ const TOOLS: ToolDef[] = [
   { id: 'fill', name: 'Fill', shortcut: 'F' },
   { id: 'eyedropper', name: 'Pick', shortcut: 'I' },
   { id: 'spawn', name: 'Spawn', shortcut: 'S' },
+  { id: 'entity', name: 'Entity', shortcut: 'N' },
 ]
 
 /**

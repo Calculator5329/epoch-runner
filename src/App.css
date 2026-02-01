@@ -300,6 +300,134 @@
   color: #e2e8f0;
 }
 
+.action-button.danger {
+  background: #e53e3e;
+  border-color: #c53030;
+  color: white;
+}
+
+.action-button.danger:hover:not(:disabled) {
+  background: #c53030;
+}
+
+/* Entity Palette */
+
+.entity-palette {
+  background: rgba(26, 26, 46, 0.95);
+  border: 2px solid #4a5568;
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 180px;
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+}
+
+.entity-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.entity-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background: #2d3748;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.entity-button:hover {
+  background: #4a5568;
+  border-color: #718096;
+}
+
+.entity-button.selected {
+  border-color: #f6ad55;
+  background: #4a5568;
+  box-shadow: 0 0 8px rgba(246, 173, 85, 0.4);
+}
+
+.entity-preview {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.entity-name {
+  font-size: 0.75rem;
+  color: #e2e8f0;
+}
+
+.selected-entity-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.selected-entity-preview {
+  width: 40px;
+  height: 40px;
+  border: 2px solid #f6ad55;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.selected-entity-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.entity-detail-name {
+  font-size: 0.8rem;
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.entity-detail-type {
+  font-size: 0.65rem;
+  color: #718096;
+}
+
+.entity-instance-info {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 10px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.entity-instance-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #a0aec0;
+}
+
+.entity-instance-row span:last-child {
+  color: #e2e8f0;
+}
+
+.entity-instructions {
+  font-size: 0.7rem;
+  color: #718096;
+  line-height: 1.6;
+}
+
+.entity-instructions p {
+  margin: 4px 0;
+}
+
 /* Level Size Controls */
 
 .level-size-info {
@@ -465,6 +593,22 @@
 
 .asset-grid.player-grid {
   grid-template-columns: repeat(3, 1fr);
+}
+
+.asset-grid.entity-asset-grid {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.entity-asset-item {
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+}
+
+.entity-preview-box {
+  width: 48px;
+  height: 48px;
 }
 
 /* Tile Groups */

@@ -45,6 +45,7 @@ class LevelPackService {
     level: LevelDefinition,
     assets: {
       tileSprites?: Map<TileTypeId, Blob>
+      entitySprites?: Map<string, Blob>
       playerSprites?: { idle?: Blob; run?: Blob; run1?: Blob; run2?: Blob; jump?: Blob }
       background?: Blob
       uiSprites?: Map<string, Blob>
@@ -84,6 +85,16 @@ class LevelPackService {
           zip.file(filename, blob)
           manifest.sprites.tiles[tileType.name] = filename
         }
+      }
+    }
+
+    // Add entity sprites
+    if (assets.entitySprites) {
+      manifest.sprites.entities = {}
+      for (const [entityId, blob] of assets.entitySprites) {
+        const filename = `sprites/entities/${entityId}.png`
+        zip.file(filename, blob)
+        manifest.sprites.entities[entityId] = filename
       }
     }
 
@@ -302,6 +313,7 @@ class LevelPackService {
   private async loadAssets(zip: JSZip, manifest: PackManifest): Promise<LoadedAssets> {
     const assets: LoadedAssets = {
       tileSprites: new Map(),
+      entitySprites: new Map(),
       playerSprites: {},
       uiSprites: new Map(),
       sfx: new Map(),
@@ -321,6 +333,18 @@ class LevelPackService {
           if (tileTypeId !== undefined) {
             assets.tileSprites.set(tileTypeId, image)
           }
+        }
+      }
+    }
+
+    // Load entity sprites
+    if (manifest.sprites?.entities) {
+      for (const [entityId, path] of Object.entries(manifest.sprites.entities)) {
+        const file = zip.file(path)
+        if (file) {
+          const blob = await file.async('blob')
+          const image = await this.loadImage(blob)
+          assets.entitySprites.set(entityId, image)
         }
       }
     }

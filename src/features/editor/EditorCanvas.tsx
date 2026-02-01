@@ -7,6 +7,7 @@ import { TILE_SIZE, VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '../../core/constants
 import { TileTypeId } from '../../core/types'
 import { levelToJSON } from '../../levels/types'
 import { TilePalette } from './TilePalette'
+import { EntityPalette } from './EntityPalette'
 import { AssetUploadPanel } from './AssetUploadPanel'
 import type { LevelJSON } from '../../levels/types'
 
@@ -36,6 +37,7 @@ export const EditorCanvas = observer(function EditorCanvas() {
 
   // Count of loaded assets for badge display
   const assetCount = assetStore.tileSprites.size + 
+    assetStore.entitySprites.size +
     Object.keys(assetStore.playerSprites).length + 
     (assetStore.background ? 1 : 0) + 
     assetStore.sfx.size + 
@@ -89,6 +91,19 @@ export const EditorCanvas = observer(function EditorCanvas() {
       case 'spawn':
         if (!isDrag) {
           editorStore.setPlayerSpawn(col, row)
+        }
+        break
+      case 'entity':
+        if (!isDrag) {
+          // Check if clicking on existing entity
+          const existingEntity = editorStore.getEntityAt(col, row)
+          if (existingEntity) {
+            // Select the entity
+            editorStore.selectEntity(existingEntity.editorId)
+          } else if (editorStore.selectedEntityType) {
+            // Place new entity
+            editorStore.addEntity(col, row, editorStore.selectedEntityType)
+          }
         }
         break
     }
@@ -205,6 +220,24 @@ export const EditorCanvas = observer(function EditorCanvas() {
       if (e.code === 'KeyS' && !e.ctrlKey) {
         e.preventDefault()
         editorStore.setTool('spawn')
+      }
+      if (e.code === 'KeyN' && !e.ctrlKey) {
+        e.preventDefault()
+        editorStore.setTool('entity')
+      }
+
+      // Delete selected entity
+      if (e.code === 'Delete' || e.code === 'Backspace') {
+        if (editorStore.selectedEntityId) {
+          e.preventDefault()
+          editorStore.removeSelectedEntity()
+        }
+      }
+
+      // Deselect entity with Escape
+      if (e.code === 'Escape' && editorStore.selectedEntityId) {
+        editorStore.selectEntity(null)
+        return // Don't exit editor if just deselecting
       }
 
       // Undo/Redo
@@ -385,6 +418,11 @@ export const EditorCanvas = observer(function EditorCanvas() {
           height: json.height,
           playerSpawn: json.playerSpawn,
           collision: json.collision,
+          entities: json.entities?.map(e => ({
+            definitionId: e.definitionId,
+            position: { col: e.position.col, row: e.position.row },
+            properties: e.properties,
+          })),
           description: json.description,
           author: json.author,
           startingLives: json.startingLives,
@@ -413,6 +451,13 @@ export const EditorCanvas = observer(function EditorCanvas() {
     for (const [tileId, img] of assetStore.tileSprites) {
       const blob = await imageToBlob(img)
       if (blob) tileSprites.set(tileId, blob)
+    }
+
+    // Collect entity sprites
+    const entitySprites = new Map<string, Blob>()
+    for (const [entityId, img] of assetStore.entitySprites) {
+      const blob = await imageToBlob(img)
+      if (blob) entitySprites.set(entityId, blob)
     }
 
     const playerSprites: { idle?: Blob; run?: Blob; jump?: Blob } = {}
@@ -457,6 +502,7 @@ export const EditorCanvas = observer(function EditorCanvas() {
         level,
         {
           tileSprites: tileSprites.size > 0 ? tileSprites : undefined,
+          entitySprites: entitySprites.size > 0 ? entitySprites : undefined,
           playerSprites: Object.keys(playerSprites).length > 0 ? playerSprites : undefined,
           background,
           music,
@@ -619,12 +665,13 @@ export const EditorCanvas = observer(function EditorCanvas() {
         />
       </div>
       <TilePalette />
+      <EntityPalette />
       <div className="editor-controls">
         <p>
-          <strong>Tools:</strong> P=Paint, X=Erase, F=Fill, I=Eyedropper, S=Spawn
+          <strong>Tools:</strong> P=Paint, X=Erase, F=Fill, I=Eyedropper, S=Spawn, N=Entity
         </p>
         <p>
-          <strong>Edit:</strong> Ctrl+Z/Y | <strong>Navigate:</strong> Arrows | <strong>Test:</strong> T | <strong>Exit:</strong> E/Esc | <strong>Assets:</strong> A
+          <strong>Edit:</strong> Ctrl+Z/Y, Del=Remove | <strong>Navigate:</strong> Arrows | <strong>Test:</strong> T | <strong>Exit:</strong> E/Esc | <strong>Assets:</strong> A
         </p>
       </div>
       {/* Hidden file inputs */}
