@@ -53,13 +53,16 @@ export const GameCanvas = observer(function GameCanvas() {
       // 3. Update power-up timers
       playerStore.updatePowerUps(deltaTime)
 
-      // 4. Update physics (pass input for noclip vertical movement)
+      // 4. Update animation
+      playerStore.updateAnimation(deltaTime)
+
+      // 5. Update physics (pass input for noclip vertical movement)
       physicsService.update(deltaTime, playerStore, levelStore, gameStore, input)
 
-      // 5. Update camera to follow player
+      // 6. Update camera to follow player
       cameraService.update(deltaTime, cameraStore, playerStore, levelStore)
 
-      // 6. Check for level completion (transition to campaign screen)
+      // 7. Check for level completion (transition to campaign screen)
       if (gameStore.levelComplete && !wasLevelCompleteRef.current) {
         wasLevelCompleteRef.current = true
         rootStore.onLevelComplete()

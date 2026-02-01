@@ -203,7 +203,9 @@ export class GameplayRenderer {
 
     // Check for custom player sprites
     const playerSprites = assetStore?.playerSprites
-    const hasCustomSprites = playerSprites && (playerSprites.idle || playerSprites.run || playerSprites.jump)
+    const hasCustomSprites = playerSprites && (
+      playerSprites.idle || playerSprites.run || playerSprites.run1 || playerSprites.jump
+    )
 
     if (hasCustomSprites && !player.isDead) {
       // Determine which sprite to use based on player state
@@ -213,8 +215,15 @@ export class GameplayRenderer {
         // In air - use jump sprite if available
         sprite = playerSprites.jump || playerSprites.idle
       } else if (player.vx !== 0) {
-        // Moving - use run sprite if available
-        sprite = playerSprites.run || playerSprites.idle
+        // Moving - use run sprite(s) if available
+        // Support animated run: run1/run2 alternate, or fall back to single run sprite
+        if (playerSprites.run1 && playerSprites.run2) {
+          // Use animation frame to select between run1 and run2
+          sprite = player.runAnimationFrame === 0 ? playerSprites.run1 : playerSprites.run2
+        } else {
+          // Fall back to single run sprite or idle
+          sprite = playerSprites.run || playerSprites.idle
+        }
       } else {
         // Idle
         sprite = playerSprites.idle

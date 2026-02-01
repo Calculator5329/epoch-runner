@@ -45,7 +45,7 @@ class LevelPackService {
     level: LevelDefinition,
     assets: {
       tileSprites?: Map<TileTypeId, Blob>
-      playerSprites?: { idle?: Blob; run?: Blob; jump?: Blob }
+      playerSprites?: { idle?: Blob; run?: Blob; run1?: Blob; run2?: Blob; jump?: Blob }
       background?: Blob
       uiSprites?: Map<string, Blob>
       music?: Blob
@@ -97,6 +97,14 @@ class LevelPackService {
       if (assets.playerSprites.run) {
         zip.file('sprites/player/run.png', assets.playerSprites.run)
         manifest.sprites.player.run = 'sprites/player/run.png'
+      }
+      if (assets.playerSprites.run1) {
+        zip.file('sprites/player/run1.png', assets.playerSprites.run1)
+        manifest.sprites.player.run1 = 'sprites/player/run1.png'
+      }
+      if (assets.playerSprites.run2) {
+        zip.file('sprites/player/run2.png', assets.playerSprites.run2)
+        manifest.sprites.player.run2 = 'sprites/player/run2.png'
       }
       if (assets.playerSprites.jump) {
         zip.file('sprites/player/jump.png', assets.playerSprites.jump)
@@ -331,6 +339,20 @@ class LevelPackService {
         if (file) {
           const blob = await file.async('blob')
           assets.playerSprites.run = await this.loadImage(blob)
+        }
+      }
+      if (manifest.sprites.player.run1) {
+        const file = zip.file(manifest.sprites.player.run1)
+        if (file) {
+          const blob = await file.async('blob')
+          assets.playerSprites.run1 = await this.loadImage(blob)
+        }
+      }
+      if (manifest.sprites.player.run2) {
+        const file = zip.file(manifest.sprites.player.run2)
+        if (file) {
+          const blob = await file.async('blob')
+          assets.playerSprites.run2 = await this.loadImage(blob)
         }
       }
       if (manifest.sprites.player.jump) {

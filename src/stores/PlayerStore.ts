@@ -22,6 +22,10 @@ export class PlayerStore {
   isGrounded = false
   isFacingRight = true
   isDead = false
+  
+  // Animation state
+  runAnimationTimer = 0      // Accumulates time for frame switching
+  runAnimationFrame = 0      // Current frame (0 or 1)
 
   // Dimensions
   readonly width = PLAYER_WIDTH
@@ -89,6 +93,28 @@ export class PlayerStore {
         this.tripleJumpTimer = 0
         // Don't reset jumpsRemaining mid-air
       }
+    }
+  }
+
+  /**
+   * Update run animation frame
+   * @param deltaTime - Time since last frame in seconds
+   */
+  updateAnimation(deltaTime: number): void {
+    // Only animate when moving horizontally on the ground
+    if (this.vx !== 0 && this.isGrounded) {
+      this.runAnimationTimer += deltaTime
+      
+      // Switch frames every 0.1 seconds (10 FPS animation)
+      const FRAME_DURATION = 0.1
+      if (this.runAnimationTimer >= FRAME_DURATION) {
+        this.runAnimationTimer -= FRAME_DURATION
+        this.runAnimationFrame = this.runAnimationFrame === 0 ? 1 : 0
+      }
+    } else {
+      // Reset animation when not running
+      this.runAnimationTimer = 0
+      this.runAnimationFrame = 0
     }
   }
 

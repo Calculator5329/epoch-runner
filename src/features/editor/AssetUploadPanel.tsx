@@ -40,6 +40,8 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
   const tileInputRefs = useRef<Map<TileTypeId, HTMLInputElement>>(new Map())
   const playerIdleRef = useRef<HTMLInputElement>(null)
   const playerRunRef = useRef<HTMLInputElement>(null)
+  const playerRun1Ref = useRef<HTMLInputElement>(null)
+  const playerRun2Ref = useRef<HTMLInputElement>(null)
   const playerJumpRef = useRef<HTMLInputElement>(null)
   const backgroundRef = useRef<HTMLInputElement>(null)
   const musicRef = useRef<HTMLInputElement>(null)
@@ -77,7 +79,7 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
    * Handle player sprite upload
    */
   const handlePlayerSpriteUpload = useCallback(async (
-    variant: 'idle' | 'run' | 'jump',
+    variant: 'idle' | 'run' | 'run1' | 'run2' | 'jump',
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = e.target.files?.[0]
@@ -163,7 +165,7 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
   /**
    * Clear a player sprite variant
    */
-  const clearPlayerSprite = useCallback((variant: 'idle' | 'run' | 'jump') => {
+  const clearPlayerSprite = useCallback((variant: 'idle' | 'run' | 'run1' | 'run2' | 'jump') => {
     const currentSprites = { ...assetStore.playerSprites }
     delete currentSprites[variant]
     assetStore.setPlayerSprites(currentSprites)
@@ -312,7 +314,7 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
                 />
               </div>
 
-              {/* Run */}
+              {/* Run (legacy single sprite) */}
               <div className="asset-item">
                 <div
                   className={`asset-preview player-preview ${assetStore.playerSprites.run ? 'has-asset' : ''}`}
@@ -333,6 +335,56 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
                   type="file"
                   accept="image/png,image/jpeg"
                   onChange={(e) => handlePlayerSpriteUpload('run', e)}
+                  style={{ display: 'none' }}
+                />
+              </div>
+
+              {/* Run Frame 1 */}
+              <div className="asset-item">
+                <div
+                  className={`asset-preview player-preview ${assetStore.playerSprites.run1 ? 'has-asset' : ''}`}
+                  onClick={() => playerRun1Ref.current?.click()}
+                >
+                  {assetStore.playerSprites.run1 ? (
+                    <img src={assetStore.playerSprites.run1.src} alt="Run 1" className="sprite-preview" />
+                  ) : (
+                    <span className="upload-icon">+</span>
+                  )}
+                </div>
+                <span className="asset-label">Run 1</span>
+                {assetStore.playerSprites.run1 && (
+                  <button className="asset-clear" onClick={() => clearPlayerSprite('run1')}>✕</button>
+                )}
+                <input
+                  ref={playerRun1Ref}
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={(e) => handlePlayerSpriteUpload('run1', e)}
+                  style={{ display: 'none' }}
+                />
+              </div>
+
+              {/* Run Frame 2 */}
+              <div className="asset-item">
+                <div
+                  className={`asset-preview player-preview ${assetStore.playerSprites.run2 ? 'has-asset' : ''}`}
+                  onClick={() => playerRun2Ref.current?.click()}
+                >
+                  {assetStore.playerSprites.run2 ? (
+                    <img src={assetStore.playerSprites.run2.src} alt="Run 2" className="sprite-preview" />
+                  ) : (
+                    <span className="upload-icon">+</span>
+                  )}
+                </div>
+                <span className="asset-label">Run 2</span>
+                {assetStore.playerSprites.run2 && (
+                  <button className="asset-clear" onClick={() => clearPlayerSprite('run2')}>✕</button>
+                )}
+                <input
+                  ref={playerRun2Ref}
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={(e) => handlePlayerSpriteUpload('run2', e)}
                   style={{ display: 'none' }}
                 />
               </div>
@@ -363,7 +415,8 @@ export const AssetUploadPanel = observer(function AssetUploadPanel() {
               </div>
             </div>
             <p className="section-hint" style={{ marginTop: '8px', fontSize: '11px', color: '#888' }}>
-              Note: Custom hitboxes coming in a future update. Currently uses full sprite bounds.
+              Tip: Use "Run 1" and "Run 2" for animated running. They alternate automatically.
+              "Run" is a fallback if animation frames aren't provided.
             </p>
           </div>
         )}
