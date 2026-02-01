@@ -169,6 +169,29 @@ export class RootStore {
   }
 
   /**
+   * Test a level from the editor - sets up all state for immediate play
+   */
+  testEditorLevel(level: LevelDefinition): boolean {
+    // Initialize campaign if not already done (needed for admin mode etc.)
+    this.campaignStore.initCampaign(CAMPAIGN_LEVELS)
+    
+    // Load the level
+    const success = this.loadLevelDefinition(level)
+    
+    if (success) {
+      // Set up for playing - this is the key: we're in playing state
+      // with the editor level loaded, not the campaign's first level
+      this.campaignStore.setScreenState('playing')
+      this.campaignStore.currentLevelStartTime = Date.now()
+      if (!this.campaignStore.sessionStats.startTime) {
+        this.campaignStore.sessionStats.startTime = Date.now()
+      }
+    }
+    
+    return success
+  }
+
+  /**
    * Load a level from JSON data
    */
   loadLevelFromJSON(json: LevelJSON): { success: boolean; errors: string[] } {

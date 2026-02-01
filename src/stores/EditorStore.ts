@@ -41,6 +41,9 @@ export class EditorStore {
   // Application mode
   mode: AppMode = 'game'
   
+  // Flag indicating we're testing an editor level (not normal campaign)
+  isTestingLevel: boolean = false
+  
   // Selected tile type for painting
   selectedTileType: TileTypeId = TileTypeId.SOLID_FULL
   
@@ -94,6 +97,10 @@ export class EditorStore {
    */
   setMode(mode: AppMode): void {
     this.mode = mode
+    // Clear testing flag when returning to editor
+    if (mode === 'editor') {
+      this.isTestingLevel = false
+    }
   }
 
   // ============================================
@@ -132,6 +139,7 @@ export class EditorStore {
     this.redoStack = []
     this.cameraX = 0
     this.cameraY = 0
+    this.isTestingLevel = false
   }
 
   /**
