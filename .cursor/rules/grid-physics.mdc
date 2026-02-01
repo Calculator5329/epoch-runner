@@ -1,0 +1,50 @@
+---
+description: Grid-based physics and coordinate system conventions
+globs: src/services/Physics*.ts, src/stores/Player*.ts, src/stores/Camera*.ts
+alwaysApply: false
+---
+
+# Grid Physics Conventions
+
+## Coordinate Systems
+
+| System | Unit | Origin | Usage |
+|--------|------|--------|-------|
+| **World** | Pixels | Top-left (0,0) | Player position, physics |
+| **Grid** | Tiles | Top-left (0,0) | Level collision lookup |
+| **Screen** | Pixels | Top-left viewport | Rendering |
+
+## Coordinate Conversions
+
+```typescript
+// World → Grid (for collision lookup)
+const col = Math.floor(worldX / TILE_SIZE)
+const row = Math.floor(worldY / TILE_SIZE)
+
+// Grid → World (for spawning)
+const worldX = col * TILE_SIZE
+const worldY = row * TILE_SIZE
+
+// World → Screen (for rendering)
+const screenX = worldX - camera.x
+const screenY = worldY - camera.y
+```
+
+## Collision Detection (O(1) Grid Lookup)
+
+```typescript
+// Check if position hits solid tile
+const col = Math.floor(x / TILE_SIZE)
+const row = Math.floor(y / TILE_SIZE)
+const isSolid = level.collision[row][col] === CollisionType.SOLID
+```
+
+## Physics Constants
+
+| Constant | Value | Unit |
+|----------|-------|------|
+| `TILE_SIZE` | 64 | pixels |
+| `GRAVITY` | 1500 | px/sec² |
+| `PLAYER_SPEED` | 300 | px/sec |
+| `JUMP_VELOCITY` | -550 | px/sec (negative = up) |
+| `MAX_FALL_SPEED` | 800 | px/sec |

@@ -1,0 +1,56 @@
+---
+description: Level definition and building patterns for Epoch Runner
+globs: src/levels/**/*.ts
+alwaysApply: false
+---
+
+# Level Building Patterns
+
+## Level Definition
+
+```typescript
+import { createLevel, tiles, platform, wall, goal, ground } from './helpers'
+
+export const myLevel = createLevel(
+  'my-level',           // id (unique)
+  'My Level Name',      // display name
+  30, 15,               // width, height (tiles)
+  { col: 2, row: 12 },  // playerSpawn (grid coords)
+  tiles(
+    ground(30, 14),                    // floor
+    platform(5, 10, 8),                // floating platform
+    wall(0, 0, 15),                    // left wall
+    goal(27, 13),                      // goal tile
+  ),
+  { author: 'Developer', parTime: 30 }
+)
+```
+
+## Grid Coordinate System
+
+**IMPORTANT**: Collision arrays are **row-major**: `collision[row][col]`
+
+```typescript
+// Grid position (tiles)
+{ col: 5, row: 10 }
+
+// Convert to pixels
+const pixelX = col * TILE_SIZE
+const pixelY = row * TILE_SIZE
+
+// Convert pixels to grid
+const col = Math.floor(pixelX / TILE_SIZE)
+const row = Math.floor(pixelY / TILE_SIZE)
+```
+
+## Helper Functions
+
+| Helper | Purpose |
+|--------|---------|
+| `platform(col, row, length)` | Horizontal row of solid tiles |
+| `wall(col, row, height)` | Vertical column of solid tiles |
+| `goal(col, row)` | Single goal tile |
+| `rect(col, row, w, h)` | Filled rectangle |
+| `hollowRect(col, row, w, h)` | Rectangle outline |
+| `stairsUpRight(col, row, steps)` | Ascending stairs |
+| `tiles(...arrays)` | Merge placement arrays |

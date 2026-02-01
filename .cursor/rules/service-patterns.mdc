@@ -1,0 +1,52 @@
+---
+description: Stateless service patterns for Epoch Runner
+globs: src/services/**/*.ts
+alwaysApply: false
+---
+
+# Service Patterns
+
+## Service Structure
+
+Services are **stateless singletons** that operate on stores passed as parameters.
+
+```typescript
+class ExampleService {
+  // No instance state (except configuration like ctx)
+  
+  /**
+   * Methods receive stores as parameters
+   */
+  doSomething(
+    deltaTime: number,
+    playerStore: PlayerStore,
+    levelStore: LevelStore
+  ): void {
+    // Read from stores
+    const pos = playerStore.x
+    
+    // Write back to stores
+    playerStore.x = pos + 10
+  }
+}
+
+// Export singleton instance at bottom
+export const exampleService = new ExampleService()
+```
+
+## Key Rules
+
+1. **No MobX** - Services don't use `makeAutoObservable`
+2. **No store imports at class level** - Receive stores as method parameters
+3. **No UI imports** - Services are unaware of React
+4. **Singleton export** - `export const serviceName = new ServiceClass()`
+
+## Method Signatures
+
+```typescript
+// ✅ CORRECT - stores passed in
+update(dt: number, player: PlayerStore, level: LevelStore): void
+
+// ❌ WRONG - store imported/stored
+private player = rootStore.playerStore
+```

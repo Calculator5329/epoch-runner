@@ -7,9 +7,16 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch",
+    "new:level": "node scripts/new-level.js",
+    "validate:levels": "node scripts/validate-levels.js"
   },
   "dependencies": {
+    "firebase": "^12.8.0",
+    "mobx": "^6.15.0",
+    "mobx-react-lite": "^4.1.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
@@ -23,6 +30,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4"

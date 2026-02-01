@@ -1,0 +1,54 @@
+---
+description: MobX store patterns for Epoch Runner
+globs: src/stores/**/*.ts
+alwaysApply: false
+---
+
+# MobX Store Patterns
+
+## Store Structure
+
+```typescript
+import { makeAutoObservable } from 'mobx'
+
+class ExampleStore {
+  // Observable state (public, mutable by MobX)
+  value: number = 0
+  isActive: boolean = false
+
+  constructor() {
+    makeAutoObservable(this)
+  }
+
+  // Computed properties (derived state)
+  get derivedValue(): number {
+    return this.value * 2
+  }
+
+  // Actions (state mutations)
+  setValue(v: number): void {
+    this.value = v
+  }
+
+  reset(): void {
+    this.value = 0
+    this.isActive = false
+  }
+}
+```
+
+## Store Interactions
+
+- Stores can read other stores via RootStore
+- Services receive stores as parameters, never import them
+- Reset methods should restore initial state
+
+## React Hooks
+
+Export convenience hooks from `RootStore.ts`:
+
+```typescript
+export function useExampleStore(): ExampleStore {
+  return useRootStore().exampleStore
+}
+```

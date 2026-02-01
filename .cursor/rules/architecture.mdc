@@ -1,0 +1,42 @@
+---
+description: Three-layer architecture and dependency rules for Epoch Runner
+alwaysApply: true
+---
+
+# Three-Layer Architecture
+
+Strict separation with one-way dependencies:
+
+```
+UI Layer → Store Layer → Service Layer
+```
+
+| Layer | Location | Rules |
+|-------|----------|-------|
+| **UI** | `features/`, `components/` | Observes stores, no business logic |
+| **Store** | `stores/` | MobX state + logic, orchestrates services |
+| **Service** | `services/` | Stateless, no MobX, no UI awareness |
+
+## Dependency Rules
+
+```typescript
+// ✅ CORRECT - Service receives stores as parameters
+physicsService.update(deltaTime, playerStore, levelStore, gameStore)
+
+// ❌ WRONG - Service imports/holds store references
+class PhysicsService {
+  private playerStore = rootStore.playerStore  // Never do this
+}
+```
+
+## Cross-Feature Communication
+
+Features in `features/` must never import from each other. Use stores for shared state.
+
+```typescript
+// ❌ WRONG
+import { something } from '../editor/utils'
+
+// ✅ CORRECT - communicate through stores
+const { sharedState } = useGameStore()
+```
