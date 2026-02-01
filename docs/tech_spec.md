@@ -69,6 +69,9 @@ UI → Store → Service (one-way only)
 | `LevelStore` | Active level data, tile grid, entity positions |
 | `EditorStore` | Builder state, selected tool, layer visibility |
 | `CampaignStore` | Level progression, unlocks, player profile |
+| `AssetStore` | Custom sprites, audio, hitboxes for level packs |
+| `CameraStore` | Viewport position, deadzone, smooth following |
+| `UIStore` | Admin mode, debug settings, active overlays |
 
 ### Observable State (PlayerStore Example)
 

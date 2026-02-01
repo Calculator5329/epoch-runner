@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { observer } from 'mobx-react-lite'
-import { useRootStore, useEditorStore } from '../../stores/RootStore'
+import { useRootStore } from '../../stores/RootStore'
 import { gameLoopService } from '../../services/GameLoopService'
 import { inputService } from '../../services/InputService'
 import { physicsService } from '../../services/PhysicsService'

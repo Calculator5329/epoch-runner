@@ -9,10 +9,20 @@ export interface Polygon {
 }
 
 /**
+ * Single rectangle in normalized coordinates (0-1)
+ */
+export interface HitboxRect {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+/**
  * Hitbox definition - can be auto-generated from sprite or custom polygon
  */
 export interface HitboxDefinition {
-  type: 'auto' | 'rect' | 'polygon'
+  type: 'auto' | 'rect' | 'polygon' | 'compound'
   // For rect type
   x?: number
   y?: number
@@ -20,6 +30,8 @@ export interface HitboxDefinition {
   h?: number
   // For polygon type
   points?: Array<{ x: number; y: number }>
+  // For compound type (multiple rectangles)
+  rects?: HitboxRect[]
 }
 
 /**
@@ -154,10 +166,17 @@ export class AssetStore {
   }
 
   /**
-   * Get hitbox definition for a tile type
+   * Get hitbox definition for a key (e.g., 'player', tile type)
    */
   getHitbox(key: string): HitboxDefinition | undefined {
     return this.hitboxes.get(key)
+  }
+
+  /**
+   * Set a hitbox definition
+   */
+  setHitbox(key: string, hitbox: HitboxDefinition): void {
+    this.hitboxes.set(key, hitbox)
   }
 
   // ============================================

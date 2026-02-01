@@ -9,6 +9,7 @@ import { UIStore } from './UIStore'
 import { EditorStore } from './EditorStore'
 import { AssetStore } from './AssetStore'
 import { levelLoaderService } from '../services/LevelLoaderService'
+import { audioService } from '../services/AudioService'
 import { CAMPAIGN_LEVELS, hasDoubleJumpUnlocked } from '../levels'
 import type { LevelDefinition } from '../levels/types'
 import type { LevelJSON } from '../levels/types'
@@ -264,6 +265,37 @@ export class RootStore {
       playerCenter.x - this.cameraStore.viewportWidth / 2,
       playerCenter.y - this.cameraStore.viewportHeight / 2
     )
+  }
+
+  /**
+   * Sync audio from AssetStore to AudioService
+   * Call this after loading a level pack with custom audio
+   */
+  syncAudioFromAssets(): void {
+    // Clear previous audio
+    audioService.clear()
+
+    // Load music if available
+    if (this.assetStore.music) {
+      audioService.loadMusic(this.assetStore.music)
+      audioService.playMusic()
+    }
+
+    // Load sound effects if available
+    if (this.assetStore.sfx.size > 0) {
+      for (const [name, url] of this.assetStore.sfx) {
+        audioService.loadSfx(name, url)
+      }
+    }
+  }
+
+  /**
+   * Clear custom assets and audio
+   * Call this when returning to built-in levels
+   */
+  clearCustomAssets(): void {
+    this.assetStore.clear()
+    audioService.clear()
   }
 }
 

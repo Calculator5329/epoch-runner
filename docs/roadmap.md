@@ -150,47 +150,47 @@ Goal: Single hardcoded level with player movement, collision, and win state.
   - [ ] Asset metadata storage
 
 ## Phase 3: Custom Level Pack System
-*Priority: High - Planned*
+*Priority: High - Core Implemented*
 
 Comprehensive system for creating shareable level packs with custom assets.
 
-- [ ] **Phase 3.1: Asset Infrastructure**
-  - [ ] Add JSZip dependency for zip file handling
-  - [ ] Create `AssetStore` for managing loaded assets (blob URLs, metadata)
-  - [ ] Create `LevelPackService` for zip creation/extraction
-  - [ ] Define pack manifest format (level.json + asset references)
+- [x] **Phase 3.1: Asset Infrastructure**
+  - [x] Add JSZip dependency for zip file handling
+  - [x] Create `AssetStore` for managing loaded assets (blob URLs, metadata)
+  - [x] Create `LevelPackService` for zip creation/extraction
+  - [x] Define pack manifest format (level.json + asset references)
 
-- [ ] **Phase 3.2: Sprite Rendering System**
-  - [ ] Modify `GameplayRenderer` for sprite-based tile rendering
-  - [ ] Support fallback to procedural rendering when sprites missing
-  - [ ] Pre-load sprites as HTMLImageElement for efficient canvas drawing
-  - [ ] Handle sprite scaling to TILE_SIZE
+- [x] **Phase 3.2: Sprite Rendering System**
+  - [x] Modify `GameplayRenderer` for sprite-based tile rendering
+  - [x] Support fallback to procedural rendering when sprites missing
+  - [x] Pre-load sprites as HTMLImageElement for efficient canvas drawing
+  - [x] Handle sprite scaling to TILE_SIZE
 
-- [ ] **Phase 3.3: Custom Hitbox System**
-  - [ ] Create `HitboxService` with marching squares algorithm
-  - [ ] Auto-generate collision polygons from sprite alpha channel
-  - [ ] Polygon simplification (Ramer-Douglas-Peucker)
+- [ ] **Phase 3.3: Custom Hitbox System** *(Deferred - needs refinement)*
+  - [x] Create `HitboxService` with marching squares algorithm
+  - [x] Auto-generate collision polygons from sprite alpha channel
+  - [x] Polygon simplification (Ramer-Douglas-Peucker)
   - [ ] Custom polygon override support in hitboxes.json
-  - [ ] Integrate polygon collision with `PhysicsService`
+  - [ ] Integrate polygon collision with `PhysicsService` (reverted due to stability)
   - [ ] Hitbox editor UI with vertex manipulation
 
-- [ ] **Phase 3.4: Audio System**
-  - [ ] Create `AudioService` for music and SFX playback
-  - [ ] Background music with looping and volume control
-  - [ ] SFX pool for concurrent sound effects
-  - [ ] Integration points: jump, coin, death, goal triggers
+- [x] **Phase 3.4: Audio System**
+  - [x] Create `AudioService` for music and SFX playback
+  - [x] Background music with looping and volume control
+  - [x] SFX pool for concurrent sound effects
+  - [x] Integration points: jump, coin, death, goal triggers
 
-- [ ] **Phase 3.5: Editor Asset UI**
-  - [ ] Create `AssetUploadPanel` component
-  - [ ] Drag-and-drop or file picker for sprites/audio
-  - [ ] Preview thumbnails and audio test buttons
-  - [ ] Hitbox editor overlay per sprite
+- [x] **Phase 3.5: Editor Asset UI**
+  - [x] Create `AssetUploadPanel` component
+  - [x] File picker for sprites/audio
+  - [x] Preview thumbnails and audio test buttons
+  - [ ] Hitbox editor overlay per sprite (deferred)
 
-- [ ] **Phase 3.6: Zip Export/Import**
-  - [ ] Export editor state + assets to .zip file
-  - [ ] Import .zip and extract into AssetStore
-  - [ ] Validation of pack contents
-  - [ ] Update Ctrl+S/Ctrl+O to handle zip format
+- [x] **Phase 3.6: Zip Export/Import**
+  - [x] Export editor state + assets to .zip file
+  - [x] Import .zip and extract into AssetStore
+  - [x] Validation of pack contents
+  - [x] File bar with Export Pack/Import Pack buttons
 
 - [ ] **Phase 3.7: Migrate Existing Levels**
   - [ ] Create default sprite set matching procedural style
