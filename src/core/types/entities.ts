@@ -3,9 +3,12 @@
  * 
  * Entities are dynamic game objects beyond tiles: enemies, collectibles, triggers.
  * This file defines the core interfaces and type definitions.
+ * 
+ * For entity registration, use entityRegistry from core/registry
  */
 
 import type { GridPosition } from '../../levels/types'
+import { entityRegistry } from '../registry'
 
 /**
  * Entity type categories for behavior grouping
@@ -151,7 +154,24 @@ export const ENEMY_STATIC: EntityDefinition = {
 }
 
 /**
- * Registry of all entity definitions
+ * All built-in entity definitions
+ */
+export const BUILT_IN_ENTITIES: Array<{ definition: EntityDefinition; category: 'enemy' }> = [
+  { definition: ENEMY_PATROL, category: 'enemy' },
+  { definition: ENEMY_STATIC, category: 'enemy' },
+]
+
+/**
+ * Initialize the entity registry with built-in entities
+ * Should be called once at app startup
+ */
+export function initBuiltInEntities(): void {
+  entityRegistry.registerAll(BUILT_IN_ENTITIES, 'built-in')
+}
+
+/**
+ * Legacy: Registry of all entity definitions (for backward compatibility)
+ * @deprecated Use entityRegistry.get() instead
  */
 export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
   [ENEMY_PATROL.id]: ENEMY_PATROL,
@@ -160,9 +180,10 @@ export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
 
 /**
  * Get entity definition by ID
+ * Uses the dynamic registry, falls back to static definitions
  */
 export function getEntityDefinition(id: string): EntityDefinition | undefined {
-  return ENTITY_DEFINITIONS[id]
+  return entityRegistry.get(id) ?? ENTITY_DEFINITIONS[id]
 }
 
 /**

@@ -15,3 +15,29 @@ export { levelPackService } from './LevelPackService'
 export type { PackValidationResult, ExtractedPack } from './LevelPackService'
 export { audioService } from './AudioService'
 export { hitboxService } from './HitboxService'
+export { assetResolverService } from './AssetResolverService'
+export type { 
+  AssetType, 
+  AssetSource, 
+  RegisteredAsset, 
+  PlayerSpriteKey, 
+  UISpriteKey 
+} from './AssetResolverService'
+export { editorHistoryService } from './EditorHistoryService'
+export type { HistorySnapshot } from './EditorHistoryService'
+export { editorGridService } from './EditorGridService'
+export { packOverrideService, OVERRIDE_PRESETS } from './PackOverrideService'
+export type {
+  PhysicsOverrides,
+  PlayerOverrides,
+  GameplayOverrides,
+  VisualOverrides,
+  PackOverrides,
+  ExtendedPackManifest,
+} from './PackOverrideService'
+export { levelMetadataService } from './LevelMetadataService'
+export type {
+  LevelStatistics,
+  LevelFilter,
+  LevelSort,
+} from './LevelMetadataService'

@@ -2,6 +2,66 @@
 
 ## [Unreleased]
 
+### Session: 2026-02-01 - Architecture Re-Org
+
+#### Phase 1: Dynamic Registries and Core Abstractions
+
+**New Files:**
+- `src/core/registry/LevelRegistry.ts` - Dynamic level registration with priority-based overriding
+- `src/core/registry/EntityRegistry.ts` - Dynamic entity definition registration with categories
+- `src/core/registry/TileRegistry.ts` - Dynamic tile type registration for custom content
+- `src/core/registry/index.ts` - Barrel export for registry module
+- `src/services/AssetResolverService.ts` - Maps asset IDs/keys to URLs for pack support
+
+**Modified Files:**
+- `src/levels/index.ts` - Split into modular exports using registry
+- `src/levels/registry.ts` - Built-in level registration
+- `src/levels/campaign.ts` - Campaign configuration and utilities
+- `src/core/types/entities.ts` - Updated to use entityRegistry
+- `src/core/types/shapes/tile-helpers.ts` - Updated to use tileRegistry
+- `src/core/init.ts` - Central initialization for all registries
+- `src/main.tsx` - Calls initCore() at startup
+
+#### Phase 2: Configuration-Driven Campaigns and Packs
+
+**New Files:**
+- `src/core/data/campaignConfig.ts` - Data-driven campaign definitions with registry
+- `src/services/PackOverrideService.ts` - Physics/player/gameplay parameter overrides
+
+**Modified Files:**
+- `src/stores/CampaignStore.ts` - Uses campaignConfig for level progression
+
+#### Phase 3: Editor and Level Customization
+
+**New Files:**
+- `src/services/LevelMetadataService.ts` - Level statistics, difficulty estimation, filtering
+- `src/levels/validation/types.ts` - Validation pipeline type definitions
+- `src/levels/validation/rules.ts` - Built-in validation rules
+- `src/levels/validation/index.ts` - Validation service and utilities
+
+**Modified Files:**
+- `src/levels/types.ts` - Extended LevelDefinition with metadata, difficulty, tags
+- `src/features/editor/TilePalette.tsx` - Uses tileRegistry for dynamic tiles
+- `src/features/editor/EntityPalette.tsx` - Uses entityRegistry for dynamic entities
+- `src/stores/AssetStore.ts` - Updated getTileSprite to accept number
+
+#### Phase 4: Theme System Foundation
+
+**New Files:**
+- `src/core/themes/types.ts` - Theme type definitions (palette, assets, effects)
+- `src/core/themes/registry.ts` - Theme registration system
+- `src/core/themes/ThemeService.ts` - Theme loading and application
+- `src/core/themes/index.ts` - Barrel export for themes module
+
+**Architecture Benefits:**
+- Dynamic registration enables custom packs and modding
+- Decoupled assets and campaign from hardcoded values
+- Extensible validation pipeline for level quality
+- Theme system foundation for visual customization
+- Improved module boundaries and code organization
+
+---
+
 ### Session: 2026-02-01 - New Power-ups System
 
 #### Added: Three New Power-ups

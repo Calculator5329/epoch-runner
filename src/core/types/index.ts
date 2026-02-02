@@ -1,5 +1,14 @@
-// Legacy collision types (kept for backward compatibility)
-// New code should use TileTypeId from shapes.ts
+/**
+ * Core Types Module - Barrel Export
+ * 
+ * Re-exports all core types and provides legacy compatibility.
+ */
+
+/**
+ * @deprecated Legacy collision type system. 
+ * Use TileTypeId from shapes.ts instead.
+ * Kept for backward compatibility with legacy level loading.
+ */
 export const CollisionType = {
   EMPTY: 0,
   SOLID: 1,
@@ -11,6 +20,9 @@ export type CollisionType = typeof CollisionType[keyof typeof CollisionType]
 
 // Re-export shape system
 export * from './shapes'
+
+// Re-export entity types
+export * from './entities'
 
 // Input state snapshot consumed each frame
 export interface InputState {
@@ -28,18 +40,13 @@ export interface Vector2 {
   y: number
 }
 
-// Level data structure
+/**
+ * @deprecated Legacy level data structure.
+ * Use LevelDefinition from levels/types.ts instead.
+ */
 export interface LevelData {
   width: number
   height: number
   collision: CollisionType[][]
   playerSpawn: Vector2
-}
-
-// Bounding box for collision detection
-export interface BoundingBox {
-  x: number
-  y: number
-  width: number
-  height: number
 }

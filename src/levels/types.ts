@@ -20,6 +20,49 @@ export interface TilePlacement {
 }
 
 /**
+ * Level difficulty rating
+ */
+export type LevelDifficulty = 'easy' | 'normal' | 'hard' | 'expert' | 'unrated'
+
+/**
+ * Level metadata for discovery and filtering
+ */
+export interface LevelMetadata {
+  /** Difficulty rating */
+  difficulty?: LevelDifficulty
+  
+  /** Estimated completion time in seconds */
+  estimatedTime?: number
+  
+  /** Tags for categorization and search */
+  tags?: string[]
+  
+  /** Version of the level (for updates) */
+  version?: string
+  
+  /** Creation timestamp */
+  createdAt?: number
+  
+  /** Last modified timestamp */
+  updatedAt?: number
+  
+  /** Level pack ID this level belongs to */
+  packId?: string
+  
+  /** Source of the level (built-in, pack, firebase, user) */
+  source?: 'built-in' | 'pack' | 'firebase' | 'user'
+  
+  /** Whether the level has been verified playable */
+  verified?: boolean
+  
+  /** Minimum game version required */
+  minGameVersion?: string
+  
+  /** Dependencies (other pack IDs required) */
+  dependencies?: string[]
+}
+
+/**
  * Complete level definition - everything needed to load and play a level
  */
 export interface LevelDefinition {
@@ -28,6 +71,9 @@ export interface LevelDefinition {
   name: string
   description?: string
   author?: string
+  
+  // Extended metadata
+  metadata?: LevelMetadata
   
   // Dimensions (in tiles)
   width: number
@@ -86,6 +132,7 @@ export interface LevelJSON {
   name: string
   description?: string
   author?: string
+  metadata?: LevelMetadata
   width: number
   height: number
   playerSpawn: { col: number; row: number }
@@ -112,6 +159,7 @@ export function levelToJSON(level: LevelDefinition): LevelJSON {
     name: level.name,
     description: level.description,
     author: level.author,
+    metadata: level.metadata,
     width: level.width,
     height: level.height,
     playerSpawn: { col: level.playerSpawn.col, row: level.playerSpawn.row },
@@ -138,6 +186,7 @@ export function jsonToLevel(json: LevelJSON): LevelDefinition {
     name: json.name,
     description: json.description,
     author: json.author,
+    metadata: json.metadata,
     width: json.width,
     height: json.height,
     playerSpawn: { col: json.playerSpawn.col, row: json.playerSpawn.row },

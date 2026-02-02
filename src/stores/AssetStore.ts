@@ -176,9 +176,10 @@ export class AssetStore {
 
   /**
    * Get tile sprite if available
+   * Accepts number for compatibility with dynamic tile types
    */
-  getTileSprite(tileTypeId: TileTypeId): HTMLImageElement | undefined {
-    return this.tileSprites.get(tileTypeId)
+  getTileSprite(tileTypeId: number | TileTypeId): HTMLImageElement | undefined {
+    return this.tileSprites.get(tileTypeId as TileTypeId)
   }
 
   /**
