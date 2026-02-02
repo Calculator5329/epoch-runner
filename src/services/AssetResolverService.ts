@@ -98,7 +98,7 @@ class AssetResolverServiceClass {
     priority?: number,
     packId?: string
   ): void {
-    const effectivePriority = priority ?? ASSET_PRIORITY[source.toUpperCase() as keyof typeof ASSET_PRIORITY] ?? 0
+    const effectivePriority = priority ?? ASSET_PRIORITY[source.toUpperCase().replace('-', '_') as keyof typeof ASSET_PRIORITY] ?? 0
     const existing = this.backgrounds.get(levelId)
     
     if (!existing || effectivePriority >= existing.priority) {
@@ -128,7 +128,7 @@ class AssetResolverServiceClass {
     priority?: number,
     packId?: string
   ): void {
-    const effectivePriority = priority ?? ASSET_PRIORITY[source.toUpperCase() as keyof typeof ASSET_PRIORITY] ?? 0
+    const effectivePriority = priority ?? ASSET_PRIORITY[source.toUpperCase().replace('-', '_') as keyof typeof ASSET_PRIORITY] ?? 0
     const existing = this.tileSprites.get(tileTypeId)
     
     if (!existing || effectivePriority >= existing.priority) {
@@ -172,7 +172,7 @@ class AssetResolverServiceClass {
     priority?: number,
     packId?: string
   ): void {
-    const effectivePriority = priority ?? ASSET_PRIORITY[source.toUpperCase() as keyof typeof ASSET_PRIORITY] ?? 0
+    const effectivePriority = priority ?? ASSET_PRIORITY[source.toUpperCase().replace('-', '_') as keyof typeof ASSET_PRIORITY] ?? 0
     const existing = this.entitySprites.get(entityId)
     
     if (!existing || effectivePriority >= existing.priority) {
@@ -202,7 +202,7 @@ class AssetResolverServiceClass {
     priority?: number,
     packId?: string
   ): void {
-    const effectivePriority = priority ?? ASSET_PRIORITY[source.toUpperCase() as keyof typeof ASSET_PRIORITY] ?? 0
+    const effectivePriority = priority ?? ASSET_PRIORITY[source.toUpperCase().replace('-', '_') as keyof typeof ASSET_PRIORITY] ?? 0
     const existing = this.playerSprites.get(key)
     
     if (!existing || effectivePriority >= existing.priority) {
@@ -259,7 +259,7 @@ class AssetResolverServiceClass {
     priority?: number,
     packId?: string
   ): void {
-    const effectivePriority = priority ?? ASSET_PRIORITY[source.toUpperCase() as keyof typeof ASSET_PRIORITY] ?? 0
+    const effectivePriority = priority ?? ASSET_PRIORITY[source.toUpperCase().replace('-', '_') as keyof typeof ASSET_PRIORITY] ?? 0
     const existing = this.uiSprites.get(key)
     
     if (!existing || effectivePriority >= existing.priority) {
@@ -289,7 +289,7 @@ class AssetResolverServiceClass {
     priority?: number,
     packId?: string
   ): void {
-    const effectivePriority = priority ?? ASSET_PRIORITY[source.toUpperCase() as keyof typeof ASSET_PRIORITY] ?? 0
+    const effectivePriority = priority ?? ASSET_PRIORITY[source.toUpperCase().replace('-', '_') as keyof typeof ASSET_PRIORITY] ?? 0
     const existing = this.music.get(levelId)
     
     if (!existing || effectivePriority >= existing.priority) {
@@ -319,7 +319,7 @@ class AssetResolverServiceClass {
     priority?: number,
     packId?: string
   ): void {
-    const effectivePriority = priority ?? ASSET_PRIORITY[source.toUpperCase() as keyof typeof ASSET_PRIORITY] ?? 0
+    const effectivePriority = priority ?? ASSET_PRIORITY[source.toUpperCase().replace('-', '_') as keyof typeof ASSET_PRIORITY] ?? 0
     const existing = this.sfx.get(name)
     
     if (!existing || effectivePriority >= existing.priority) {

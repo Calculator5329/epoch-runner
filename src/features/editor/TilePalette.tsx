@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { observer } from 'mobx-react-lite'
 import { useEditorStore, useAssetStore } from '../../stores/RootStore'
 import { TileTypeId, getTileType, type TileType } from '../../core/types/shapes'
@@ -94,8 +94,17 @@ export const TilePalette = observer(function TilePalette() {
   const editorStore = useEditorStore()
   const assetStore = useAssetStore()
   
-  // Build tile categories from registry (memoized)
-  const tileCategories = useMemo(() => buildTileCategories(), [])
+  // Track registry changes to trigger re-render when tiles are registered/unregistered
+  const [registryVersion, setRegistryVersion] = useState(0)
+  
+  useEffect(() => {
+    return tileRegistry.subscribe(() => {
+      setRegistryVersion(v => v + 1)
+    })
+  }, [])
+  
+  // Build tile categories from registry (recomputes when registry changes)
+  const tileCategories = useMemo(() => buildTileCategories(), [registryVersion])
   
   // Local state for level size inputs
   const [inputWidth, setInputWidth] = useState(editorStore.gridWidth.toString())

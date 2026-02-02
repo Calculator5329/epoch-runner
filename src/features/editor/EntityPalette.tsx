@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { observer } from 'mobx-react-lite'
 import { useEditorStore, useAssetStore } from '../../stores/RootStore'
 import { entityRegistry } from '../../core/registry'
@@ -12,7 +13,16 @@ export const EntityPalette = observer(function EntityPalette() {
   const editorStore = useEditorStore()
   const assetStore = useAssetStore()
   
-  // Get all entity definitions from registry
+  // Track registry changes to trigger re-render when entities are registered/unregistered
+  const [, setRegistryVersion] = useState(0)
+  
+  useEffect(() => {
+    return entityRegistry.subscribe(() => {
+      setRegistryVersion(v => v + 1)
+    })
+  }, [])
+  
+  // Get all entity definitions from registry (re-fetched on registry changes)
   const allEntities = entityRegistry.getAll()
 
   return (
