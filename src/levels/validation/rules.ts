@@ -137,7 +137,7 @@ export const ruleSpawnValid: ValidationRuleDefinition = {
       const spawnTile = level.collision[row]?.[col]
       if (spawnTile !== undefined) {
         const tileType = getTileType(spawnTile)
-        if (tileType.category === 'solid' && spawnTile !== TileTypeId.EMPTY) {
+        if (tileType.category === 'solid') {
           issues.push({
             code: 'SPAWN_IN_SOLID',
             message: `Player spawn is inside a solid tile (${tileType.name})`,
@@ -311,7 +311,7 @@ export const ruleReachableCoins: ValidationRuleDefinition = {
             }
             const neighborTile = level.collision[nRow][nCol]
             const neighborType = getTileType(neighborTile)
-            if (neighborType.category === 'solid' && neighborTile !== TileTypeId.EMPTY) {
+            if (neighborType.category === 'solid') {
               solidNeighbors++
             }
           }

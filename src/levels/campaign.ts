@@ -7,6 +7,7 @@
  */
 
 import { levelRegistry } from '../core/registry'
+import { DEFAULT_CAMPAIGN, isCampaignLastLevel } from '../core/data/campaignConfig'
 
 /**
  * Default level to load on game start
@@ -62,10 +63,10 @@ export function getNextLevelId(currentLevelId: string): string | null {
 
 /**
  * Check if level is last in campaign
+ * @deprecated Use CampaignStore.isLastLevel for campaign-aware check
  */
 export function isLastLevel(levelId: string): boolean {
-  const index = getLevelIndex(levelId)
-  return index === CAMPAIGN_LEVELS.length - 1
+  return isCampaignLastLevel(DEFAULT_CAMPAIGN, levelId)
 }
 
 /**

@@ -209,7 +209,9 @@ export function getCampaignNextLevelId(campaign: CampaignDefinition, currentLeve
  * Check if level is last in a campaign
  */
 export function isCampaignLastLevel(campaign: CampaignDefinition, levelId: string): boolean {
+  if (campaign.levels.length === 0) return false
   const index = getCampaignLevelIndex(campaign, levelId)
+  if (index === -1) return false
   return index === campaign.levels.length - 1
 }
 

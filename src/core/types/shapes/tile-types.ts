@@ -32,7 +32,7 @@ export const TileTypeId = {
   SOLID_SLOPE_DOWN_RIGHT: 12,
   SOLID_SLOPE_DOWN_LEFT: 13,
   
-  // Custom solid blocks (14-29) - same collision, different sprites
+  // Custom solid blocks (14-23) - same collision, different sprites
   SOLID_BRICK: 14,
   SOLID_STONE: 15,
   SOLID_METAL: 16,

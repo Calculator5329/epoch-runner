@@ -121,7 +121,7 @@ All registries follow the same pattern:
 | `entityRegistry` | `core/registry/EntityRegistry.ts` | Entity definitions |
 | `tileRegistry` | `core/registry/TileRegistry.ts` | Tile type definitions |
 | `themeRegistry` | `core/themes/registry.ts` | Visual themes |
-| `campaignRegistry` | `core/data/campaignConfig.ts` | Campaign definitions |
+| `campaignRegistry` | `src/core/data/campaignConfig.ts` | Campaign definitions |
 
 ### Registration Priority
 

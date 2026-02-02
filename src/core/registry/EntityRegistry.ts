@@ -59,7 +59,7 @@ class EntityRegistryClass {
     priority?: number,
     packId?: string
   ): void {
-    const effectivePriority = priority ?? ENTITY_PRIORITY[source.toUpperCase().replace('-', '_') as keyof typeof ENTITY_PRIORITY] ?? 0
+    const effectivePriority = priority ?? ENTITY_PRIORITY[source.toUpperCase().replaceAll('-', '_') as keyof typeof ENTITY_PRIORITY] ?? 0
     
     const existing = this.entities.get(definition.id)
     

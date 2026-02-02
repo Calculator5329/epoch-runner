@@ -36,7 +36,7 @@ export class EditorHistoryService {
       entitySpawns: entitySpawns.map(e => ({
         ...e,
         position: { ...e.position },
-        properties: e.properties ? { ...e.properties } : undefined,
+        properties: e.properties ? structuredClone(e.properties) : undefined,
       })),
     }
   }

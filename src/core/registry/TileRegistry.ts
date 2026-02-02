@@ -53,7 +53,7 @@ class TileRegistryClass {
     priority?: number,
     packId?: string
   ): void {
-    const effectivePriority = priority ?? TILE_PRIORITY[source.toUpperCase().replace('-', '_') as keyof typeof TILE_PRIORITY] ?? 0
+    const effectivePriority = priority ?? TILE_PRIORITY[source.toUpperCase().replaceAll('-', '_') as keyof typeof TILE_PRIORITY] ?? 0
     
     const existing = this.tiles.get(tileType.id)
     

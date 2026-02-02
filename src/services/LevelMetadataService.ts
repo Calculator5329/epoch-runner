@@ -318,11 +318,12 @@ class LevelMetadataServiceClass {
         case 'name':
           comparison = a.name.localeCompare(b.name)
           break
-        case 'difficulty':
+        case 'difficulty': {
           const aDiff = difficultyOrder[a.metadata?.difficulty ?? 'unrated']
           const bDiff = difficultyOrder[b.metadata?.difficulty ?? 'unrated']
           comparison = aDiff - bDiff
           break
+        }
         case 'estimatedTime':
           comparison = (a.metadata?.estimatedTime ?? 0) - (b.metadata?.estimatedTime ?? 0)
           break

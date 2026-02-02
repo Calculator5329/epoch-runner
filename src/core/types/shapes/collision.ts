@@ -134,8 +134,8 @@ export const SHAPES = {
     type: 'polygon',
     vertices: [
       { x: 0.2, y: 0 },   // top-left
-      { x: 0.5, y: 0.8 }, // bottom point
       { x: 0.8, y: 0 },   // top-right
+      { x: 0.5, y: 0.8 }, // bottom point
     ]
   } as CollisionShape,
   

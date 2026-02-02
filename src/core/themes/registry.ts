@@ -45,7 +45,7 @@ class ThemeRegistryClass {
     priority?: number,
     packId?: string
   ): void {
-    const effectivePriority = priority ?? THEME_PRIORITY[source.toUpperCase().replace('-', '_') as keyof typeof THEME_PRIORITY] ?? 0
+    const effectivePriority = priority ?? THEME_PRIORITY[source.toUpperCase().replaceAll('-', '_') as keyof typeof THEME_PRIORITY] ?? 0
     
     const existing = this.themes.get(definition.id)
     
