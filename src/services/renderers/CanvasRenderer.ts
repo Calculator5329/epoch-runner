@@ -6,6 +6,7 @@ import type { CampaignStore, ScreenState } from '../../stores/CampaignStore'
 import type { UIStore } from '../../stores/UIStore'
 import type { AssetStore } from '../../stores/AssetStore'
 import type { EntityStore } from '../../stores/EntityStore'
+import type { MovingPlatformStore } from '../../stores/MovingPlatformStore'
 
 // Sub-renderers
 import { GameplayRenderer } from './GameplayRenderer'
@@ -65,7 +66,8 @@ class CanvasRenderer {
     campaignStore?: CampaignStore,
     uiStore?: UIStore,
     assetStore?: AssetStore,
-    entityStore?: EntityStore
+    entityStore?: EntityStore,
+    movingPlatformStore?: MovingPlatformStore
   ): void {
     if (!this.ctx) return
 
@@ -100,8 +102,8 @@ class CanvasRenderer {
     // Playing State (gameplay + overlays)
     // ============================================
 
-    // Draw gameplay (tiles, player, HUD, entities) - pass assetStore for custom sprites
-    this.gameplayRenderer.draw(ctx, levelStore, playerStore, gameStore, cameraStore, assetStore, entityStore)
+    // Draw gameplay (tiles, player, HUD, entities, platforms) - pass assetStore for custom sprites
+    this.gameplayRenderer.draw(ctx, levelStore, playerStore, gameStore, cameraStore, assetStore, entityStore, movingPlatformStore)
 
     // Draw debug overlays if enabled
     this.debugRenderer.draw(ctx, levelStore, playerStore, gameStore, cameraStore)

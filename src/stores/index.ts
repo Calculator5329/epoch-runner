@@ -23,6 +23,8 @@ export type {
   PackManifest, 
   LoadedAssets 
 } from './AssetStore'
+export { EntityStore } from './EntityStore'
+export { MovingPlatformStore } from './MovingPlatformStore'
 
 // Root store and hooks
 export { 
@@ -38,4 +40,6 @@ export {
   useUIStore,
   useEditorStore,
   useAssetStore,
+  useEntityStore,
+  useMovingPlatformStore,
 } from './RootStore'

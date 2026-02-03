@@ -18,6 +18,8 @@ import type { AssetStore } from '../../stores/AssetStore'
 import type { EntityStore } from '../../stores/EntityStore'
 import type { Entity } from '../../core/types/entities'
 import { getEntityDefinition } from '../../core/types/entities'
+import type { MovingPlatformStore } from '../../stores/MovingPlatformStore'
+import type { MovingPlatform } from '../../core/types/movingPlatforms'
 import { calculateVisibleTileRange, drawTileShape } from './DrawingUtils'
 
 /**
@@ -37,7 +39,8 @@ export class GameplayRenderer {
     gameStore: GameStore,
     cameraStore: CameraStore,
     assetStore?: AssetStore,
-    entityStore?: EntityStore
+    entityStore?: EntityStore,
+    movingPlatformStore?: MovingPlatformStore
   ): void {
     // Clear canvas with background color
     ctx.fillStyle = COLORS.background
@@ -54,6 +57,11 @@ export class GameplayRenderer {
     // Draw entities (enemies, etc.)
     if (entityStore) {
       this.drawEntities(ctx, entityStore, cameraStore, assetStore)
+    }
+
+    // Draw moving platforms
+    if (movingPlatformStore) {
+      this.drawMovingPlatforms(ctx, movingPlatformStore, cameraStore)
     }
 
     // Draw player (with camera offset)
@@ -596,6 +604,39 @@ export class GameplayRenderer {
       ctx.font = '12px Arial'
       ctx.fillStyle = '#888'
       ctx.fillText(`(${Math.round(game.replayMultiplier * 100)}% rate)`, VIEWPORT_WIDTH - padding, padding + 48)
+    }
+  }
+
+  /**
+   * Draw moving platforms
+   */
+  drawMovingPlatforms(
+    ctx: CanvasRenderingContext2D,
+    platformStore: MovingPlatformStore,
+    camera: CameraStore
+  ): void {
+    const platforms = platformStore.getActive()
+
+    for (const platform of platforms) {
+      const screenX = platform.x - camera.x
+      const screenY = platform.y - camera.y
+
+      // Draw platform with 3D effect (top surface lighter)
+      ctx.fillStyle = platform.color
+      ctx.fillRect(screenX, screenY, platform.width, platform.height)
+
+      // Top highlight
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)'
+      ctx.fillRect(screenX, screenY, platform.width, 4)
+
+      // Side shadow
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
+      ctx.fillRect(screenX, screenY + platform.height - 4, platform.width, 4)
+
+      // Border
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)'
+      ctx.lineWidth = 2
+      ctx.strokeRect(screenX, screenY, platform.width, platform.height)
     }
   }
 }

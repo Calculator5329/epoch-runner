@@ -1,5 +1,6 @@
 import { CollisionType, TileTypeId } from '../core/types'
 import type { EntitySpawn } from '../core/types/entities'
+import type { MovingPlatformSpawn } from '../core/types/movingPlatforms'
 
 /**
  * Position in grid coordinates (tiles, not pixels)
@@ -43,6 +44,9 @@ export interface LevelDefinition {
   
   // Optional: Entity spawn data (enemies, etc.)
   entities?: EntitySpawn[]
+  
+  // Optional: Moving platform spawn data
+  movingPlatforms?: MovingPlatformSpawn[]
   
   // Optional: Starting lives for this level (default 3)
   startingLives?: number
@@ -91,6 +95,7 @@ export interface LevelJSON {
   playerSpawn: { col: number; row: number }
   collision: number[][]
   entities?: EntitySpawnJSON[]
+  movingPlatforms?: MovingPlatformSpawn[]
   startingLives?: number
   parTime?: number
   themeId?: string
@@ -121,6 +126,7 @@ export function levelToJSON(level: LevelDefinition): LevelJSON {
       position: { col: e.position.col, row: e.position.row },
       properties: e.properties,
     })),
+    movingPlatforms: level.movingPlatforms,
     startingLives: level.startingLives,
     parTime: level.parTime,
     themeId: level.themeId,
@@ -147,6 +153,7 @@ export function jsonToLevel(json: LevelJSON): LevelDefinition {
       position: { col: e.position.col, row: e.position.row },
       properties: e.properties,
     })),
+    movingPlatforms: json.movingPlatforms,
     startingLives: json.startingLives,
     parTime: json.parTime,
     themeId: json.themeId,

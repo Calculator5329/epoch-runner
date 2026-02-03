@@ -5,6 +5,7 @@ import type { PlayerStore } from '../stores/PlayerStore'
 import type { GameStore } from '../stores/GameStore'
 import type { EntityStore } from '../stores/EntityStore'
 import type { AssetStore } from '../stores/AssetStore'
+import type { MovingPlatformStore } from '../stores/MovingPlatformStore'
 import { 
   getLevel, 
   getLevelIds, 
@@ -32,7 +33,8 @@ class LevelLoaderService {
     playerStore: PlayerStore,
     gameStore: GameStore,
     entityStore?: EntityStore,
-    assetStore?: AssetStore
+    assetStore?: AssetStore,
+    movingPlatformStore?: MovingPlatformStore
   ): boolean {
     const level = getLevel(levelId)
     if (!level) {
@@ -40,7 +42,7 @@ class LevelLoaderService {
       return false
     }
 
-    return this.loadLevel(level, levelStore, cameraStore, playerStore, gameStore, entityStore, assetStore)
+    return this.loadLevel(level, levelStore, cameraStore, playerStore, gameStore, entityStore, assetStore, movingPlatformStore)
   }
 
   /**
@@ -52,9 +54,10 @@ class LevelLoaderService {
     playerStore: PlayerStore,
     gameStore: GameStore,
     entityStore?: EntityStore,
-    assetStore?: AssetStore
+    assetStore?: AssetStore,
+    movingPlatformStore?: MovingPlatformStore
   ): boolean {
-    return this.loadFromRegistry(DEFAULT_LEVEL_ID, levelStore, cameraStore, playerStore, gameStore, entityStore, assetStore)
+    return this.loadFromRegistry(DEFAULT_LEVEL_ID, levelStore, cameraStore, playerStore, gameStore, entityStore, assetStore, movingPlatformStore)
   }
 
   /**
@@ -67,7 +70,8 @@ class LevelLoaderService {
     playerStore: PlayerStore,
     gameStore: GameStore,
     entityStore?: EntityStore,
-    assetStore?: AssetStore
+    assetStore?: AssetStore,
+    movingPlatformStore?: MovingPlatformStore
   ): { success: boolean; errors: string[] } {
     try {
       const level = jsonToLevel(json)
@@ -77,7 +81,7 @@ class LevelLoaderService {
         return { success: false, errors }
       }
 
-      const success = this.loadLevel(level, levelStore, cameraStore, playerStore, gameStore, entityStore, assetStore)
+      const success = this.loadLevel(level, levelStore, cameraStore, playerStore, gameStore, entityStore, assetStore, movingPlatformStore)
       return { success, errors: [] }
     } catch (error) {
       return { 
@@ -101,6 +105,7 @@ class LevelLoaderService {
     gameStore: GameStore,
     entityStore?: EntityStore,
     assetStore?: AssetStore,
+    movingPlatformStore?: MovingPlatformStore,
     preserveCustomAssets: boolean = false
   ): boolean {
     // Validate the level
@@ -130,6 +135,15 @@ class LevelLoaderService {
       if (level.entities && level.entities.length > 0) {
         entityStore.loadFromLevel(level.entities)
         console.log(`Loaded ${level.entities.length} entities`)
+      }
+    }
+
+    // Load moving platforms
+    if (movingPlatformStore) {
+      movingPlatformStore.fullReset()
+      if (level.movingPlatforms && level.movingPlatforms.length > 0) {
+        movingPlatformStore.loadFromLevel(level.movingPlatforms)
+        console.log(`Loaded ${level.movingPlatforms.length} moving platforms`)
       }
     }
 

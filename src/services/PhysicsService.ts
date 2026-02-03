@@ -16,6 +16,8 @@ import type { GameStore } from '../stores/GameStore'
 import type { EntityStore } from '../stores/EntityStore'
 import type { Entity } from '../core/types/entities'
 import { getEntityDefinition } from '../core/types/entities'
+import type { MovingPlatformStore } from '../stores/MovingPlatformStore'
+import { movingPlatformService } from './MovingPlatformService'
 
 /** Bounce velocity when stomping an enemy */
 const STOMP_BOUNCE_VELOCITY = -300
@@ -31,6 +33,7 @@ class PhysicsService {
    * Main physics update - called once per frame
    * @param input - Optional input state for noclip vertical movement
    * @param entityStore - Optional entity store for enemy collisions
+   * @param movingPlatformStore - Optional moving platform store for platform riding
    */
   update(
     deltaTime: number,
@@ -38,7 +41,8 @@ class PhysicsService {
     levelStore: LevelStore,
     gameStore: GameStore,
     input?: InputState,
-    entityStore?: EntityStore
+    entityStore?: EntityStore,
+    movingPlatformStore?: MovingPlatformStore
   ): void {
     // Don't update if game is paused, complete, or game over
     if (gameStore.isPaused || gameStore.levelComplete || gameStore.isGameOver) {
@@ -84,6 +88,11 @@ class PhysicsService {
     
     // Then move and collide vertically
     this.moveVertical(playerStore, levelStore, moveY, prevY)
+
+    // Check if player is riding a moving platform and transfer momentum
+    if (movingPlatformStore) {
+      this.handlePlatformRiding(playerStore, movingPlatformStore, deltaTime)
+    }
 
     // Check for hazard collision
     this.checkHazards(playerStore, levelStore, gameStore)
@@ -517,6 +526,37 @@ class PhysicsService {
     // In future, could implement knockback + invincibility frames
     if (damage > 0) {
       game.onPlayerDeath()
+    }
+  }
+
+  /**
+   * Check if player is on a moving platform and transfer momentum
+   */
+  private handlePlatformRiding(
+    player: PlayerStore,
+    platformStore: MovingPlatformStore,
+    deltaTime: number
+  ): void {
+    // Only check if player is grounded (on a surface)
+    if (!player.isGrounded) return
+
+    const platforms = platformStore.getActive()
+    const platform = movingPlatformService.checkPlayerOnPlatform(
+      player.x,
+      player.y,
+      player.width,
+      player.height,
+      platforms
+    )
+
+    if (platform) {
+      // Player is riding this platform - transfer its velocity
+      const moveX = platform.vx * (deltaTime / 1000)
+      const moveY = platform.vy * (deltaTime / 1000)
+      
+      // Move player with platform
+      player.x += moveX
+      player.y += moveY
     }
   }
 }
