@@ -13,7 +13,7 @@ import type { GridPosition } from '../../levels/types'
 export type EntityType =
   | 'enemy_patrol'      // Walks back and forth on platforms
   | 'enemy_static'      // Stationary hazard enemy
-  | 'enemy_flying'      // Aerial enemy (future)
+  | 'enemy_flying'      // Aerial enemy that patrols horizontally
   | 'enemy_jumping'     // Jumps periodically (future)
 
 /**
@@ -151,11 +151,27 @@ export const ENEMY_STATIC: EntityDefinition = {
 }
 
 /**
+ * Flying enemy - patrols horizontally in mid-air, no gravity
+ */
+export const ENEMY_FLYING: EntityDefinition = {
+  id: 'enemy_flying',
+  type: 'enemy_flying',
+  displayName: 'Flying Enemy',
+  width: 48,
+  height: 40,
+  speed: 100,
+  damage: 1,
+  health: 1,
+  color: '#805ad5', // Purple
+}
+
+/**
  * Registry of all entity definitions
  */
 export const ENTITY_DEFINITIONS: Record<string, EntityDefinition> = {
   [ENEMY_PATROL.id]: ENEMY_PATROL,
   [ENEMY_STATIC.id]: ENEMY_STATIC,
+  [ENEMY_FLYING.id]: ENEMY_FLYING,
 }
 
 /**

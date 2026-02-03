@@ -108,6 +108,21 @@ export function staticEnemy(col: number, row: number): EntitySpawn {
 }
 
 /**
+ * Create a flying enemy spawn (patrols horizontally in mid-air)
+ */
+export function flyingEnemy(
+  col: number,
+  row: number,
+  direction: EntityDirection = 'right'
+): EntitySpawn {
+  return {
+    definitionId: 'enemy_flying',
+    position: { col, row },
+    properties: { startDirection: direction },
+  }
+}
+
+/**
  * Create multiple patrol enemies in a row
  */
 export function patrolEnemyRow(
@@ -120,6 +135,23 @@ export function patrolEnemyRow(
   const enemies: EntitySpawn[] = []
   for (let i = 0; i < count; i++) {
     enemies.push(patrolEnemy(startCol + i * spacing, row, direction))
+  }
+  return enemies
+}
+
+/**
+ * Create multiple flying enemies in a row
+ */
+export function flyingEnemyRow(
+  startCol: number,
+  row: number,
+  count: number,
+  spacing: number = 5,
+  direction: EntityDirection = 'right'
+): EntitySpawn[] {
+  const enemies: EntitySpawn[] = []
+  for (let i = 0; i < count; i++) {
+    enemies.push(flyingEnemy(startCol + i * spacing, row, direction))
   }
   return enemies
 }

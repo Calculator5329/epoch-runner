@@ -38,6 +38,9 @@ class EntityService {
       case 'enemy_patrol':
         this.updatePatrolEnemy(entity, deltaTime, levelStore)
         break
+      case 'enemy_flying':
+        this.updateFlyingEnemy(entity, deltaTime, levelStore)
+        break
       case 'enemy_static':
         // Static enemies don't move, just apply gravity if needed
         this.applyGravity(entity, deltaTime, levelStore)
@@ -73,6 +76,52 @@ class EntityService {
     
     // Move horizontally
     this.moveHorizontal(entity, deltaTime, levelStore)
+  }
+
+  /**
+   * Update flying enemy - patrols horizontally without gravity
+   */
+  private updateFlyingEnemy(
+    entity: Entity,
+    deltaTime: number,
+    levelStore: LevelStore
+  ): void {
+    const definition = getEntityDefinition(entity.definitionId)
+    if (!definition) return
+    
+    // Set velocity based on direction
+    entity.vx = entity.direction === 'right' ? definition.speed : -definition.speed
+    
+    // Check if should turn around (wall detection only, no ledge checks)
+    if (this.shouldFlyingEnemyTurnAround(entity, levelStore)) {
+      entity.direction = entity.direction === 'right' ? 'left' : 'right'
+      entity.vx = -entity.vx
+    }
+    
+    // NO GRAVITY - flying enemies float in place
+    entity.vy = 0
+    entity.isGrounded = false
+    
+    // Move horizontally
+    this.moveHorizontal(entity, deltaTime, levelStore)
+  }
+
+  /**
+   * Check if flying enemy should turn around (wall detection only)
+   */
+  private shouldFlyingEnemyTurnAround(entity: Entity, levelStore: LevelStore): boolean {
+    const movingRight = entity.direction === 'right'
+    
+    // Check for wall ahead
+    const checkX = movingRight 
+      ? entity.x + entity.width + 2  // Right edge + small buffer
+      : entity.x - 2                  // Left edge - small buffer
+    const checkY = entity.y + entity.height / 2  // Middle height
+    
+    const col = Math.floor(checkX / TILE_SIZE)
+    const row = Math.floor(checkY / TILE_SIZE)
+    
+    return levelStore.isSolidAt(col, row)  // Turn around if wall ahead
   }
 
   /**
