@@ -31,6 +31,7 @@ import { level_6_et_custom_1 } from './level_6_et_custom_1'
 import { level_7_enemies } from './level_7_enemies'
 import { level_8_powerups } from './level_8_powerups'
 import { level_9_et_custom_2 } from './level_9_et_custom_2'
+import { level_10_platforms } from './level_10_platforms'
 
 // Re-export types and helpers for convenience
 export * from './types'
@@ -48,6 +49,7 @@ export { level_6_et_custom_1 }
 export { level_7_enemies }
 export { level_8_powerups }
 export { level_9_et_custom_2 }
+export { level_10_platforms }
 
 /**
  * Registry of all available levels
@@ -68,6 +70,7 @@ export const levelRegistry: Record<string, LevelDefinition> = {
   [level_7_enemies.id]: level_7_enemies,
   [level_8_powerups.id]: level_8_powerups,
   [level_9_et_custom_2.id]: level_9_et_custom_2,
+  [level_10_platforms.id]: level_10_platforms,
 }
 
 /**
@@ -111,6 +114,7 @@ export const CAMPAIGN_LEVELS: string[] = [
   'level_7_enemies',
   'level_8_powerups',
   'level_9_et_custom_2',
+  'level_10_platforms',
 ]
 
 /**

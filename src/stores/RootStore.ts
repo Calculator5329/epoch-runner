@@ -9,6 +9,7 @@ import { UIStore } from './UIStore'
 import { EditorStore } from './EditorStore'
 import { AssetStore } from './AssetStore'
 import { EntityStore } from './EntityStore'
+import { MovingPlatformStore } from './MovingPlatformStore'
 import { levelLoaderService } from '../services/LevelLoaderService'
 import { audioService } from '../services/AudioService'
 import { CAMPAIGN_LEVELS, hasDoubleJumpUnlocked } from '../levels'
@@ -31,6 +32,7 @@ export class RootStore {
   editorStore: EditorStore
   assetStore: AssetStore
   entityStore: EntityStore
+  movingPlatformStore: MovingPlatformStore
 
   constructor() {
     this.gameStore = new GameStore()
@@ -42,6 +44,7 @@ export class RootStore {
     this.editorStore = new EditorStore()
     this.assetStore = new AssetStore()
     this.entityStore = new EntityStore()
+    this.movingPlatformStore = new MovingPlatformStore()
   }
 
   /**
@@ -140,7 +143,8 @@ export class RootStore {
       this.playerStore,
       this.gameStore,
       this.entityStore,
-      this.assetStore
+      this.assetStore,
+      this.movingPlatformStore
     )
     
     if (success) {
@@ -163,7 +167,8 @@ export class RootStore {
       this.playerStore,
       this.gameStore,
       this.entityStore,
-      this.assetStore
+      this.assetStore,
+      this.movingPlatformStore
     )
     
     if (success) {
@@ -193,6 +198,7 @@ export class RootStore {
       this.gameStore,
       this.entityStore,
       this.assetStore,
+      this.movingPlatformStore,
       true // preserveCustomAssets - keep uploaded backgrounds, sprites, etc.
     )
     
@@ -224,7 +230,8 @@ export class RootStore {
       this.playerStore,
       this.gameStore,
       this.entityStore,
-      this.assetStore
+      this.assetStore,
+      this.movingPlatformStore
     )
     
     if (result.success) {
@@ -273,6 +280,9 @@ export class RootStore {
     
     // Reset entities to original positions
     this.entityStore.reset()
+    
+    // Reset moving platforms to original positions
+    this.movingPlatformStore.reset()
     
     this.playerStore.respawn(spawnPos)
     
@@ -406,4 +416,8 @@ export function useAssetStore(): AssetStore {
 
 export function useEntityStore(): EntityStore {
   return useRootStore().entityStore
+}
+
+export function useMovingPlatformStore(): MovingPlatformStore {
+  return useRootStore().movingPlatformStore
 }

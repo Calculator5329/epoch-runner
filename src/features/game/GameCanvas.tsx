@@ -6,6 +6,7 @@ import { inputService } from '../../services/InputService'
 import { physicsService } from '../../services/PhysicsService'
 import { cameraService } from '../../services/CameraService'
 import { entityService } from '../../services/EntityService'
+import { movingPlatformService } from '../../services/MovingPlatformService'
 import { canvasRenderer } from '../../services/renderers'
 import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from '../../core/constants'
 import { CAMPAIGN_LEVELS } from '../../levels'
@@ -20,7 +21,7 @@ export const GameCanvas = observer(function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const rootStore = useRootStore()
-  const { gameStore, playerStore, levelStore, cameraStore, campaignStore, uiStore, editorStore, assetStore, entityStore } = rootStore
+  const { gameStore, playerStore, levelStore, cameraStore, campaignStore, uiStore, editorStore, assetStore, entityStore, movingPlatformStore } = rootStore
 
   // Track if we need to respawn (set when player dies)
   const needsRespawnRef = useRef(false)
@@ -60,13 +61,16 @@ export const GameCanvas = observer(function GameCanvas() {
       // 5. Update entities (AI, movement)
       entityService.update(deltaTime, entityStore, levelStore)
 
-      // 6. Update physics (pass input for noclip vertical movement, entityStore for enemy collision)
-      physicsService.update(deltaTime, playerStore, levelStore, gameStore, input, entityStore)
+      // 6. Update moving platforms
+      movingPlatformService.update(movingPlatformStore.getActive(), deltaTime)
 
-      // 7. Update camera to follow player
+      // 7. Update physics (pass input for noclip vertical movement, entityStore for enemy collision, movingPlatformStore for platform riding)
+      physicsService.update(deltaTime, playerStore, levelStore, gameStore, input, entityStore, movingPlatformStore)
+
+      // 8. Update camera to follow player
       cameraService.update(deltaTime, cameraStore, playerStore, levelStore)
 
-      // 8. Check for level completion (transition to campaign screen)
+      // 9. Check for level completion (transition to campaign screen)
       if (gameStore.levelComplete && !wasLevelCompleteRef.current) {
         wasLevelCompleteRef.current = true
         rootStore.onLevelComplete()
@@ -78,9 +82,9 @@ export const GameCanvas = observer(function GameCanvas() {
       wasLevelCompleteRef.current = false
     }
 
-    // 9. Render frame (always render for UI screens)
-    canvasRenderer.draw(levelStore, playerStore, gameStore, cameraStore, campaignStore, uiStore, assetStore, entityStore)
-  }, [rootStore, gameStore, playerStore, levelStore, cameraStore, campaignStore, uiStore, assetStore, entityStore])
+    // 10. Render frame (always render for UI screens)
+    canvasRenderer.draw(levelStore, playerStore, gameStore, cameraStore, campaignStore, uiStore, assetStore, entityStore, movingPlatformStore)
+  }, [rootStore, gameStore, playerStore, levelStore, cameraStore, campaignStore, uiStore, assetStore, entityStore, movingPlatformStore])
 
   // Handle keyboard shortcuts
   useEffect(() => {

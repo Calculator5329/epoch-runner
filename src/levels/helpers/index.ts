@@ -78,6 +78,13 @@ export { goal, checkpoint } from './triggers'
 // Stairs
 export { stairsUpRight, stairsUpLeft } from './stairs'
 
+// Moving Platforms
+export {
+  horizontalPlatform,
+  verticalPlatform,
+  movingPlatforms,
+} from './movingPlatforms'
+
 // Level building
 export {
   createLevel,
