@@ -165,7 +165,19 @@ export const ruleHasGoal: ValidationRuleDefinition = {
   enabledByDefault: true,
   category: 'playability',
   validate: (level: LevelDefinition): ValidationIssue[] => {
+    // Guard against malformed collision data
+    if (!Array.isArray(level.collision)) {
+      return [{
+        code: 'NO_GOAL',
+        message: 'Level has no goal tile',
+        severity: 'error',
+        rule: 'has-goal',
+        suggestion: 'Add a goal tile (ID: 100) to the level',
+      }]
+    }
+    
     for (const row of level.collision) {
+      if (!Array.isArray(row)) continue
       for (const tile of row) {
         if (tile === TileTypeId.GOAL) {
           return [] // Found a goal

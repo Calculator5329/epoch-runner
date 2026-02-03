@@ -413,14 +413,38 @@ class AssetResolverServiceClass {
     switch (type) {
       case 'background':
         return this.getBackground(value)
-      case 'tile-sprite':
-        return this.getTileSprite(Number(value))
+      case 'tile-sprite': {
+        const tileId = Number(value)
+        if (Number.isNaN(tileId)) {
+          if (import.meta.env.DEV) {
+            console.warn(`[AssetResolver] Invalid tile-sprite value: "${value}"`)
+          }
+          return undefined
+        }
+        return this.getTileSprite(tileId)
+      }
       case 'entity-sprite':
         return this.getEntitySprite(value)
-      case 'player-sprite':
+      case 'player-sprite': {
+        const validPlayerKeys: PlayerSpriteKey[] = ['idle', 'run', 'run1', 'run2', 'jump']
+        if (!validPlayerKeys.includes(value as PlayerSpriteKey)) {
+          if (import.meta.env.DEV) {
+            console.warn(`[AssetResolver] Invalid player-sprite key: "${value}"`)
+          }
+          return undefined
+        }
         return this.getPlayerSprite(value as PlayerSpriteKey)
-      case 'ui-sprite':
+      }
+      case 'ui-sprite': {
+        const validUIKeys: UISpriteKey[] = ['heart', 'heart-empty', 'coin-icon']
+        if (!validUIKeys.includes(value as UISpriteKey)) {
+          if (import.meta.env.DEV) {
+            console.warn(`[AssetResolver] Invalid ui-sprite key: "${value}"`)
+          }
+          return undefined
+        }
         return this.getUISprite(value as UISpriteKey)
+      }
       case 'music':
         return this.getMusic(context ?? value)
       case 'sfx':

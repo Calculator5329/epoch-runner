@@ -283,12 +283,12 @@ class LevelMetadataServiceClass {
       
       // Time range filters
       if (filter.minEstimatedTime !== undefined) {
-        if (!meta?.estimatedTime || meta.estimatedTime < filter.minEstimatedTime) {
+        if (meta?.estimatedTime == null || meta.estimatedTime < filter.minEstimatedTime) {
           return false
         }
       }
       if (filter.maxEstimatedTime !== undefined) {
-        if (!meta?.estimatedTime || meta.estimatedTime > filter.maxEstimatedTime) {
+        if (meta?.estimatedTime == null || meta.estimatedTime > filter.maxEstimatedTime) {
           return false
         }
       }

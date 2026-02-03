@@ -126,6 +126,13 @@ class CampaignRegistryClass {
    */
   unregister(campaignId: string): void {
     this.campaigns.delete(campaignId)
+    
+    // Reset default if we just unregistered it
+    if (this.defaultCampaignId === campaignId) {
+      const firstRemaining = this.campaigns.keys().next().value
+      this.defaultCampaignId = firstRemaining ?? 'main'
+    }
+    
     this.notifyListeners()
   }
 
