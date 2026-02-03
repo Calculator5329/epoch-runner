@@ -10,6 +10,8 @@ import {
   INVINCIBILITY_DURATION,
   SPEED_BOOST_MULTIPLIER,
   SUPER_JUMP_MULTIPLIER,
+  COYOTE_TIME,
+  JUMP_BUFFER_TIME,
 } from '../core/constants'
 import type { InputState, Vector2 } from '../core/types'
 import { audioService } from '../services/AudioService'
@@ -45,6 +47,10 @@ export class PlayerStore {
   // Jump system - baseMaxJumps determined by level (1 for levels 0-3, 2 for level 4+)
   baseMaxJumps = 1
   jumpsRemaining = 1
+  
+  // Forgiving jump timing
+  coyoteTimeRemaining = 0    // Milliseconds since left ground
+  jumpBufferTime = 0         // Milliseconds since jump was pressed
   
   // Triple jump power-up
   hasTripleJump = false
@@ -98,7 +104,15 @@ export class PlayerStore {
     }
 
     // Jump (uses jumpsRemaining for double jump support)
-    if (input.jumpJustPressed && this.jumpsRemaining > 0) {
+    // Store jump input in buffer for forgiving timing
+    if (input.jumpJustPressed) {
+      this.jumpBufferTime = JUMP_BUFFER_TIME
+    }
+    
+    // Can jump if: grounded, in coyote time, or have air jumps remaining
+    const canJump = (this.isGrounded || this.coyoteTimeRemaining > 0 || this.jumpsRemaining > 0)
+    
+    if (this.jumpBufferTime > 0 && canJump) {
       // Calculate effective jump velocity (with super jump if active)
       const effectiveJumpVelocity = this.hasSuperJump
         ? JUMP_VELOCITY * SUPER_JUMP_MULTIPLIER
@@ -107,6 +121,8 @@ export class PlayerStore {
       this.vy = effectiveJumpVelocity
       this.jumpsRemaining -= 1
       this.isGrounded = false
+      this.coyoteTimeRemaining = 0  // Consume coyote time
+      this.jumpBufferTime = 0       // Consume jump buffer
       
       // Play jump sound effect
       audioService.playSfx('jump')
@@ -114,8 +130,30 @@ export class PlayerStore {
   }
 
   /**
+   * Update forgiving input timers (coyote time, jump buffer)
+   * Called each frame with deltaTime in milliseconds
+   */
+  updateInputTimers(deltaTime: number): void {
+    // Decay coyote time (only when in air and not grounded)
+    if (!this.isGrounded && this.coyoteTimeRemaining > 0) {
+      this.coyoteTimeRemaining -= deltaTime
+      if (this.coyoteTimeRemaining < 0) {
+        this.coyoteTimeRemaining = 0
+      }
+    }
+    
+    // Decay jump buffer
+    if (this.jumpBufferTime > 0) {
+      this.jumpBufferTime -= deltaTime
+      if (this.jumpBufferTime < 0) {
+        this.jumpBufferTime = 0
+      }
+    }
+  }
+
+  /**
    * Update power-up timers
-   * Called each frame with deltaTime
+   * Called each frame with deltaTime in milliseconds
    */
   updatePowerUps(deltaTime: number): void {
     // Triple jump timer
@@ -189,6 +227,20 @@ export class PlayerStore {
     this.isGrounded = true
     // Reset jumps: baseMaxJumps normally (1 or 2), 3 with triple jump power-up
     this.jumpsRemaining = this.hasTripleJump ? 3 : this.baseMaxJumps
+    // Reset coyote time
+    this.coyoteTimeRemaining = 0
+  }
+
+  /**
+   * Called when player leaves ground (walks off edge)
+   * Starts coyote time grace period
+   */
+  onLeaveGround(): void {
+    // Only start coyote time if we didn't jump (vy should be near 0 or positive)
+    // If we jumped, vy will be negative (upward)
+    if (this.vy >= -50) {  // Small threshold for imprecision
+      this.coyoteTimeRemaining = COYOTE_TIME
+    }
   }
 
   /**

@@ -52,3 +52,7 @@ export const INVINCIBILITY_DURATION = 6
 // Power-up multipliers
 export const SPEED_BOOST_MULTIPLIER = 2.0    // 2x movement speed
 export const SUPER_JUMP_MULTIPLIER = 1.5     // 1.5x jump height
+
+// Forgiving input timing (milliseconds)
+export const COYOTE_TIME = 150         // Grace period to jump after leaving ground
+export const JUMP_BUFFER_TIME = 100   // Remember jump input before landing

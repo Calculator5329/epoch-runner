@@ -51,22 +51,25 @@ export const GameCanvas = observer(function GameCanvas() {
       // 2. Apply input to player
       playerStore.applyInput(input)
 
-      // 3. Update power-up timers
+      // 3. Update input timers (coyote time, jump buffer)
+      playerStore.updateInputTimers(deltaTime)
+
+      // 4. Update power-up timers
       playerStore.updatePowerUps(deltaTime)
 
-      // 4. Update animation
+      // 5. Update animation
       playerStore.updateAnimation(deltaTime)
 
-      // 5. Update entities (AI, movement)
+      // 6. Update entities (AI, movement)
       entityService.update(deltaTime, entityStore, levelStore)
 
-      // 6. Update physics (pass input for noclip vertical movement, entityStore for enemy collision)
+      // 7. Update physics (pass input for noclip vertical movement, entityStore for enemy collision)
       physicsService.update(deltaTime, playerStore, levelStore, gameStore, input, entityStore)
 
-      // 7. Update camera to follow player
+      // 8. Update camera to follow player
       cameraService.update(deltaTime, cameraStore, playerStore, levelStore)
 
-      // 8. Check for level completion (transition to campaign screen)
+      // 9. Check for level completion (transition to campaign screen)
       if (gameStore.levelComplete && !wasLevelCompleteRef.current) {
         wasLevelCompleteRef.current = true
         rootStore.onLevelComplete()
@@ -78,7 +81,7 @@ export const GameCanvas = observer(function GameCanvas() {
       wasLevelCompleteRef.current = false
     }
 
-    // 9. Render frame (always render for UI screens)
+    // 10. Render frame (always render for UI screens)
     canvasRenderer.draw(levelStore, playerStore, gameStore, cameraStore, campaignStore, uiStore, assetStore, entityStore)
   }, [rootStore, gameStore, playerStore, levelStore, cameraStore, campaignStore, uiStore, assetStore, entityStore])
 

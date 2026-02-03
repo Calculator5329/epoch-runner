@@ -302,6 +302,10 @@ class PhysicsService {
     // Only do this when falling (vy >= 0), not when jumping up
     if (!wasGrounded && isNowGrounded && player.vy >= 0) {
       player.onLand()
+    } else if (wasGrounded && !isNowGrounded) {
+      // Walked off an edge - start coyote time
+      player.onLeaveGround()
+      player.isGrounded = false
     } else {
       player.isGrounded = isNowGrounded
     }
