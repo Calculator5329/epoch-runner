@@ -31,6 +31,12 @@ export class CameraStore {
   readonly viewportWidth = VIEWPORT_WIDTH
   readonly viewportHeight = VIEWPORT_HEIGHT
 
+  // Screen shake state
+  shakeX = 0
+  shakeY = 0
+  shakeIntensity = 0
+  shakeDuration = 0
+
   constructor() {
     makeAutoObservable(this)
   }
@@ -135,6 +141,61 @@ export class CameraStore {
   }
 
   /**
+   * Trigger screen shake effect
+   * @param intensity - Shake intensity in pixels (max offset)
+   * @param duration - Shake duration in seconds
+   */
+  shake(intensity: number, duration: number): void {
+    // If already shaking, take the stronger shake
+    if (intensity > this.shakeIntensity) {
+      this.shakeIntensity = intensity
+      this.shakeDuration = duration
+    }
+  }
+
+  /**
+   * Update screen shake effect (called each frame)
+   * @param deltaTime - Frame time in milliseconds
+   */
+  updateShake(deltaTime: number): void {
+    if (this.shakeDuration <= 0) {
+      this.shakeX = 0
+      this.shakeY = 0
+      this.shakeIntensity = 0
+      return
+    }
+
+    // Decay shake over time
+    this.shakeDuration -= deltaTime / 1000
+
+    if (this.shakeDuration <= 0) {
+      this.shakeX = 0
+      this.shakeY = 0
+      this.shakeIntensity = 0
+      return
+    }
+
+    // Generate random shake offset within intensity bounds
+    // Use a random angle for smooth shake motion
+    const angle = Math.random() * Math.PI * 2
+    const intensity = this.shakeIntensity * (this.shakeDuration / 0.3) // Fade out
+    
+    this.shakeX = Math.cos(angle) * intensity * (Math.random() * 0.5 + 0.5)
+    this.shakeY = Math.sin(angle) * intensity * (Math.random() * 0.5 + 0.5)
+  }
+
+  /**
+   * Get camera position with shake applied
+   */
+  getShakeX(): number {
+    return this.x + this.shakeX
+  }
+
+  getShakeY(): number {
+    return this.y + this.shakeY
+  }
+
+  /**
    * Reset camera to default position
    */
   reset(): void {
@@ -142,5 +203,9 @@ export class CameraStore {
     this.y = 0
     this.targetX = 0
     this.targetY = 0
+    this.shakeX = 0
+    this.shakeY = 0
+    this.shakeIntensity = 0
+    this.shakeDuration = 0
   }
 }

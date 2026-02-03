@@ -13,12 +13,16 @@ import {
 import type { PlayerStore } from '../stores/PlayerStore'
 import type { LevelStore } from '../stores/LevelStore'
 import type { GameStore } from '../stores/GameStore'
+import type { CameraStore } from '../stores/CameraStore'
 import type { EntityStore } from '../stores/EntityStore'
 import type { Entity } from '../core/types/entities'
 import { getEntityDefinition } from '../core/types/entities'
 
 /** Bounce velocity when stomping an enemy */
 const STOMP_BOUNCE_VELOCITY = -300
+
+/** Minimum fall velocity to trigger hard landing shake (pixels/second) */
+const HARD_LANDING_THRESHOLD = 400
 
 /**
  * PhysicsService - Stateless physics and collision logic
@@ -31,6 +35,7 @@ class PhysicsService {
    * Main physics update - called once per frame
    * @param input - Optional input state for noclip vertical movement
    * @param entityStore - Optional entity store for enemy collisions
+   * @param cameraStore - Optional camera store for screen shake effects
    */
   update(
     deltaTime: number,
@@ -38,7 +43,8 @@ class PhysicsService {
     levelStore: LevelStore,
     gameStore: GameStore,
     input?: InputState,
-    entityStore?: EntityStore
+    entityStore?: EntityStore,
+    cameraStore?: CameraStore
   ): void {
     // Don't update if game is paused, complete, or game over
     if (gameStore.isPaused || gameStore.levelComplete || gameStore.isGameOver) {
@@ -86,7 +92,7 @@ class PhysicsService {
     this.moveVertical(playerStore, levelStore, moveY, prevY)
 
     // Check for hazard collision
-    this.checkHazards(playerStore, levelStore, gameStore)
+    this.checkHazards(playerStore, levelStore, gameStore, cameraStore)
 
     // Check for entity collision (enemies)
     if (entityStore) {
@@ -94,7 +100,7 @@ class PhysicsService {
     }
 
     // Check for falling off the map
-    this.checkBoundaries(playerStore, levelStore, gameStore)
+    this.checkBoundaries(playerStore, levelStore, gameStore, cameraStore)
 
     // Check for pickups (coins, powerups)
     this.checkPickups(playerStore, levelStore, gameStore)
@@ -269,13 +275,13 @@ class PhysicsService {
     }
 
     // Double-check grounded state
-    this.updateGroundedState(player, level)
+    this.updateGroundedState(player, level, cameraStore)
   }
 
   /**
    * Update grounded state by checking tile directly below player
    */
-  private updateGroundedState(player: PlayerStore, level: LevelStore): void {
+  private updateGroundedState(player: PlayerStore, level: LevelStore, camera?: CameraStore): void {
     // Check a small distance below the player's feet
     const aabb: AABB = {
       x: player.x,
@@ -301,7 +307,14 @@ class PhysicsService {
     // Call onLand() when transitioning from air to ground (resets jumpsRemaining)
     // Only do this when falling (vy >= 0), not when jumping up
     if (!wasGrounded && isNowGrounded && player.vy >= 0) {
+      const landingSpeed = Math.abs(player.vy)
       player.onLand()
+      
+      // Trigger screen shake on hard landing
+      if (camera && landingSpeed >= HARD_LANDING_THRESHOLD) {
+        const intensity = Math.min(12, landingSpeed / 60) // Scale intensity with speed, cap at 12px
+        camera.shake(intensity, 0.15)
+      }
     } else {
       player.isGrounded = isNowGrounded
     }
@@ -313,7 +326,8 @@ class PhysicsService {
   private checkHazards(
     player: PlayerStore,
     level: LevelStore,
-    game: GameStore
+    game: GameStore,
+    camera?: CameraStore
   ): void {
     // Skip hazard damage in god mode or with invincibility
     if (game.isGodMode || player.hasInvincibility) return
@@ -323,6 +337,10 @@ class PhysicsService {
     const hazard = checkHazardCollision(aabb, getTile, level.width, level.height)
 
     if (hazard) {
+      // Trigger death shake
+      if (camera) {
+        camera.shake(8, 0.3)
+      }
       game.onPlayerDeath()
     }
   }
@@ -333,7 +351,8 @@ class PhysicsService {
   private checkBoundaries(
     player: PlayerStore,
     level: LevelStore,
-    game: GameStore
+    game: GameStore,
+    camera?: CameraStore
   ): void {
     // Skip boundary death in god mode
     if (game.isGodMode) return
@@ -343,6 +362,10 @@ class PhysicsService {
     
     // If player's top edge is below the level, they've fallen off
     if (player.y > levelBottomY) {
+      // Trigger death shake
+      if (camera) {
+        camera.shake(8, 0.3)
+      }
       game.onPlayerDeath()
     }
   }
@@ -439,10 +462,10 @@ class PhysicsService {
 
       if (isStomping) {
         // Stomp the enemy - kill it and bounce player
-        this.stompEnemy(player, enemy, entityStore)
+        this.stompEnemy(player, enemy, entityStore, cameraStore)
       } else {
         // Player takes damage
-        this.damageFromEnemy(player, enemy, game)
+        this.damageFromEnemy(player, enemy, game, cameraStore)
       }
     }
   }
@@ -487,7 +510,8 @@ class PhysicsService {
   private stompEnemy(
     player: PlayerStore,
     enemy: Entity,
-    entityStore: EntityStore
+    entityStore: EntityStore,
+    camera?: CameraStore
   ): void {
     // Reduce enemy health
     enemy.health -= 1
@@ -495,6 +519,11 @@ class PhysicsService {
     if (enemy.health <= 0) {
       // Enemy dies
       entityStore.despawn(enemy.id)
+    }
+
+    // Trigger stomp shake
+    if (camera) {
+      camera.shake(6, 0.2)
     }
 
     // Bounce the player up
@@ -508,7 +537,8 @@ class PhysicsService {
   private damageFromEnemy(
     _player: PlayerStore,
     enemy: Entity,
-    game: GameStore
+    game: GameStore,
+    camera?: CameraStore
   ): void {
     const definition = getEntityDefinition(enemy.definitionId)
     const damage = definition?.damage ?? 1
@@ -516,6 +546,10 @@ class PhysicsService {
     // For now, any enemy contact kills the player (like spikes)
     // In future, could implement knockback + invincibility frames
     if (damage > 0) {
+      // Trigger death shake
+      if (camera) {
+        camera.shake(8, 0.3)
+      }
       game.onPlayerDeath()
     }
   }

@@ -60,8 +60,8 @@ export const GameCanvas = observer(function GameCanvas() {
       // 5. Update entities (AI, movement)
       entityService.update(deltaTime, entityStore, levelStore)
 
-      // 6. Update physics (pass input for noclip vertical movement, entityStore for enemy collision)
-      physicsService.update(deltaTime, playerStore, levelStore, gameStore, input, entityStore)
+      // 6. Update physics (pass input for noclip vertical movement, entityStore for enemy collision, cameraStore for screen shake)
+      physicsService.update(deltaTime, playerStore, levelStore, gameStore, input, entityStore, cameraStore)
 
       // 7. Update camera to follow player
       cameraService.update(deltaTime, cameraStore, playerStore, levelStore)
