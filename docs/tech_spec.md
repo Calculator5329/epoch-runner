@@ -101,6 +101,57 @@ class PlayerStore {
 
 ---
 
+## Registry System
+
+The codebase uses dynamic registries for extensibility and modding support.
+
+### Registry Pattern
+
+All registries follow the same pattern:
+- Priority-based registration (pack content can override built-in)
+- Source tracking (built-in, pack, firebase, editor)
+- Change notification for reactive updates
+- Singleton instances with class exports for testing
+
+### Available Registries
+
+| Registry | Location | Purpose |
+|----------|----------|---------|
+| `levelRegistry` | `core/registry/LevelRegistry.ts` | Level definitions |
+| `entityRegistry` | `core/registry/EntityRegistry.ts` | Entity definitions |
+| `tileRegistry` | `core/registry/TileRegistry.ts` | Tile type definitions |
+| `themeRegistry` | `core/themes/registry.ts` | Visual themes |
+| `campaignRegistry` | `src/core/data/campaignConfig.ts` | Campaign definitions |
+
+### Registration Priority
+
+```typescript
+const PRIORITY = {
+  BUILT_IN: 0,   // Base game content
+  FIREBASE: 10,  // Cloud content
+  PACK: 20,      // Level pack content
+  EDITOR: 30,    // User-created content
+}
+```
+
+### Example Usage
+
+```typescript
+import { levelRegistry } from './core/registry'
+import { initBuiltInLevels } from './levels/registry'
+
+// Initialize at app startup
+initBuiltInLevels()
+
+// Register custom level from pack
+levelRegistry.register(customLevel, 'pack', undefined, 'my-pack-id')
+
+// Get level by ID (respects priority)
+const level = levelRegistry.get('level_0_basic')
+```
+
+---
+
 ## Grid System
 
 ### Constants

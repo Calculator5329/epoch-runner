@@ -3,6 +3,8 @@ import { TileTypeId } from '../core/types'
 import type { GridPosition, LevelDefinition } from '../levels/types'
 import type { EntitySpawn, EntityDirection } from '../core/types/entities'
 import { createEmptyGrid } from '../levels/helpers'
+import { editorHistoryService, type HistorySnapshot } from '../services/EditorHistoryService'
+import { editorGridService } from '../services/EditorGridService'
 
 /**
  * Tool types available in the editor
@@ -21,20 +23,6 @@ export interface EditorEntitySpawn extends EntitySpawn {
  * Application mode - game or editor
  */
 export type AppMode = 'game' | 'editor'
-
-/**
- * History entry for undo/redo
- */
-interface HistoryEntry {
-  collision: number[][]
-  playerSpawn: GridPosition
-  entitySpawns: EditorEntitySpawn[]
-}
-
-/**
- * Maximum history entries to keep
- */
-const MAX_HISTORY = 50
 
 /**
  * Default level dimensions
@@ -75,8 +63,8 @@ export class EditorStore {
   levelName: string = 'Custom Level'
   
   // Undo/redo stacks
-  undoStack: HistoryEntry[] = []
-  redoStack: HistoryEntry[] = []
+  undoStack: HistorySnapshot[] = []
+  redoStack: HistorySnapshot[] = []
   
   // Mouse state for editor
   hoveredTile: GridPosition | null = null
@@ -219,25 +207,15 @@ export class EditorStore {
    * Push current state to undo stack
    */
   private pushHistory(): void {
-    const entry: HistoryEntry = {
-      collision: this.collision.map(row => [...row]),
-      playerSpawn: { ...this.playerSpawn },
-      entitySpawns: this.entitySpawns.map(e => ({
-        ...e,
-        position: { ...e.position },
-        properties: e.properties ? { ...e.properties } : undefined,
-      })),
-    }
+    const snapshot = editorHistoryService.createSnapshot(
+      this.collision,
+      this.playerSpawn,
+      this.entitySpawns
+    )
     
-    this.undoStack.push(entry)
-    
-    // Limit history size
-    if (this.undoStack.length > MAX_HISTORY) {
-      this.undoStack.shift()
-    }
-    
-    // Clear redo stack on new action
-    this.redoStack = []
+    const result = editorHistoryService.pushSnapshot(this.undoStack, snapshot)
+    this.undoStack = result.undoStack
+    this.redoStack = result.redoStack
   }
 
   /**
@@ -294,27 +272,13 @@ export class EditorStore {
     
     this.pushHistory()
     
-    // BFS flood fill
-    const queue: GridPosition[] = [{ col: startCol, row: startRow }]
-    const visited = new Set<string>()
-    
-    while (queue.length > 0) {
-      const { col, row } = queue.shift()!
-      const key = `${col},${row}`
-      
-      if (visited.has(key)) continue
-      if (!this.isValidPosition(col, row)) continue
-      if (this.collision[row][col] !== oldType) continue
-      
-      visited.add(key)
-      this.collision[row][col] = newType
-      
-      // Add neighbors
-      queue.push({ col: col + 1, row })
-      queue.push({ col: col - 1, row })
-      queue.push({ col, row: row + 1 })
-      queue.push({ col, row: row - 1 })
-    }
+    // Use service for flood fill algorithm
+    this.collision = editorGridService.floodFill(
+      this.collision,
+      startCol,
+      startRow,
+      newType
+    )
   }
 
   /**
@@ -329,7 +293,7 @@ export class EditorStore {
    * Check if position is within grid bounds
    */
   isValidPosition(col: number, row: number): boolean {
-    return col >= 0 && col < this.gridWidth && row >= 0 && row < this.gridHeight
+    return editorGridService.isValidPosition(col, row, this.gridWidth, this.gridHeight)
   }
 
   // ============================================
@@ -340,25 +304,20 @@ export class EditorStore {
    * Undo last action
    */
   undo(): void {
-    if (this.undoStack.length === 0) return
+    const currentState = editorHistoryService.createSnapshot(
+      this.collision,
+      this.playerSpawn,
+      this.entitySpawns
+    )
     
-    // Save current state to redo stack
-    const current: HistoryEntry = {
-      collision: this.collision.map(row => [...row]),
-      playerSpawn: { ...this.playerSpawn },
-      entitySpawns: this.entitySpawns.map(e => ({
-        ...e,
-        position: { ...e.position },
-        properties: e.properties ? { ...e.properties } : undefined,
-      })),
-    }
-    this.redoStack.push(current)
+    const result = editorHistoryService.undo(this.undoStack, this.redoStack, currentState)
+    if (!result) return
     
-    // Restore previous state
-    const previous = this.undoStack.pop()!
-    this.collision = previous.collision
-    this.playerSpawn = previous.playerSpawn
-    this.entitySpawns = previous.entitySpawns
+    this.collision = result.state.collision
+    this.playerSpawn = result.state.playerSpawn
+    this.entitySpawns = result.state.entitySpawns
+    this.undoStack = result.undoStack
+    this.redoStack = result.redoStack
     this.selectedEntityId = null
   }
 
@@ -366,25 +325,20 @@ export class EditorStore {
    * Redo last undone action
    */
   redo(): void {
-    if (this.redoStack.length === 0) return
+    const currentState = editorHistoryService.createSnapshot(
+      this.collision,
+      this.playerSpawn,
+      this.entitySpawns
+    )
     
-    // Save current state to undo stack
-    const current: HistoryEntry = {
-      collision: this.collision.map(row => [...row]),
-      playerSpawn: { ...this.playerSpawn },
-      entitySpawns: this.entitySpawns.map(e => ({
-        ...e,
-        position: { ...e.position },
-        properties: e.properties ? { ...e.properties } : undefined,
-      })),
-    }
-    this.undoStack.push(current)
+    const result = editorHistoryService.redo(this.undoStack, this.redoStack, currentState)
+    if (!result) return
     
-    // Restore next state
-    const next = this.redoStack.pop()!
-    this.collision = next.collision
-    this.playerSpawn = next.playerSpawn
-    this.entitySpawns = next.entitySpawns
+    this.collision = result.state.collision
+    this.playerSpawn = result.state.playerSpawn
+    this.entitySpawns = result.state.entitySpawns
+    this.undoStack = result.undoStack
+    this.redoStack = result.redoStack
     this.selectedEntityId = null
   }
 
@@ -463,16 +417,14 @@ export class EditorStore {
     
     this.pushHistory()
     
-    const newCollision = createEmptyGrid(newWidth, newHeight)
+    // Use service for grid resizing
+    this.collision = editorGridService.resizeGrid(
+      this.collision,
+      newWidth,
+      newHeight,
+      TileTypeId.EMPTY
+    )
     
-    // Copy existing tiles
-    for (let row = 0; row < Math.min(this.gridHeight, newHeight); row++) {
-      for (let col = 0; col < Math.min(this.gridWidth, newWidth); col++) {
-        newCollision[row][col] = this.collision[row][col]
-      }
-    }
-    
-    this.collision = newCollision
     this.gridWidth = newWidth
     this.gridHeight = newHeight
     

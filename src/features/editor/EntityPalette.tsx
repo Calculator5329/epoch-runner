@@ -1,11 +1,8 @@
+import { useState, useEffect } from 'react'
 import { observer } from 'mobx-react-lite'
 import { useEditorStore, useAssetStore } from '../../stores/RootStore'
-import { ENTITY_DEFINITIONS, type EntityDefinition } from '../../core/types/entities'
-
-/**
- * Get all entity definitions as an array
- */
-const ENTITY_LIST: EntityDefinition[] = Object.values(ENTITY_DEFINITIONS)
+import { entityRegistry } from '../../core/registry'
+import { getEntityDefinition } from '../../core/types/entities'
 
 /**
  * EntityPalette - Entity selection panel for the editor
@@ -15,13 +12,25 @@ const ENTITY_LIST: EntityDefinition[] = Object.values(ENTITY_DEFINITIONS)
 export const EntityPalette = observer(function EntityPalette() {
   const editorStore = useEditorStore()
   const assetStore = useAssetStore()
+  
+  // Track registry changes to trigger re-render when entities are registered/unregistered
+  const [, setRegistryVersion] = useState(0)
+  
+  useEffect(() => {
+    return entityRegistry.subscribe(() => {
+      setRegistryVersion(v => v + 1)
+    })
+  }, [])
+  
+  // Get all entity definitions from registry (re-fetched on registry changes)
+  const allEntities = entityRegistry.getAll()
 
   return (
     <div className="entity-palette">
       <div className="palette-section">
         <h3>Entities</h3>
         <div className="entity-grid">
-          {ENTITY_LIST.map((entity) => {
+          {allEntities.map((entity) => {
             const isSelected = editorStore.selectedEntityType === entity.id
             const customSprite = assetStore.getEntitySprite(entity.id)
             
@@ -57,7 +66,7 @@ export const EntityPalette = observer(function EntityPalette() {
           <h3>Selected Entity</h3>
           <div className="selected-entity-info">
             {(() => {
-              const entity = ENTITY_DEFINITIONS[editorStore.selectedEntityType]
+              const entity = getEntityDefinition(editorStore.selectedEntityType)
               if (!entity) return null
               const customSprite = assetStore.getEntitySprite(entity.id)
               

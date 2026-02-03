@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { observer } from 'mobx-react-lite'
 import { useEditorStore, useAssetStore } from '../../stores/RootStore'
-import { TileTypeId, TILE_TYPES, getTileType } from '../../core/types/shapes'
+import { TileTypeId, getTileType, type TileType } from '../../core/types/shapes'
+import { tileRegistry } from '../../core/registry'
 import type { EditorTool } from '../../stores/EditorStore'
 
 /**
@@ -9,80 +10,62 @@ import type { EditorTool } from '../../stores/EditorStore'
  */
 interface TileCategory {
   name: string
-  tiles: TileTypeId[]
+  tiles: TileType[]
 }
 
 /**
- * Organized tile categories
+ * Build tile categories from the registry
+ * Separates solid tiles into basic shapes and materials
  */
-const TILE_CATEGORIES: TileCategory[] = [
-  {
-    name: 'Solid',
-    tiles: [
-      TileTypeId.SOLID_FULL,
-      TileTypeId.SOLID_HALF_LEFT,
-      TileTypeId.SOLID_HALF_RIGHT,
-      TileTypeId.SOLID_HALF_TOP,
-      TileTypeId.SOLID_HALF_BOTTOM,
-      TileTypeId.SOLID_QUARTER_TL,
-      TileTypeId.SOLID_QUARTER_TR,
-      TileTypeId.SOLID_QUARTER_BL,
-      TileTypeId.SOLID_QUARTER_BR,
-      TileTypeId.SOLID_SLOPE_UP_RIGHT,
-      TileTypeId.SOLID_SLOPE_UP_LEFT,
-    ],
-  },
-  {
-    name: 'Materials',
-    tiles: [
-      TileTypeId.SOLID_BRICK,
-      TileTypeId.SOLID_STONE,
-      TileTypeId.SOLID_METAL,
-      TileTypeId.SOLID_WOOD,
-      TileTypeId.SOLID_ICE,
-      TileTypeId.SOLID_GRASS,
-      TileTypeId.SOLID_SAND,
-      TileTypeId.SOLID_DIRT,
-      TileTypeId.SOLID_CRYSTAL,
-      TileTypeId.SOLID_LAVA_ROCK,
-    ],
-  },
-  {
-    name: 'Platform',
-    tiles: [
-      TileTypeId.PLATFORM_FULL,
-      TileTypeId.PLATFORM_HALF_LEFT,
-      TileTypeId.PLATFORM_HALF_RIGHT,
-    ],
-  },
-  {
-    name: 'Hazard',
-    tiles: [
-      TileTypeId.HAZARD_FULL,
-      TileTypeId.HAZARD_SPIKE_UP,
-      TileTypeId.HAZARD_SPIKE_DOWN,
-      TileTypeId.HAZARD_SPIKE_LEFT,
-      TileTypeId.HAZARD_SPIKE_RIGHT,
-    ],
-  },
-  {
-    name: 'Pickup',
-    tiles: [
-      TileTypeId.COIN,
-      TileTypeId.POWERUP_TRIPLE_JUMP,
-      TileTypeId.POWERUP_SPEED,
-      TileTypeId.POWERUP_SUPER_JUMP,
-      TileTypeId.POWERUP_INVINCIBILITY,
-    ],
-  },
-  {
-    name: 'Trigger',
-    tiles: [
-      TileTypeId.GOAL,
-      TileTypeId.CHECKPOINT,
-    ],
-  },
-]
+function buildTileCategories(): TileCategory[] {
+  const grouped = tileRegistry.getGroupedByCategory()
+  const categories: TileCategory[] = []
+  
+  // Split solid into shapes and materials
+  const solidTiles = grouped.solid || []
+  const basicSolids = solidTiles.filter(t => 
+    t.id >= TileTypeId.SOLID_FULL && t.id <= TileTypeId.SOLID_SLOPE_DOWN_LEFT
+  )
+  const materialSolids = solidTiles.filter(t =>
+    t.id >= TileTypeId.SOLID_BRICK && t.id <= TileTypeId.SOLID_LAVA_ROCK
+  )
+  const platformSolids = solidTiles.filter(t =>
+    t.id >= TileTypeId.PLATFORM_FULL && t.id <= TileTypeId.PLATFORM_HALF_RIGHT
+  )
+  
+  if (basicSolids.length > 0) {
+    categories.push({ name: 'Solid', tiles: basicSolids })
+  }
+  if (materialSolids.length > 0) {
+    categories.push({ name: 'Materials', tiles: materialSolids })
+  }
+  if (platformSolids.length > 0) {
+    categories.push({ name: 'Platform', tiles: platformSolids })
+  }
+  
+  // Add other categories
+  const hazardTiles = grouped.hazard || []
+  if (hazardTiles.length > 0) {
+    categories.push({ name: 'Hazard', tiles: hazardTiles })
+  }
+  
+  const pickupTiles = grouped.pickup || []
+  if (pickupTiles.length > 0) {
+    categories.push({ name: 'Pickup', tiles: pickupTiles })
+  }
+  
+  const triggerTiles = grouped.trigger || []
+  if (triggerTiles.length > 0) {
+    categories.push({ name: 'Trigger', tiles: triggerTiles })
+  }
+  
+  const decorationTiles = grouped.decoration || []
+  if (decorationTiles.length > 0) {
+    categories.push({ name: 'Decoration', tiles: decorationTiles })
+  }
+  
+  return categories
+}
 
 /**
  * Tool definitions
@@ -110,6 +93,18 @@ const TOOLS: ToolDef[] = [
 export const TilePalette = observer(function TilePalette() {
   const editorStore = useEditorStore()
   const assetStore = useAssetStore()
+  
+  // Track registry changes to trigger re-render when tiles are registered/unregistered
+  const [registryVersion, setRegistryVersion] = useState(0)
+  
+  useEffect(() => {
+    return tileRegistry.subscribe(() => {
+      setRegistryVersion(v => v + 1)
+    })
+  }, [])
+  
+  // Build tile categories from registry (recomputes when registry changes)
+  const tileCategories = useMemo(() => buildTileCategories(), [registryVersion])
   
   // Local state for level size inputs
   const [inputWidth, setInputWidth] = useState(editorStore.gridWidth.toString())
@@ -253,28 +248,27 @@ export const TilePalette = observer(function TilePalette() {
       </div>
 
       {/* Tile Categories */}
-      {TILE_CATEGORIES.map((category) => (
+      {tileCategories.map((category) => (
         <div key={category.name} className="palette-section">
           <h3>{category.name}</h3>
           <div className="tile-grid">
-            {category.tiles.map((tileId) => {
-              const tileType = getTileType(tileId)
-              const isSelected = editorStore.selectedTileType === tileId
-              const customSprite = assetStore.getTileSprite(tileId)
+            {category.tiles.map((tile) => {
+              const isSelected = editorStore.selectedTileType === tile.id
+              const customSprite = assetStore.getTileSprite(tile.id)
               
               return (
                 <button
-                  key={tileId}
+                  key={tile.id}
                   className={`tile-button ${isSelected ? 'selected' : ''}`}
                   onClick={() => {
-                    editorStore.setSelectedTileType(tileId)
+                    editorStore.setSelectedTileType(tile.id as TileTypeId)
                     if (editorStore.tool !== 'paint') {
                       editorStore.setTool('paint')
                     }
                   }}
-                  title={tileType.name}
+                  title={tile.name}
                   style={{
-                    backgroundColor: customSprite ? 'transparent' : tileType.color,
+                    backgroundColor: customSprite ? 'transparent' : tile.color,
                     backgroundImage: customSprite ? `url(${customSprite.src})` : 'none',
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
@@ -300,7 +294,7 @@ export const TilePalette = observer(function TilePalette() {
             }}
             title="Empty (Erase)"
             style={{
-              backgroundColor: TILE_TYPES[TileTypeId.EMPTY].color,
+              backgroundColor: getTileType(TileTypeId.EMPTY).color,
               border: '2px dashed rgba(255,255,255,0.3)',
             }}
           >

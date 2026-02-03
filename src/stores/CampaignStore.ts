@@ -1,4 +1,14 @@
 import { makeAutoObservable } from 'mobx'
+import { 
+  campaignRegistry, 
+  type CampaignDefinition,
+  getCampaignLevelIndex,
+  getCampaignNextLevelId,
+  isCampaignLastLevel,
+  hasCampaignDoubleJump,
+  getCampaignLength,
+  getCampaignLevelAtIndex,
+} from '../core/data/campaignConfig'
 
 /**
  * Screen state for the campaign flow
@@ -38,12 +48,17 @@ export interface LevelStats {
  * 
  * Controls the campaign from intro screen through all levels to the
  * final stats screen. Tracks progression, unlocks, and session stats.
+ * 
+ * Now uses the campaign config system for data-driven campaigns.
  */
 export class CampaignStore {
   // Current state of the game flow
   screenState: ScreenState = 'intro'
   
-  // Campaign progression (index into orderedLevels)
+  // Current campaign definition
+  currentCampaignId: string = 'main'
+  
+  // Campaign progression (index into campaign levels)
   currentLevelIndex = 0
   
   // Track which levels are unlocked (levelId -> unlocked)
@@ -81,6 +96,79 @@ export class CampaignStore {
   }
 
   // ============================================
+  // Campaign Access
+  // ============================================
+
+  /**
+   * Get the current campaign definition
+   */
+  get currentCampaign(): CampaignDefinition {
+    return campaignRegistry.get(this.currentCampaignId) ?? campaignRegistry.getDefault()
+  }
+
+  /**
+   * Get the ordered level IDs for the current campaign
+   */
+  get orderedLevels(): string[] {
+    return this.currentCampaign.levels
+  }
+
+  /**
+   * Set the current campaign
+   */
+  setCampaign(campaignId: string): void {
+    const campaign = campaignRegistry.get(campaignId)
+    if (campaign) {
+      this.currentCampaignId = campaignId
+      this.currentLevelIndex = 0
+      this.unlockedLevels.clear()
+      // Unlock first level
+      if (campaign.levels.length > 0) {
+        this.unlockedLevels.add(campaign.levels[0])
+      }
+      // In admin mode, unlock all levels
+      if (this.isAdminMode) {
+        campaign.levels.forEach(id => this.unlockedLevels.add(id))
+      }
+    }
+  }
+
+  /**
+   * Check if double jump is unlocked for a level ID
+   */
+  hasDoubleJump(levelId: string): boolean {
+    return hasCampaignDoubleJump(this.currentCampaign, levelId)
+  }
+
+  /**
+   * Get the next level ID
+   */
+  getNextLevelId(currentLevelId: string): string | null {
+    return getCampaignNextLevelId(this.currentCampaign, currentLevelId)
+  }
+
+  /**
+   * Check if level is the last in campaign
+   */
+  isLastLevel(levelId: string): boolean {
+    return isCampaignLastLevel(this.currentCampaign, levelId)
+  }
+
+  /**
+   * Get level index in current campaign
+   */
+  getLevelIndex(levelId: string): number {
+    return getCampaignLevelIndex(this.currentCampaign, levelId)
+  }
+
+  /**
+   * Get campaign length
+   */
+  get campaignLength(): number {
+    return getCampaignLength(this.currentCampaign)
+  }
+
+  // ============================================
   // Screen State Management
   // ============================================
 
@@ -115,16 +203,21 @@ export class CampaignStore {
 
   /**
    * Initialize campaign with available levels
+   * @deprecated Use setCampaign() instead
    */
-  initCampaign(levelIds: string[]): void {
+  initCampaign(levelIds?: string[]): void {
+    // If levelIds provided, use them (backward compatibility)
+    // Otherwise, use the current campaign
+    const levels = levelIds ?? this.orderedLevels
+    
     // Unlock first level
-    if (levelIds.length > 0) {
-      this.unlockedLevels.add(levelIds[0])
+    if (levels.length > 0) {
+      this.unlockedLevels.add(levels[0])
     }
     
     // In admin mode, unlock all levels
     if (this.isAdminMode) {
-      levelIds.forEach(id => this.unlockedLevels.add(id))
+      levels.forEach(id => this.unlockedLevels.add(id))
     }
     
     this.currentLevelIndex = 0
@@ -132,19 +225,37 @@ export class CampaignStore {
 
   /**
    * Get the current level ID
+   * @deprecated Use getCurrentLevelIdFromCampaign() or access orderedLevels directly
    */
-  getCurrentLevelId(orderedLevels: string[]): string | null {
-    if (this.currentLevelIndex < 0 || this.currentLevelIndex >= orderedLevels.length) {
+  getCurrentLevelId(orderedLevels?: string[]): string | null {
+    const levels = orderedLevels ?? this.orderedLevels
+    if (this.currentLevelIndex < 0 || this.currentLevelIndex >= levels.length) {
       return null
     }
-    return orderedLevels[this.currentLevelIndex]
+    return levels[this.currentLevelIndex]
+  }
+
+  /**
+   * Get the current level ID from the current campaign
+   */
+  getCurrentLevelIdFromCampaign(): string | null {
+    return getCampaignLevelAtIndex(this.currentCampaign, this.currentLevelIndex) ?? null
   }
 
   /**
    * Check if there's a next level available
+   * @deprecated Use hasNextLevelInCampaign() instead
    */
-  hasNextLevel(totalLevels: number): boolean {
-    return this.currentLevelIndex < totalLevels - 1
+  hasNextLevel(totalLevels?: number): boolean {
+    const total = totalLevels ?? this.campaignLength
+    return this.currentLevelIndex < total - 1
+  }
+
+  /**
+   * Check if there's a next level in the current campaign
+   */
+  hasNextLevelInCampaign(): boolean {
+    return this.currentLevelIndex < this.campaignLength - 1
   }
 
   /**
@@ -175,8 +286,11 @@ export class CampaignStore {
 
   /**
    * Advance to next level or show completion screen
+   * @deprecated Use advanceToNextLevelInCampaign() instead
    */
-  advanceToNextLevel(orderedLevels: string[]): string | null {
+  advanceToNextLevel(orderedLevels?: string[]): string | null {
+    const levels = orderedLevels ?? this.orderedLevels
+    
     this.currentLevelIndex += 1
     
     // Reset current level tracking
@@ -184,14 +298,14 @@ export class CampaignStore {
     this.currentLevelCoins = 0
     this.currentLevelStartTime = Date.now()
     
-    if (this.currentLevelIndex >= orderedLevels.length) {
+    if (this.currentLevelIndex >= levels.length) {
       // Campaign complete!
       this.screenState = 'campaign_complete'
       return null
     }
     
     // Unlock next level
-    const nextLevelId = orderedLevels[this.currentLevelIndex]
+    const nextLevelId = levels[this.currentLevelIndex]
     this.unlockedLevels.add(nextLevelId)
     
     this.screenState = 'playing'
@@ -199,11 +313,21 @@ export class CampaignStore {
   }
 
   /**
-   * Jump to a specific level (admin mode)
+   * Advance to next level in current campaign
    */
-  jumpToLevel(levelIndex: number, orderedLevels: string[]): string | null {
+  advanceToNextLevelInCampaign(): string | null {
+    return this.advanceToNextLevel()
+  }
+
+  /**
+   * Jump to a specific level (admin mode)
+   * @deprecated Use jumpToLevelInCampaign() instead
+   */
+  jumpToLevel(levelIndex: number, orderedLevels?: string[]): string | null {
+    const levels = orderedLevels ?? this.orderedLevels
+    
     if (!this.isAdminMode) return null
-    if (levelIndex < 0 || levelIndex >= orderedLevels.length) return null
+    if (levelIndex < 0 || levelIndex >= levels.length) return null
     
     this.currentLevelIndex = levelIndex
     this.currentLevelDeaths = 0
@@ -211,7 +335,23 @@ export class CampaignStore {
     this.currentLevelStartTime = Date.now()
     this.screenState = 'playing'
     
-    return orderedLevels[levelIndex]
+    return levels[levelIndex]
+  }
+
+  /**
+   * Jump to a specific level in current campaign (admin mode)
+   */
+  jumpToLevelInCampaign(levelIndex: number): string | null {
+    return this.jumpToLevel(levelIndex)
+  }
+
+  /**
+   * Jump to a specific level by ID (admin mode)
+   */
+  jumpToLevelById(levelId: string): string | null {
+    const index = this.getLevelIndex(levelId)
+    if (index === -1) return null
+    return this.jumpToLevel(index)
   }
 
   // ============================================

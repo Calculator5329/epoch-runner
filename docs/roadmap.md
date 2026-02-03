@@ -353,6 +353,36 @@ Additional gameplay mechanics to enhance level variety.
 
 ---
 
+## Architecture Re-Org (Completed)
+*Priority: High - Completed*
+
+Restructured codebase for extensibility, modding support, and better organization.
+
+- [x] **Phase A1: Dynamic Registries**
+  - [x] LevelRegistry for runtime level registration
+  - [x] EntityRegistry for entity definitions
+  - [x] TileRegistry for tile types
+  - [x] AssetResolverService for asset ID → URL mapping
+
+- [x] **Phase A2: Configuration-Driven Systems**
+  - [x] Campaign configuration module (campaignConfig.ts)
+  - [x] Campaign registry for multiple campaigns
+  - [x] PackOverrideService for physics/gameplay overrides
+  - [x] Extended pack manifest format
+
+- [x] **Phase A3: Editor and Metadata**
+  - [x] Dynamic tile/entity palettes using registries
+  - [x] LevelMetadataService for statistics and filtering
+  - [x] Extended LevelDefinition with metadata
+  - [x] Validation pipeline with pluggable rules
+
+- [x] **Phase A4: Theme System**
+  - [x] Theme type definitions (palette, assets, effects)
+  - [x] Theme registry for dynamic themes
+  - [x] ThemeService for loading and applying themes
+
+---
+
 ## Out of Scope (Phase 1)
 
 These features are architecturally supported but deferred:
