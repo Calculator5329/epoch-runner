@@ -73,8 +73,8 @@ export class GameplayRenderer {
   ): void {
     // Simple parallax - background moves at 50% camera speed
     const parallaxFactor = 0.5
-    const offsetX = -camera.x * parallaxFactor
-    const offsetY = -camera.y * parallaxFactor
+    const offsetX = -camera.getShakeX() * parallaxFactor
+    const offsetY = -camera.getShakeY() * parallaxFactor
 
     // Tile the background if smaller than viewport
     const imgWidth = background.width
@@ -103,7 +103,7 @@ export class GameplayRenderer {
   ): void {
     // Calculate visible tile range (with 1-tile buffer for partial tiles)
     const { startCol, endCol, startRow, endRow } = calculateVisibleTileRange(
-      camera.x, camera.y, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, level.width, level.height
+      camera.getShakeX(), camera.getShakeY(), VIEWPORT_WIDTH, VIEWPORT_HEIGHT, level.width, level.height
     )
 
     for (let row = startRow; row < endRow; row++) {
@@ -116,8 +116,8 @@ export class GameplayRenderer {
         const worldY = row * TILE_SIZE
         
         // Screen position (offset by camera) - round to avoid sub-pixel rendering artifacts
-        const screenX = Math.round(worldX - camera.x)
-        const screenY = Math.round(worldY - camera.y)
+        const screenX = Math.round(worldX - camera.getShakeX())
+        const screenY = Math.round(worldY - camera.getShakeY())
 
         // Draw background for all tiles (only if no custom background)
         if (!assetStore?.background) {
@@ -183,8 +183,8 @@ export class GameplayRenderer {
     assetStore?: AssetStore
   ): void {
     // Convert world position to screen position
-    const screenX = Math.round(entity.x - camera.x)
-    const screenY = Math.round(entity.y - camera.y)
+    const screenX = Math.round(entity.x - camera.getShakeX())
+    const screenY = Math.round(entity.y - camera.getShakeY())
 
     // Skip if off-screen
     if (
@@ -271,8 +271,8 @@ export class GameplayRenderer {
     assetStore?: AssetStore
   ): void {
     // Convert world position to screen position - round to avoid sub-pixel artifacts
-    const screenX = Math.round(player.x - camera.x)
-    const screenY = Math.round(player.y - camera.y)
+    const screenX = Math.round(player.x - camera.getShakeX())
+    const screenY = Math.round(player.y - camera.getShakeY())
 
     // Check for custom player sprites
     const playerSprites = assetStore?.playerSprites

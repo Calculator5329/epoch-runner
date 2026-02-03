@@ -24,6 +24,9 @@ class CameraService {
 
     // Update camera to follow player
     cameraStore.follow(playerCenter.x, playerCenter.y, deltaTime)
+
+    // Update screen shake
+    cameraStore.updateShake(deltaTime)
   }
 
   /**

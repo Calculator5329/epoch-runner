@@ -47,8 +47,8 @@ export class DebugRenderer {
     level: LevelStore,
     camera: CameraStore
   ): void {
-    const cameraX = Math.floor(camera.x)
-    const cameraY = Math.floor(camera.y)
+    const cameraX = Math.floor(camera.getShakeX())
+    const cameraY = Math.floor(camera.getShakeY())
     
     // Calculate visible tile range using shared utility
     const { startCol, endCol, startRow, endRow } = calculateVisibleTileRange(
@@ -84,8 +84,8 @@ export class DebugRenderer {
     level: LevelStore,
     camera: CameraStore
   ): void {
-    const cameraX = Math.floor(camera.x)
-    const cameraY = Math.floor(camera.y)
+    const cameraX = Math.floor(camera.getShakeX())
+    const cameraY = Math.floor(camera.getShakeY())
     
     // Calculate visible tile range using shared utility
     const { startCol, endCol, startRow, endRow } = calculateVisibleTileRange(
@@ -167,7 +167,7 @@ export class DebugRenderer {
       `Grid: (${Math.floor(player.x / TILE_SIZE)}, ${Math.floor(player.y / TILE_SIZE)})`,
       `Grounded: ${player.isGrounded}`,
       `Jumps: ${player.jumpsRemaining}`,
-      `Camera: (${camera.x.toFixed(0)}, ${camera.y.toFixed(0)})`,
+      `Camera: (${camera.getShakeX().toFixed(0)}, ${camera.getShakeY().toFixed(0)})`,
       `Level: ${level.width}x${level.height}`,
       `─────────────────────`,
       `God Mode: ${game.isGodMode ? 'ON' : 'OFF'}`,
