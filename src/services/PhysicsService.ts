@@ -110,8 +110,8 @@ class PhysicsService {
     return {
       x,
       y,
-      width: player.currentWidth,
-      height: player.currentHeight,
+      width: player.width,
+      height: player.height,
     }
   }
 
@@ -147,7 +147,7 @@ class PhysicsService {
             }
           }
           // Snap player so right edge touches the wall
-          player.x = minX - player.currentWidth
+          player.x = minX - player.width
         }
       } else {
         // Moving left - find the rightmost collision and snap to its right edge
@@ -215,7 +215,7 @@ class PhysicsService {
             // Skip platforms if we were below them
             if (isTileTypePlatform(col.tileId)) {
               const platformTop = col.tileY + (tileType.collision.rect?.y || 0) * TILE_SIZE
-              const prevBottom = prevY + player.currentHeight
+              const prevBottom = prevY + player.height
               if (prevBottom > platformTop + 1) continue
             }
             
@@ -229,7 +229,7 @@ class PhysicsService {
                 col.tileX,
                 col.tileY,
                 player.x,
-                player.currentWidth
+                player.width
               )
               minY = Math.min(minY, surfaceY)
             } else {
@@ -238,7 +238,7 @@ class PhysicsService {
           }
           if (minY !== Infinity) {
             // Snap player so bottom touches the ground
-            player.y = minY - player.currentHeight
+            player.y = minY - player.height
           }
         }
       } else {
@@ -374,9 +374,6 @@ class PhysicsService {
         level.setTileAt(pickup.col, pickup.row, TileTypeId.EMPTY)
       } else if (pickup.tileId === TileTypeId.POWERUP_INVINCIBILITY) {
         player.grantInvincibility()
-        level.setTileAt(pickup.col, pickup.row, TileTypeId.EMPTY)
-      } else if (pickup.tileId === TileTypeId.POWERUP_MINI_SIZE) {
-        player.grantMiniSize()
         level.setTileAt(pickup.col, pickup.row, TileTypeId.EMPTY)
       }
     }

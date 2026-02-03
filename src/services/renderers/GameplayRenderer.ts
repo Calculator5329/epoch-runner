@@ -7,7 +7,6 @@ import {
   SPEED_BOOST_DURATION,
   SUPER_JUMP_DURATION,
   INVINCIBILITY_DURATION,
-  MINI_SIZE_DURATION,
 } from '../../core/constants'
 import { TILE_COLORS } from '../../core/types/shapes'
 import { getTileType, TileTypeId } from '../../core/types/shapes'
@@ -331,7 +330,7 @@ export class GameplayRenderer {
     const indicatorSpacing = 18
     const timerWidth = 30
     const timerHeight = 4
-    const centerX = screenX + player.currentWidth / 2
+    const centerX = screenX + player.width / 2
 
     // Triple jump indicator
     if (player.hasTripleJump) {
@@ -446,43 +445,8 @@ export class GameplayRenderer {
       ctx.lineWidth = 3
       ctx.shadowColor = TILE_COLORS.invincibility
       ctx.shadowBlur = 5
-      ctx.strokeRect(screenX - 2, screenY - 2, player.currentWidth + 4, player.currentHeight + 4)
+      ctx.strokeRect(screenX - 2, screenY - 2, player.width + 4, player.height + 4)
       ctx.shadowBlur = 0
-    }
-    
-    // Mini size indicator (hot pink)
-    if (player.hasMiniSize) {
-      const indicatorY = screenY - 10 - indicatorOffset
-      ctx.fillStyle = TILE_COLORS.miniSize
-      ctx.beginPath()
-      ctx.arc(centerX, indicatorY, 6, 0, Math.PI * 2)
-      ctx.fill()
-      
-      // Small arrow decoration (pointing inward)
-      ctx.strokeStyle = TILE_COLORS.miniSize
-      ctx.lineWidth = 2
-      ctx.beginPath()
-      ctx.moveTo(centerX - 8, indicatorY - 8)
-      ctx.lineTo(centerX - 4, indicatorY - 4)
-      ctx.moveTo(centerX + 8, indicatorY - 8)
-      ctx.lineTo(centerX + 4, indicatorY - 4)
-      ctx.moveTo(centerX - 8, indicatorY + 8)
-      ctx.lineTo(centerX - 4, indicatorY + 4)
-      ctx.moveTo(centerX + 8, indicatorY + 8)
-      ctx.lineTo(centerX + 4, indicatorY + 4)
-      ctx.stroke()
-      
-      // Timer bar
-      const timerX = centerX - 20
-      const timerY = indicatorY + 12
-      const timerWidth = 40
-      const timerHeight = 4
-      const fillRatio = player.miniSizeTimer / MINI_SIZE_DURATION
-      
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
-      ctx.fillRect(timerX, timerY, timerWidth, timerHeight)
-      ctx.fillStyle = TILE_COLORS.miniSize
-      ctx.fillRect(timerX, timerY, timerWidth * fillRatio, timerHeight)
     }
   }
 
@@ -500,11 +464,11 @@ export class GameplayRenderer {
 
     // Flip sprite horizontally if facing left
     if (!player.isFacingRight) {
-      ctx.translate(screenX + player.currentWidth, screenY)
+      ctx.translate(screenX + player.width, screenY)
       ctx.scale(-1, 1)
-      ctx.drawImage(sprite, 0, 0, player.currentWidth, player.currentHeight)
+      ctx.drawImage(sprite, 0, 0, player.width, player.height)
     } else {
-      ctx.drawImage(sprite, screenX, screenY, player.currentWidth, player.currentHeight)
+      ctx.drawImage(sprite, screenX, screenY, player.width, player.height)
     }
 
     ctx.restore()
@@ -521,22 +485,22 @@ export class GameplayRenderer {
   ): void {
     // Player body
     ctx.fillStyle = player.isDead ? '#666' : COLORS.player
-    ctx.fillRect(screenX, screenY, player.currentWidth, player.currentHeight)
+    ctx.fillRect(screenX, screenY, player.width, player.height)
 
     // Player outline
     ctx.strokeStyle = player.isDead ? '#444' : COLORS.playerOutline
     ctx.lineWidth = 2
-    ctx.strokeRect(screenX, screenY, player.currentWidth, player.currentHeight)
+    ctx.strokeRect(screenX, screenY, player.width, player.height)
 
     // Direction indicator (small triangle showing facing direction)
     if (!player.isDead) {
       ctx.fillStyle = COLORS.playerOutline
-      const centerY = screenY + player.currentHeight / 2
+      const centerY = screenY + player.height / 2
       const indicatorSize = 8
       
       ctx.beginPath()
       if (player.isFacingRight) {
-        const rightEdge = screenX + player.currentWidth
+        const rightEdge = screenX + player.width
         ctx.moveTo(rightEdge - 4, centerY - indicatorSize)
         ctx.lineTo(rightEdge + 4, centerY)
         ctx.lineTo(rightEdge - 4, centerY + indicatorSize)

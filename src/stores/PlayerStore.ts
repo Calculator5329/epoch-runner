@@ -8,10 +8,8 @@ import {
   SPEED_BOOST_DURATION,
   SUPER_JUMP_DURATION,
   INVINCIBILITY_DURATION,
-  MINI_SIZE_DURATION,
   SPEED_BOOST_MULTIPLIER,
   SUPER_JUMP_MULTIPLIER,
-  MINI_SIZE_MULTIPLIER,
 } from '../core/constants'
 import type { InputState, Vector2 } from '../core/types'
 import { audioService } from '../services/AudioService'
@@ -63,10 +61,6 @@ export class PlayerStore {
   // Invincibility power-up
   hasInvincibility = false
   invincibilityTimer = 0
-  
-  // Mini size power-up
-  hasMiniSize = false
-  miniSizeTimer = 0
 
   constructor() {
     makeAutoObservable(this)
@@ -155,13 +149,13 @@ export class PlayerStore {
       }
     }
     
-    // Mini size timer
-    if (this.hasMiniSize && this.miniSizeTimer > 0) {
-      this.miniSizeTimer -= deltaTime
+    // Invincibility timer
+    if (this.hasInvincibility && this.invincibilityTimer > 0) {
+      this.invincibilityTimer -= deltaTime
       
-      if (this.miniSizeTimer <= 0) {
-        this.hasMiniSize = false
-        this.miniSizeTimer = 0
+      if (this.invincibilityTimer <= 0) {
+        this.hasInvincibility = false
+        this.invincibilityTimer = 0
       }
     }
   }
@@ -250,14 +244,6 @@ export class PlayerStore {
   }
 
   /**
-   * Grant mini size power-up (halves player size)
-   */
-  grantMiniSize(): void {
-    this.hasMiniSize = true
-    this.miniSizeTimer = MINI_SIZE_DURATION
-  }
-
-  /**
    * Get player center position
    */
   get center(): Vector2 {
@@ -268,32 +254,15 @@ export class PlayerStore {
   }
 
   /**
-   * Get player bounding box (affected by mini size power-up)
+   * Get player bounding box
    */
   get bounds() {
-    const effectiveWidth = this.hasMiniSize ? this.width * MINI_SIZE_MULTIPLIER : this.width
-    const effectiveHeight = this.hasMiniSize ? this.height * MINI_SIZE_MULTIPLIER : this.height
-    
     return {
       x: this.x,
       y: this.y,
-      width: effectiveWidth,
-      height: effectiveHeight,
+      width: this.width,
+      height: this.height,
     }
-  }
-
-  /**
-   * Get current player width (affected by mini size power-up)
-   */
-  get currentWidth(): number {
-    return this.hasMiniSize ? this.width * MINI_SIZE_MULTIPLIER : this.width
-  }
-
-  /**
-   * Get current player height (affected by mini size power-up)
-   */
-  get currentHeight(): number {
-    return this.hasMiniSize ? this.height * MINI_SIZE_MULTIPLIER : this.height
   }
 
   /**
@@ -329,8 +298,6 @@ export class PlayerStore {
     this.superJumpTimer = 0
     this.hasInvincibility = false
     this.invincibilityTimer = 0
-    this.hasMiniSize = false
-    this.miniSizeTimer = 0
     
     this.jumpsRemaining = this.baseMaxJumps
   }
@@ -353,6 +320,6 @@ export class PlayerStore {
    * Check if player has any active power-up
    */
   get hasAnyPowerUp(): boolean {
-    return this.hasTripleJump || this.hasSpeedBoost || this.hasSuperJump || this.hasInvincibility || this.hasMiniSize
+    return this.hasTripleJump || this.hasSpeedBoost || this.hasSuperJump || this.hasInvincibility
   }
 }

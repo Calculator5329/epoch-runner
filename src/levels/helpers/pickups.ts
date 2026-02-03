@@ -82,10 +82,3 @@ export function superJump(col: number, row: number): TilePlacement[] {
 export function invincibility(col: number, row: number): TilePlacement[] {
   return [{ col, row, type: TileTypeId.POWERUP_INVINCIBILITY }]
 }
-
-/**
- * Place a mini size power-up (halves player size)
- */
-export function miniSize(col: number, row: number): TilePlacement[] {
-  return [{ col, row, type: TileTypeId.POWERUP_MINI_SIZE }]
-}

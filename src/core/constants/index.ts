@@ -48,9 +48,7 @@ export const TRIPLE_JUMP_DURATION = 10
 export const SPEED_BOOST_DURATION = 8
 export const SUPER_JUMP_DURATION = 8
 export const INVINCIBILITY_DURATION = 6
-export const MINI_SIZE_DURATION = 12
 
 // Power-up multipliers
 export const SPEED_BOOST_MULTIPLIER = 2.0    // 2x movement speed
 export const SUPER_JUMP_MULTIPLIER = 1.5     // 1.5x jump height
-export const MINI_SIZE_MULTIPLIER = 0.5      // 0.5x player size

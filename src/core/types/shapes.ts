@@ -226,7 +226,6 @@ export const TileTypeId = {
   POWERUP_SPEED: 82,
   POWERUP_SUPER_JUMP: 83,
   POWERUP_INVINCIBILITY: 84,
-  POWERUP_MINI_SIZE: 85,
   
   // Triggers (100-119)
   GOAL: 100,
@@ -245,7 +244,6 @@ export const TILE_COLORS = {
   speedBoost: '#f6ad55',    // Orange for speed boost
   superJump: '#9f7aea',     // Purple for super jump
   invincibility: '#ffd700', // Gold for invincibility
-  miniSize: '#ff69b4',      // Hot pink for mini size
   goal: '#48bb78',
   checkpoint: '#4299e1',
   // Custom solid colors (for different sprite themes)
@@ -531,13 +529,6 @@ export const TILE_TYPES: Record<TileTypeId, TileType> = {
     category: 'pickup',
     collision: SHAPES.PICKUP,
     color: TILE_COLORS.invincibility,
-  },
-  [TileTypeId.POWERUP_MINI_SIZE]: {
-    id: TileTypeId.POWERUP_MINI_SIZE,
-    name: 'Mini Size',
-    category: 'pickup',
-    collision: SHAPES.PICKUP,
-    color: TILE_COLORS.miniSize,
   },
   
   // Triggers

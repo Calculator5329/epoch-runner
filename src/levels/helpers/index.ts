@@ -70,7 +70,6 @@ export {
   speedBoost,
   superJump,
   invincibility,
-  miniSize,
 } from './pickups'
 
 // Triggers
