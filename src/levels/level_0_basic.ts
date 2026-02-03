@@ -5,7 +5,7 @@
  * Tests: Basic movement, jumping, platforms, goal
  */
 
-import { createLevel, tiles, ground, platform, goal, stairsUpRight, wall } from './helpers'
+import { createLevel, tiles, ground, platform, goal, stairsUpRight, wall, miniSize } from './helpers'
 
 export const level_0_basic = createLevel(
   'level_0_basic',
@@ -39,6 +39,9 @@ export const level_0_basic = createLevel(
     // Obstacles
     wall(15, 11, 3),
     wall(25, 9, 5),
+    
+    // Powerups
+    ...miniSize(10, 11),  // Mini size powerup at column 10, row 11 (on ground level)
   ),
   {
     description: 'Basic platforming test - movement and jumping',
